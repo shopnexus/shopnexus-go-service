@@ -1,0 +1,29 @@
+syntax = "proto3";
+
+package shopnexus;
+
+option go_package = "shopnexus-go-service/gen/pb";
+
+// CREATE PAYMENT
+
+message CreatePaymentRequest {
+  // fields have explicit presence, so no explicit setting needed
+  repeated bytes product_ids = 1;
+  PaymentMethod payment_method = 2;
+
+  enum PaymentMethod {
+    PAYMENT_METHOD_UNSPECIFIED = 0;
+    CASH = 1;
+    MOMO = 2;
+    VNPAY = 3;
+  }
+}
+
+message CreatePaymentResponse {
+  string payment_id = 1;
+  string payment_url = 2;
+}
+
+service Payment {
+  rpc Create(CreatePaymentRequest) returns (CreatePaymentResponse) {}
+}

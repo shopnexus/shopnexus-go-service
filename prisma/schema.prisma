@@ -1,0 +1,283 @@
+generator client {
+  provider        = "prisma-client-js"
+  previewFeatures = ["multiSchema"]
+}
+
+generator dbml {
+  provider = "prisma-dbml-generator"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+  schemas  = ["account", "product", "payment"]
+}
+
+//===== ACCOUNT =====
+
+model Account {
+  id       Bytes  @id
+  username String @db.VarChar(50)
+  password String @db.VarChar(100)
+  role     Role
+
+  user_account UserAccount?
+  shop_account AdminAccount?
+
+  @@map("base")
+  @@schema("account")
+}
+
+model UserAccount {
+  id                 Bytes   @id
+  email              String  @unique @db.VarChar(255)
+  phone              String  @unique
+  gender             Gender
+  full_name          String? @db.VarChar(100)
+  default_address_id Bytes   @unique
+
+  account   Account   @relation(fields: [id], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  addresses Address[]
+  cart      Cart?
+  invoices  Invoice[]
+
+  @@map("user")
+  @@schema("account")
+}
+
+model AdminAccount {
+  id Bytes @id
+
+  account Account @relation(fields: [id], references: [id], onDelete: Cascade, onUpdate: Cascade)
+
+  @@map("shop")
+  @@schema("account")
+}
+
+//===== USER =====
+
+model Address {
+  id          Bytes  @id
+  user_id     Bytes
+  address     String
+  city        String
+  province    String
+  country     String
+  postal_code String
+
+  user_account UserAccount? @relation(fields: [user_id], references: [id], onUpdate: Cascade, onDelete: Cascade)
+
+  @@map("address")
+  @@schema("account")
+}
+
+model Cart {
+  user_id Bytes @id
+
+  products     ItemOnCart[]
+  user_account UserAccount  @relation(fields: [user_id], references: [id], onUpdate: Cascade, onDelete: Cascade)
+
+  @@map("cart")
+  @@schema("account")
+}
+
+model ItemOnCart {
+  cart_id          Bytes
+  product_model_id Bytes
+  quantity         BigInt
+
+  cart         Cart         @relation(fields: [cart_id], references: [user_id], onUpdate: Cascade, onDelete: Cascade)
+  productModel ProductModel @relation(fields: [product_model_id], references: [id], onUpdate: Cascade, onDelete: Cascade)
+
+  @@id([cart_id, product_model_id])
+  @@map("item_on_cart")
+  @@schema("account")
+}
+
+//===== PRODUCT =====
+
+model Brand {
+  id          Bytes  @id
+  name        String
+  description String
+
+  images        Image[]
+  productModels ProductModel[]
+
+  @@map("brand")
+  @@schema("product")
+}
+
+model ProductModel {
+  id                Bytes    @id
+  brand_id          Bytes
+  name              String
+  description       String
+  list_price        Decimal  @db.Decimal(10, 2)
+  date_manufactured DateTime
+
+  images   Image[]
+  tags     TagOnProduct[]
+  brand    Brand          @relation(fields: [brand_id], references: [id], onUpdate: Cascade, onDelete: Cascade)
+  products Product[]
+  sales    Sale[]
+  carts    ItemOnCart[]
+
+  @@map("model")
+  @@schema("product")
+}
+
+model Product {
+  serial_id        Bytes    @id
+  product_model_id Bytes
+  // shop_id     Bytes // Remove this because current web is single shop (but multi manager accounts)
+  date_created     DateTime @default(now())
+  date_update      DateTime @updatedAt
+
+  // shop ShopAccount @relation(fields: [shop_id], references: [id])
+  product_model ProductModel @relation(fields: [product_model_id], references: [id], onUpdate: Cascade, onDelete: Cascade)
+
+  @@map("base")
+  @@schema("product")
+}
+
+// Note: Sale data should be removed when reach end_date
+model Sale {
+  id               Bytes     @id
+  tag_name         String? // either tag_name or product_model_id
+  product_model_id Bytes?
+  date_started     DateTime  @default(now())
+  date_ended       DateTime?
+  quantity         BigInt // 0 to unlimited
+  used             BigInt    @default(0)
+  is_active        Boolean   @default(true)
+  discount_percent Int? // either discount_percent or discount_price
+  discount_price   Decimal?  @db.Decimal(10, 2)
+
+  tag           Tag?          @relation(fields: [tag_name], references: [tag_name], onUpdate: Cascade, onDelete: Cascade)
+  product_model ProductModel? @relation(fields: [product_model_id], references: [id], onUpdate: Cascade, onDelete: Cascade)
+
+  @@map("sale")
+  @@schema("product")
+}
+
+model TagOnProduct {
+  product_model_id Bytes
+  tag_name         String
+  product_model    ProductModel @relation(fields: [product_model_id], references: [id], onUpdate: Cascade, onDelete: Cascade)
+  tag              Tag          @relation(fields: [tag_name], references: [tag_name], onUpdate: Cascade, onDelete: Cascade)
+
+  @@id([product_model_id, tag_name])
+  @@map("tag_on_product")
+  @@schema("product")
+}
+
+model Tag {
+  tag_name    String  @id
+  description String?
+
+  productModels TagOnProduct[]
+  sales         Sale[]
+
+  @@map("tag")
+  @@schema("product")
+}
+
+// ===== PAYMENT =====
+// Note: Invoice data should not relation with anything else except invoice related items
+
+model Invoice {
+  id             Bytes         @id
+  user_id        Bytes
+  address        String
+  total          Decimal       @db.Decimal(10, 2)
+  payment_method PaymentMethod
+  date_created   DateTime
+
+  user_account UserAccount        @relation(fields: [user_id], references: [id], onUpdate: Cascade, onDelete: Cascade)
+  items        ProductOnInvoice[]
+  payment      Payment?
+
+  @@map("invoice")
+  @@schema("payment")
+}
+
+model ProductOnInvoice {
+  id                Bytes   @id
+  invoice_id        Bytes
+  product_serial_id Bytes
+  quantity          BigInt
+  price             Decimal @db.Decimal(10, 2) // Single product price
+  totalPrice        Decimal @db.Decimal(10, 2) // Final price (applied discount)
+
+  invoice Invoice @relation(fields: [invoice_id], references: [id], onUpdate: Cascade, onDelete: Cascade)
+
+  @@map("product_on_invoice")
+  @@schema("payment")
+}
+
+model Payment {
+  id             Bytes         @id
+  status         PaymentStatus
+  payment_method PaymentMethod
+  invoice_id     Bytes         @unique
+  date_created   DateTime      @default(now()) @db.Timestamp(0)
+  date_expired   DateTime      @db.Timestamp(0)
+
+  invoice Invoice @relation(fields: [invoice_id], references: [id], onUpdate: Cascade, onDelete: Cascade)
+
+  @@map("base")
+  @@schema("payment")
+}
+
+// ===== OTHER =====
+
+model Image {
+  // shop_id Bytes?
+  brand_id         Bytes?
+  product_model_id Bytes?
+  url              String @id
+
+  // shop ShopAccount? @relation(fields: [shop_id], references: [id])
+  brand        Brand?        @relation(fields: [brand_id], references: [id])
+  productModel ProductModel? @relation(fields: [product_model_id], references: [id], onUpdate: Cascade, onDelete: Cascade)
+
+  @@map("image")
+  @@schema("product")
+}
+
+enum Role {
+  ADMIN
+  USER
+
+  @@map("role")
+  @@schema("account")
+}
+
+enum Gender {
+  MALE
+  FEMALE
+  OTHER
+
+  @@map("gender")
+  @@schema("account")
+}
+
+enum PaymentStatus {
+  PENDING
+  SUCCESS
+  CANCELLED
+  FAILED
+
+  @@map("status")
+  @@schema("payment")
+}
+
+enum PaymentMethod {
+  CASH
+  MOMO
+  VNPAY
+
+  @@map("payment_method")
+  @@schema("payment")
+}

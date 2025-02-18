@@ -1,0 +1,10 @@
+version: "2"
+sql:
+  - schema: "prisma/migrations/0_init"
+    queries: "./queries/"
+    engine: "postgresql"
+    gen:
+      go:
+        package: "sqlc"
+        out: "gen/sqlc"
+        sql_package: "pgx/v5"

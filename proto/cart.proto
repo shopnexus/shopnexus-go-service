@@ -1,0 +1,59 @@
+syntax = "proto3";
+
+package shopnexus;
+
+option go_package = "shopnexus-go-service/gen/pb";
+
+// ADD ITEM
+message AddItemRequest {
+  bytes product_id = 1;
+}
+
+message AddItemResponse {
+  string cart_id = 1;
+}
+
+// GET CART
+message GetCartRequest {
+  string cart_id = 1;
+}
+
+message GetCartResponse {
+  string cart_id = 1;
+  repeated bytes product_ids = 2;
+}
+
+// REMOVE ITEM
+message RemoveItemRequest {
+  bytes product_id = 2;
+}
+
+message RemoveItemResponse {
+  string cart_id = 1;
+}
+
+// CLEAR
+message ClearRequest {
+  string cart_id = 1;
+}
+
+message ClearResponse {
+  string cart_id = 1;
+}
+
+// CHECKOUT
+message CheckoutRequest {
+  string cart_id = 1;
+}
+
+message CheckoutResponse {
+  string cart_id = 1;
+}
+
+service Cart {
+  rpc AddItem(AddItemRequest) returns (AddItemResponse) {}
+  rpc GetCart(GetCartRequest) returns (GetCartResponse) {}
+  rpc RemoveItem(RemoveItemRequest) returns (RemoveItemResponse) {}
+  rpc Clear(GetCartRequest) returns (GetCartResponse) {}
+  rpc Checkout(GetCartRequest) returns (GetCartResponse) {}
+}
