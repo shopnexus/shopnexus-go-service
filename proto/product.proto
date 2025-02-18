@@ -1,0 +1,53 @@
+syntax = "proto3";
+
+package shopnexus;
+
+option go_package = "shopnexus-go-service/gen/pb";
+
+message GetProductRequest {
+  bytes serial_id = 1;
+}
+
+message GetProductResponse {
+  bytes product_id = 1;
+  bytes product_model_id = 2;
+  int64 date_created = 3;
+  int64 date_updated = 4;
+}
+
+message ListProductRequest {
+  int32 page = 1;
+  int32 limit = 2;
+  optional bytes product_model_id = 3;
+  optional int64 date_created_from = 4;
+  optional int64 date_created_to = 5;
+  optional int64 date_updated_from = 6;
+  optional int64 date_updated_to = 7;
+}
+
+message ListProductResponse {
+  repeated GetProductResponse products = 1;
+}
+
+message CreateProductRequest {
+  bytes product_model_id = 1;
+}
+
+message CreateProductResponse {
+  bytes serial_id = 1;
+}
+
+message DeleteProductRequest {
+  bytes serial_id = 1;
+}
+
+message DeleteProductResponse {
+  bytes serial_id = 1;
+}
+
+service Product {
+  rpc Get(GetProductRequest) returns (GetProductResponse) {}
+  rpc List(ListProductRequest) returns (ListProductResponse) {}
+  rpc Create(CreateProductRequest) returns (CreateProductResponse) {}
+  rpc Delete(DeleteProductRequest) returns (DeleteProductResponse) {}
+}

@@ -34,3 +34,10 @@ func (r *Repository) WithTx(tx pgx.Tx) *Repository {
 func (r *Repository) Begin(ctx context.Context) (pgx.Tx, error) {
 	return r.pool.Begin(ctx)
 }
+
+func wrapError(err error) error {
+	if err == nil {
+		return nil
+	}
+	return err
+}

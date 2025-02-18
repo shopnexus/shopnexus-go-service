@@ -7,8 +7,8 @@ RETURNING quantity;
 
 -- name: DeductCartItem :one
 UPDATE "account".item_on_cart
-SET quantity = quantity - $2
-WHERE cart_id = $1 AND product_model_id = $3
+SET quantity = quantity - $3
+WHERE cart_id = $1 AND product_model_id = $2
 RETURNING quantity;
 
 -- name: RemoveCartItem :exec
