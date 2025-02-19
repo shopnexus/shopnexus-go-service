@@ -18,3 +18,7 @@ WHERE cart_id = $1 AND product_model_id = $2;
 -- name: GetCartItems :many
 SELECT * FROM "account".item_on_cart
 WHERE cart_id = $1;
+
+-- name: GetCart :one
+SELECT * FROM "account".cart
+WHERE id = $1;

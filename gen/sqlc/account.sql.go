@@ -50,6 +50,17 @@ func (q *Queries) DeductCartItem(ctx context.Context, arg DeductCartItemParams) 
 	return quantity, err
 }
 
+const getCart = `-- name: GetCart :one
+SELECT id FROM "account".cart
+WHERE id = $1
+`
+
+func (q *Queries) GetCart(ctx context.Context, id []byte) ([]byte, error) {
+	row := q.db.QueryRow(ctx, getCart, id)
+	err := row.Scan(&id)
+	return id, err
+}
+
 const getCartItems = `-- name: GetCartItems :many
 SELECT cart_id, product_model_id, quantity FROM "account".item_on_cart
 WHERE cart_id = $1

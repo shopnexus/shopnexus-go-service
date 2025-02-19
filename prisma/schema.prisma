@@ -39,7 +39,7 @@ model UserAccount {
   account   Account   @relation(fields: [id], references: [id], onDelete: Cascade, onUpdate: Cascade)
   addresses Address[]
   cart      Cart?
-  invoices  Invoice[]
+  payments  Payment[]
 
   @@map("user")
   @@schema("account")
@@ -72,10 +72,10 @@ model Address {
 }
 
 model Cart {
-  user_id Bytes @id
+  id Bytes @id
 
   products     ItemOnCart[]
-  user_account UserAccount  @relation(fields: [user_id], references: [id], onUpdate: Cascade, onDelete: Cascade)
+  user_account UserAccount  @relation(fields: [id], references: [id], onUpdate: Cascade, onDelete: Cascade)
 
   @@map("cart")
   @@schema("account")
@@ -86,7 +86,7 @@ model ItemOnCart {
   product_model_id Bytes
   quantity         BigInt
 
-  cart         Cart         @relation(fields: [cart_id], references: [user_id], onUpdate: Cascade, onDelete: Cascade)
+  cart         Cart         @relation(fields: [cart_id], references: [id], onUpdate: Cascade, onDelete: Cascade)
   productModel ProductModel @relation(fields: [product_model_id], references: [id], onUpdate: Cascade, onDelete: Cascade)
 
   @@id([cart_id, product_model_id])
@@ -184,47 +184,32 @@ model Tag {
 }
 
 // ===== PAYMENT =====
-// Note: Invoice data should not relation with anything else except invoice related items
 
-model Invoice {
-  id             Bytes         @id
-  user_id        Bytes
-  address        String
-  total          Decimal       @db.Decimal(10, 2)
-  payment_method PaymentMethod
-  date_created   DateTime
-
-  user_account UserAccount        @relation(fields: [user_id], references: [id], onUpdate: Cascade, onDelete: Cascade)
-  items        ProductOnInvoice[]
-  payment      Payment?
-
-  @@map("invoice")
-  @@schema("payment")
-}
-
-model ProductOnInvoice {
+model ProductOnPayment {
   id                Bytes   @id
-  invoice_id        Bytes
+  payment_id        Bytes
   product_serial_id Bytes
   quantity          BigInt
   price             Decimal @db.Decimal(10, 2) // Single product price
   totalPrice        Decimal @db.Decimal(10, 2) // Final price (applied discount)
 
-  invoice Invoice @relation(fields: [invoice_id], references: [id], onUpdate: Cascade, onDelete: Cascade)
+  payment       Payment @relation(fields: [payment_id], references: [id], onUpdate: Cascade, onDelete: Cascade)
 
-  @@map("product_on_invoice")
+  @@map("product_on_payment")
   @@schema("payment")
 }
 
 model Payment {
   id             Bytes         @id
-  status         PaymentStatus
+  user_id        Bytes
+  address        String
   payment_method PaymentMethod
-  invoice_id     Bytes         @unique
+  total          Decimal       @db.Decimal(10, 2)
+  status         PaymentStatus
   date_created   DateTime      @default(now()) @db.Timestamp(0)
-  date_expired   DateTime      @db.Timestamp(0)
 
-  invoice Invoice @relation(fields: [invoice_id], references: [id], onUpdate: Cascade, onDelete: Cascade)
+  user_account UserAccount @relation(fields: [user_id], references: [id], onUpdate: Cascade, onDelete: Cascade)
+  products     ProductOnPayment[]
 
   @@map("base")
   @@schema("payment")

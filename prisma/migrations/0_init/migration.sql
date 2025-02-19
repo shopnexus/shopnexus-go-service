@@ -63,9 +63,9 @@ CREATE TABLE "account"."address" (
 
 -- CreateTable
 CREATE TABLE "account"."cart" (
-    "user_id" BYTEA NOT NULL,
+    "id" BYTEA NOT NULL,
 
-    CONSTRAINT "cart_pkey" PRIMARY KEY ("user_id")
+    CONSTRAINT "cart_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
@@ -141,37 +141,26 @@ CREATE TABLE "product"."tag" (
 );
 
 -- CreateTable
-CREATE TABLE "payment"."invoice" (
+CREATE TABLE "payment"."product_on_payment" (
     "id" BYTEA NOT NULL,
-    "user_id" BYTEA NOT NULL,
-    "address" TEXT NOT NULL,
-    "total" DECIMAL(10,2) NOT NULL,
-    "payment_method" "payment"."payment_method" NOT NULL,
-    "date_created" TIMESTAMP(3) NOT NULL,
-
-    CONSTRAINT "invoice_pkey" PRIMARY KEY ("id")
-);
-
--- CreateTable
-CREATE TABLE "payment"."product_on_invoice" (
-    "id" BYTEA NOT NULL,
-    "invoice_id" BYTEA NOT NULL,
+    "payment_id" BYTEA NOT NULL,
     "product_serial_id" BYTEA NOT NULL,
     "quantity" BIGINT NOT NULL,
     "price" DECIMAL(10,2) NOT NULL,
     "totalPrice" DECIMAL(10,2) NOT NULL,
 
-    CONSTRAINT "product_on_invoice_pkey" PRIMARY KEY ("id")
+    CONSTRAINT "product_on_payment_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
 CREATE TABLE "payment"."base" (
     "id" BYTEA NOT NULL,
-    "status" "payment"."status" NOT NULL,
+    "user_id" BYTEA NOT NULL,
+    "address" TEXT NOT NULL,
     "payment_method" "payment"."payment_method" NOT NULL,
-    "invoice_id" BYTEA NOT NULL,
+    "total" DECIMAL(10,2) NOT NULL,
+    "status" "payment"."status" NOT NULL,
     "date_created" TIMESTAMP(0) NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    "date_expired" TIMESTAMP(0) NOT NULL,
 
     CONSTRAINT "base_pkey" PRIMARY KEY ("id")
 );
@@ -194,9 +183,6 @@ CREATE UNIQUE INDEX "user_phone_key" ON "account"."user"("phone");
 -- CreateIndex
 CREATE UNIQUE INDEX "user_default_address_id_key" ON "account"."user"("default_address_id");
 
--- CreateIndex
-CREATE UNIQUE INDEX "base_invoice_id_key" ON "payment"."base"("invoice_id");
-
 -- AddForeignKey
 ALTER TABLE "account"."user" ADD CONSTRAINT "user_id_fkey" FOREIGN KEY ("id") REFERENCES "account"."base"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
@@ -207,10 +193,10 @@ ALTER TABLE "account"."shop" ADD CONSTRAINT "shop_id_fkey" FOREIGN KEY ("id") RE
 ALTER TABLE "account"."address" ADD CONSTRAINT "address_user_id_fkey" FOREIGN KEY ("user_id") REFERENCES "account"."user"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "account"."cart" ADD CONSTRAINT "cart_user_id_fkey" FOREIGN KEY ("user_id") REFERENCES "account"."user"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+ALTER TABLE "account"."cart" ADD CONSTRAINT "cart_id_fkey" FOREIGN KEY ("id") REFERENCES "account"."user"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "account"."item_on_cart" ADD CONSTRAINT "item_on_cart_cart_id_fkey" FOREIGN KEY ("cart_id") REFERENCES "account"."cart"("user_id") ON DELETE CASCADE ON UPDATE CASCADE;
+ALTER TABLE "account"."item_on_cart" ADD CONSTRAINT "item_on_cart_cart_id_fkey" FOREIGN KEY ("cart_id") REFERENCES "account"."cart"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "account"."item_on_cart" ADD CONSTRAINT "item_on_cart_product_model_id_fkey" FOREIGN KEY ("product_model_id") REFERENCES "product"."model"("id") ON DELETE CASCADE ON UPDATE CASCADE;
@@ -234,13 +220,10 @@ ALTER TABLE "product"."tag_on_product" ADD CONSTRAINT "tag_on_product_product_mo
 ALTER TABLE "product"."tag_on_product" ADD CONSTRAINT "tag_on_product_tag_name_fkey" FOREIGN KEY ("tag_name") REFERENCES "product"."tag"("tag_name") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "payment"."invoice" ADD CONSTRAINT "invoice_user_id_fkey" FOREIGN KEY ("user_id") REFERENCES "account"."user"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+ALTER TABLE "payment"."product_on_payment" ADD CONSTRAINT "product_on_payment_payment_id_fkey" FOREIGN KEY ("payment_id") REFERENCES "payment"."base"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "payment"."product_on_invoice" ADD CONSTRAINT "product_on_invoice_invoice_id_fkey" FOREIGN KEY ("invoice_id") REFERENCES "payment"."invoice"("id") ON DELETE CASCADE ON UPDATE CASCADE;
-
--- AddForeignKey
-ALTER TABLE "payment"."base" ADD CONSTRAINT "base_invoice_id_fkey" FOREIGN KEY ("invoice_id") REFERENCES "payment"."invoice"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+ALTER TABLE "payment"."base" ADD CONSTRAINT "base_user_id_fkey" FOREIGN KEY ("user_id") REFERENCES "account"."user"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "product"."image" ADD CONSTRAINT "image_brand_id_fkey" FOREIGN KEY ("brand_id") REFERENCES "product"."brand"("id") ON DELETE SET NULL ON UPDATE CASCADE;

@@ -201,7 +201,7 @@ type AccountBase struct {
 }
 
 type AccountCart struct {
-	UserID []byte
+	ID []byte
 }
 
 type AccountItemOnCart struct {
@@ -225,25 +225,17 @@ type AccountUser struct {
 
 type PaymentBase struct {
 	ID            []byte
-	Status        PaymentStatus
-	PaymentMethod PaymentPaymentMethod
-	InvoiceID     []byte
-	DateCreated   pgtype.Timestamp
-	DateExpired   pgtype.Timestamp
-}
-
-type PaymentInvoice struct {
-	ID            []byte
 	UserID        []byte
 	Address       string
-	Total         pgtype.Numeric
 	PaymentMethod PaymentPaymentMethod
+	Total         pgtype.Numeric
+	Status        PaymentStatus
 	DateCreated   pgtype.Timestamp
 }
 
-type PaymentProductOnInvoice struct {
+type PaymentProductOnPayment struct {
 	ID              []byte
-	InvoiceID       []byte
+	PaymentID       []byte
 	ProductSerialID []byte
 	Quantity        int64
 	Price           pgtype.Numeric
