@@ -1,10 +1,10 @@
 {
 	"devDependencies": {
 		"nodemon": "^3.1.9",
-		"prisma": "^6.3.1"
+		"prisma": "^6.4.0"
 	},
 	"dependencies": {
-		"@prisma/client": "^6.2.1"
+		"@prisma/client": "^6.4.0"
 	},
 	"scripts": {
 		"dev": "air .air.toml -h",
