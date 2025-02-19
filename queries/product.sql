@@ -1,27 +1,41 @@
 -- name: GetBrand :one
 SELECT 
-    b.id,
-    b.name,
-    b.description,
-    COALESCE(array_agg(i.url) FILTER (WHERE i.url IS NOT NULL), '{}') as images
+    b.*,
+    COALESCE(array_agg(i.url) FILTER (WHERE i.url IS NOT NULL), '{}')::TEXT[] as images
 FROM product.brand b
 LEFT JOIN product.image i ON i.brand_id = b.id
 WHERE b.id = $1
 GROUP BY b.id;
 
+-- name: CountBrands :one
+WITH filtered_brands AS (
+  SELECT b.id
+  FROM product.brand b
+  WHERE (
+    (name ILIKE sqlc.narg('name') OR sqlc.narg('name') IS NULL) AND
+    (description ILIKE sqlc.narg('description') OR sqlc.narg('description') IS NULL)
+  )
+)
+SELECT COUNT(id)
+FROM filtered_brands;
+
 -- name: ListBrands :many
-SELECT 
-    b.id,
-    b.name,
-    b.description,
-    COALESCE(array_agg(i.url) FILTER (WHERE i.url IS NOT NULL), '{}') as images
-FROM product.brand b
-LEFT JOIN product.image i ON i.brand_id = b.id
-WHERE ($1::text IS NULL OR b.name ILIKE '%' || $1 || '%')
-    AND ($2::text IS NULL OR b.description ILIKE '%' || $2 || '%')
-GROUP BY b.id
-ORDER BY b.name
-LIMIT $3 OFFSET $4;
+WITH filtered_brands AS (
+  SELECT
+    b.*, 
+    COALESCE(array_agg(i.url) FILTER (WHERE i.url IS NOT NULL), '{}')::TEXT[] as images
+  FROM product.brand b
+  INNER JOIN product.image i ON i.brand_id = b.id
+  WHERE (
+    (name ILIKE sqlc.narg('name') OR sqlc.narg('name') IS NULL) AND
+    (description ILIKE sqlc.narg('description') OR sqlc.narg('description') IS NULL)
+  )
+  GROUP BY b.id
+)
+SELECT *
+FROM filtered_brands
+LIMIT sqlc.arg('limit')
+OFFSET sqlc.arg('offset');
 
 -- name: CreateBrand :one
 WITH inserted_brand AS (
@@ -31,83 +45,58 @@ WITH inserted_brand AS (
 ),
 inserted_images AS (
     INSERT INTO product.image (brand_id, url)
-    SELECT $1, unnest($4::text[])
+    SELECT $1, unnest(sqlc.arg('images')::text[])
     RETURNING url
 )
 SELECT 
-    b.id,
-    b.name,
-    b.description,
+    b.*,
     COALESCE(array_agg(i.url), '{}') as images
 FROM inserted_brand b
 LEFT JOIN inserted_images i ON true
 GROUP BY b.id;
 
--- name: UpdateBrand :one
-WITH updated_brand AS (
-    UPDATE product.brand
-    SET name = $2,
-        description = $3
-    WHERE id = $1
-    RETURNING *
-),
-deleted_images AS (
-    DELETE FROM product.image
-    WHERE brand_id = $1
-),
-inserted_images AS (
-    INSERT INTO product.image (brand_id, url)
-    SELECT $1, unnest($4::text[])
-    RETURNING url
-)
-SELECT 
-    b.id,
-    b.name,
-    b.description,
-    COALESCE(array_agg(i.url), '{}') as images
-FROM updated_brand b
-LEFT JOIN inserted_images i ON true
-GROUP BY b.id;
+-- name: UpdateBrand :exec
+UPDATE product.brand
+SET
+    name = COALESCE($2, name),
+    description = COALESCE($3, description)
+WHERE id = $1;
 
 -- name: DeleteBrand :exec
 DELETE FROM product.brand WHERE id = $1;
 
 -- name: GetProductModel :one
 SELECT 
-    pm.id,
-    pm.brand_id,
-    pm.name,
-    pm.description,
-    pm.list_price,
-    COALESCE(array_agg(DISTINCT i.url) FILTER (WHERE i.url IS NOT NULL), '{}') as images,
-    COALESCE(array_agg(DISTINCT t.tag_name) FILTER (WHERE t.tag_name IS NOT NULL), '{}') as tags
+    pm.*,
+    COALESCE(array_agg(i.url) FILTER (WHERE i.url IS NOT NULL), '{}') as images,
+    COALESCE(array_agg(t.tag_name) FILTER (WHERE t.tag_name IS NOT NULL), '{}') as tags
 FROM product.model pm
 LEFT JOIN product.image i ON i.product_model_id = pm.id
 LEFT JOIN product.tag_on_product t ON t.product_model_id = pm.id
 WHERE pm.id = $1
 GROUP BY pm.id;
 
+
 -- name: ListProductModels :many
 SELECT 
-    pm.id,
-    pm.brand_id,
-    pm.name,
-    pm.description,
-    pm.list_price,
+    pm.*,
     COALESCE(array_agg(DISTINCT i.url) FILTER (WHERE i.url IS NOT NULL), '{}') as images,
     COALESCE(array_agg(DISTINCT t.tag_name) FILTER (WHERE t.tag_name IS NOT NULL), '{}') as tags
 FROM product.model pm
 LEFT JOIN product.image i ON i.product_model_id = pm.id
 LEFT JOIN product.tag_on_product t ON t.product_model_id = pm.id
-WHERE ($1::bytea IS NULL OR pm.brand_id = $1)
-    AND ($2::text IS NULL OR pm.name ILIKE '%' || $2 || '%')
-    AND ($3::text IS NULL OR pm.description ILIKE '%' || $3 || '%')
-    AND ($4::decimal IS NULL OR pm.list_price = $4)
-    AND ($5::timestamp IS NULL OR pm.date_manufactured >= $5)
-    AND ($6::timestamp IS NULL OR pm.date_manufactured <= $6)
+WHERE (
+    (pm.brand_id = $1 OR $1 IS NULL) AND
+    (pm.name ILIKE '%' || $2 || '%' OR $2 IS NULL) AND
+    (pm.description ILIKE '%' || $3 || '%' OR $3 IS NULL) AND
+    (pm.list_price = $4 OR $4 IS NULL) AND 
+    (pm.date_manufactured >= sqlc.arg('date_manufactured_from') OR sqlc.arg('date_manufactured_from') IS NULL) AND
+    (pm.date_manufactured <= sqlc.arg('date_manufactured_to') OR sqlc.arg('date_manufactured_to') IS NULL)
+)
 GROUP BY pm.id
-ORDER BY pm.name
-LIMIT $7 OFFSET $8;
+ORDER BY pm.id DESC
+LIMIT sqlc.arg('limit')
+OFFSET sqlc.arg('offset');
 
 -- name: CreateProductModel :one
 WITH inserted_model AS (

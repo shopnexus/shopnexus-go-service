@@ -4,19 +4,23 @@ import (
 	"context"
 	"shopnexus-go-service/gen/sqlc"
 	pgxutil "shopnexus-go-service/internal/db/pgx"
+
+	"github.com/jackc/pgx/v5"
 )
 
 var _ RepositoryInterface = (*Repository)(nil)
 
 type RepositoryInterface interface {
-	Begin(ctx context.Context) (*Repository, error)
-	Commit(ctx context.Context) error
-	Rollback(ctx context.Context) error
 }
 
 type Repository struct {
 	db   pgxutil.DBTX
 	sqlc *sqlc.Queries
+}
+
+type RepositoryTx struct {
+	*Repository
+	tx pgx.Tx
 }
 
 func NewRepository(db pgxutil.DBTX) *Repository {
@@ -26,21 +30,24 @@ func NewRepository(db pgxutil.DBTX) *Repository {
 	}
 }
 
-func (r *Repository) Begin(ctx context.Context) (*Repository, error) {
+func (r *Repository) Begin(ctx context.Context) (*RepositoryTx, error) {
 	tx, err := r.db.Begin(ctx)
 	if err != nil {
 		return nil, err
 	}
 
-	return NewRepository(tx), nil
+	return &RepositoryTx{
+		Repository: NewRepository(tx),
+		tx:         tx,
+	}, nil
 }
 
-func (r *Repository) Commit(ctx context.Context) error {
-	return wrapError(r.db.Commit(ctx))
+func (r *RepositoryTx) Commit(ctx context.Context) error {
+	return wrapError(r.tx.Commit(ctx))
 }
 
-func (r *Repository) Rollback(ctx context.Context) error {
-	return wrapError(r.db.Rollback(ctx))
+func (r *RepositoryTx) Rollback(ctx context.Context) error {
+	return wrapError(r.tx.Rollback(ctx))
 }
 
 func wrapError(err error) error {

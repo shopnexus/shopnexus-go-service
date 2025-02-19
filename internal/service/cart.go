@@ -4,7 +4,7 @@ import (
 	"context"
 	"shopnexus-go-service/gen/pb"
 	"shopnexus-go-service/internal/model"
-	repository "shopnexus-go-service/internal/reposistory"
+	repository "shopnexus-go-service/internal/repository"
 )
 
 type CartService struct {
@@ -36,6 +36,9 @@ func (s *CartService) AddItem(ctx context.Context, params *pb.AddItemRequest) (*
 		ProductModelID: params.ProductModelId,
 		Quantity:       params.Quantity,
 	})
+	if err != nil {
+		return nil, err
+	}
 
 	if err = txRepo.Commit(ctx); err != nil {
 		return nil, err

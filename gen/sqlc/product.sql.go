@@ -11,6 +11,31 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
+const countBrands = `-- name: CountBrands :one
+WITH filtered_brands AS (
+  SELECT b.id
+  FROM product.brand b
+  WHERE (
+    (name ILIKE $1 OR $1 IS NULL) AND
+    (description ILIKE $2 OR $2 IS NULL)
+  )
+)
+SELECT COUNT(id)
+FROM filtered_brands
+`
+
+type CountBrandsParams struct {
+	Name        pgtype.Text
+	Description pgtype.Text
+}
+
+func (q *Queries) CountBrands(ctx context.Context, arg CountBrandsParams) (int64, error) {
+	row := q.db.QueryRow(ctx, countBrands, arg.Name, arg.Description)
+	var count int64
+	err := row.Scan(&count)
+	return count, err
+}
+
 const createBrand = `-- name: CreateBrand :one
 WITH inserted_brand AS (
     INSERT INTO product.brand (id, name, description)
@@ -23,9 +48,7 @@ inserted_images AS (
     RETURNING url
 )
 SELECT 
-    b.id,
-    b.name,
-    b.description,
+    b.id, b.name, b.description,
     COALESCE(array_agg(i.url), '{}') as images
 FROM inserted_brand b
 LEFT JOIN inserted_images i ON true
@@ -36,7 +59,7 @@ type CreateBrandParams struct {
 	ID          []byte
 	Name        string
 	Description string
-	Column4     []string
+	Images      []string
 }
 
 type CreateBrandRow struct {
@@ -51,7 +74,7 @@ func (q *Queries) CreateBrand(ctx context.Context, arg CreateBrandParams) (Creat
 		arg.ID,
 		arg.Name,
 		arg.Description,
-		arg.Column4,
+		arg.Images,
 	)
 	var i CreateBrandRow
 	err := row.Scan(
@@ -306,10 +329,8 @@ func (q *Queries) DeleteTag(ctx context.Context, tagName string) error {
 
 const getBrand = `-- name: GetBrand :one
 SELECT 
-    b.id,
-    b.name,
-    b.description,
-    COALESCE(array_agg(i.url) FILTER (WHERE i.url IS NOT NULL), '{}') as images
+    b.id, b.name, b.description,
+    COALESCE(array_agg(i.url) FILTER (WHERE i.url IS NOT NULL), '{}')::TEXT[] as images
 FROM product.brand b
 LEFT JOIN product.image i ON i.brand_id = b.id
 WHERE b.id = $1
@@ -320,7 +341,7 @@ type GetBrandRow struct {
 	ID          []byte
 	Name        string
 	Description string
-	Images      interface{}
+	Images      []string
 }
 
 func (q *Queries) GetBrand(ctx context.Context, id []byte) (GetBrandRow, error) {
@@ -366,13 +387,9 @@ func (q *Queries) GetProduct(ctx context.Context, serialID []byte) (GetProductRo
 
 const getProductModel = `-- name: GetProductModel :one
 SELECT 
-    pm.id,
-    pm.brand_id,
-    pm.name,
-    pm.description,
-    pm.list_price,
-    COALESCE(array_agg(DISTINCT i.url) FILTER (WHERE i.url IS NOT NULL), '{}') as images,
-    COALESCE(array_agg(DISTINCT t.tag_name) FILTER (WHERE t.tag_name IS NOT NULL), '{}') as tags
+    pm.id, pm.brand_id, pm.name, pm.description, pm.list_price, pm.date_manufactured,
+    COALESCE(array_agg(i.url) FILTER (WHERE i.url IS NOT NULL), '{}') as images,
+    COALESCE(array_agg(t.tag_name) FILTER (WHERE t.tag_name IS NOT NULL), '{}') as tags
 FROM product.model pm
 LEFT JOIN product.image i ON i.product_model_id = pm.id
 LEFT JOIN product.tag_on_product t ON t.product_model_id = pm.id
@@ -381,13 +398,14 @@ GROUP BY pm.id
 `
 
 type GetProductModelRow struct {
-	ID          []byte
-	BrandID     []byte
-	Name        string
-	Description string
-	ListPrice   pgtype.Numeric
-	Images      interface{}
-	Tags        interface{}
+	ID               []byte
+	BrandID          []byte
+	Name             string
+	Description      string
+	ListPrice        pgtype.Numeric
+	DateManufactured pgtype.Timestamp
+	Images           interface{}
+	Tags             interface{}
 }
 
 func (q *Queries) GetProductModel(ctx context.Context, id []byte) (GetProductModelRow, error) {
@@ -399,6 +417,7 @@ func (q *Queries) GetProductModel(ctx context.Context, id []byte) (GetProductMod
 		&i.Name,
 		&i.Description,
 		&i.ListPrice,
+		&i.DateManufactured,
 		&i.Images,
 		&i.Tags,
 	)
@@ -406,40 +425,44 @@ func (q *Queries) GetProductModel(ctx context.Context, id []byte) (GetProductMod
 }
 
 const listBrands = `-- name: ListBrands :many
-SELECT 
-    b.id,
-    b.name,
-    b.description,
-    COALESCE(array_agg(i.url) FILTER (WHERE i.url IS NOT NULL), '{}') as images
-FROM product.brand b
-LEFT JOIN product.image i ON i.brand_id = b.id
-WHERE ($1::text IS NULL OR b.name ILIKE '%' || $1 || '%')
-    AND ($2::text IS NULL OR b.description ILIKE '%' || $2 || '%')
-GROUP BY b.id
-ORDER BY b.name
-LIMIT $3 OFFSET $4
+WITH filtered_brands AS (
+  SELECT
+    b.id, b.name, b.description, 
+    COALESCE(array_agg(i.url) FILTER (WHERE i.url IS NOT NULL), '{}')::TEXT[] as images
+  FROM product.brand b
+  INNER JOIN product.image i ON i.brand_id = b.id
+  WHERE (
+    (name ILIKE $3 OR $3 IS NULL) AND
+    (description ILIKE $4 OR $4 IS NULL)
+  )
+  GROUP BY b.id
+)
+SELECT id, name, description, images
+FROM filtered_brands
+LIMIT $2
+OFFSET $1
 `
 
 type ListBrandsParams struct {
-	Column1 string
-	Column2 string
-	Limit   int32
-	Offset  int32
+	Offset      int32
+	Limit       int32
+	Name        pgtype.Text
+	Description pgtype.Text
 }
 
 type ListBrandsRow struct {
 	ID          []byte
 	Name        string
 	Description string
-	Images      interface{}
+	Images      []string
 }
 
 func (q *Queries) ListBrands(ctx context.Context, arg ListBrandsParams) ([]ListBrandsRow, error) {
 	rows, err := q.db.Query(ctx, listBrands,
-		arg.Column1,
-		arg.Column2,
-		arg.Limit,
 		arg.Offset,
+		arg.Limit,
+		arg.Name,
+		arg.Description,
 	)
 	if err != nil {
 		return nil, err
@@ -466,58 +489,58 @@ func (q *Queries) ListBrands(ctx context.Context, arg ListBrandsParams) ([]ListB
 
 const listProductModels = `-- name: ListProductModels :many
 SELECT 
-    pm.id,
-    pm.brand_id,
-    pm.name,
-    pm.description,
-    pm.list_price,
+    pm.id, pm.brand_id, pm.name, pm.description, pm.list_price, pm.date_manufactured,
     COALESCE(array_agg(DISTINCT i.url) FILTER (WHERE i.url IS NOT NULL), '{}') as images,
     COALESCE(array_agg(DISTINCT t.tag_name) FILTER (WHERE t.tag_name IS NOT NULL), '{}') as tags
 FROM product.model pm
 LEFT JOIN product.image i ON i.product_model_id = pm.id
 LEFT JOIN product.tag_on_product t ON t.product_model_id = pm.id
-WHERE ($1::bytea IS NULL OR pm.brand_id = $1)
-    AND ($2::text IS NULL OR pm.name ILIKE '%' || $2 || '%')
-    AND ($3::text IS NULL OR pm.description ILIKE '%' || $3 || '%')
-    AND ($4::decimal IS NULL OR pm.list_price = $4)
-    AND ($5::timestamp IS NULL OR pm.date_manufactured >= $5)
-    AND ($6::timestamp IS NULL OR pm.date_manufactured <= $6)
+WHERE (
+    (pm.brand_id = $1 OR $1 IS NULL) AND
+    (pm.name ILIKE '%' || $2 || '%' OR $2 IS NULL) AND
+    (pm.description ILIKE '%' || $3 || '%' OR $3 IS NULL) AND
+    (pm.list_price = $4 OR $4 IS NULL) AND 
+    (pm.date_manufactured >= $5 OR $5 IS NULL) AND
+    (pm.date_manufactured <= $6 OR $6 IS NULL)
+)
 GROUP BY pm.id
-ORDER BY pm.name
-LIMIT $7 OFFSET $8
+ORDER BY pm.id DESC
+LIMIT $8
+OFFSET $7
 `
 
 type ListProductModelsParams struct {
-	Column1 []byte
-	Column2 string
-	Column3 string
-	Column4 pgtype.Numeric
-	Column5 pgtype.Timestamp
-	Column6 pgtype.Timestamp
-	Limit   int32
-	Offset  int32
+	BrandID              []byte
+	Column2              pgtype.Text
+	Column3              pgtype.Text
+	ListPrice            pgtype.Numeric
+	DateManufacturedFrom pgtype.Timestamp
+	DateManufacturedTo   pgtype.Timestamp
+	Offset               int32
+	Limit                int32
 }
 
 type ListProductModelsRow struct {
-	ID          []byte
-	BrandID     []byte
-	Name        string
-	Description string
-	ListPrice   pgtype.Numeric
-	Images      interface{}
-	Tags        interface{}
+	ID               []byte
+	BrandID          []byte
+	Name             string
+	Description      string
+	ListPrice        pgtype.Numeric
+	DateManufactured pgtype.Timestamp
+	Images           interface{}
+	Tags             interface{}
 }
 
 func (q *Queries) ListProductModels(ctx context.Context, arg ListProductModelsParams) ([]ListProductModelsRow, error) {
 	rows, err := q.db.Query(ctx, listProductModels,
-		arg.Column1,
+		arg.BrandID,
 		arg.Column2,
 		arg.Column3,
-		arg.Column4,
-		arg.Column5,
-		arg.Column6,
-		arg.Limit,
+		arg.ListPrice,
+		arg.DateManufacturedFrom,
+		arg.DateManufacturedTo,
 		arg.Offset,
+		arg.Limit,
 	)
 	if err != nil {
 		return nil, err
@@ -532,6 +555,7 @@ func (q *Queries) ListProductModels(ctx context.Context, arg ListProductModelsPa
 			&i.Name,
 			&i.Description,
 			&i.ListPrice,
+			&i.DateManufactured,
 			&i.Images,
 			&i.Tags,
 		); err != nil {
@@ -605,62 +629,23 @@ func (q *Queries) ListProducts(ctx context.Context, arg ListProductsParams) ([]L
 	return items, nil
 }
 
-const updateBrand = `-- name: UpdateBrand :one
-WITH updated_brand AS (
-    UPDATE product.brand
-    SET name = $2,
-        description = $3
-    WHERE id = $1
-    RETURNING id, name, description
-),
-deleted_images AS (
-    DELETE FROM product.image
-    WHERE brand_id = $1
-),
-inserted_images AS (
-    INSERT INTO product.image (brand_id, url)
-    SELECT $1, unnest($4::text[])
-    RETURNING url
-)
-SELECT 
-    b.id,
-    b.name,
-    b.description,
-    COALESCE(array_agg(i.url), '{}') as images
-FROM updated_brand b
-LEFT JOIN inserted_images i ON true
-GROUP BY b.id
+const updateBrand = `-- name: UpdateBrand :exec
+UPDATE product.brand
+SET
+    name = COALESCE($2, name),
+    description = COALESCE($3, description)
+WHERE id = $1
 `
 
 type UpdateBrandParams struct {
 	ID          []byte
 	Name        string
 	Description string
-	Column4     []string
 }
 
-type UpdateBrandRow struct {
-	ID          []byte
-	Name        string
-	Description string
-	Images      interface{}
-}
-
-func (q *Queries) UpdateBrand(ctx context.Context, arg UpdateBrandParams) (UpdateBrandRow, error) {
-	row := q.db.QueryRow(ctx, updateBrand,
-		arg.ID,
-		arg.Name,
-		arg.Description,
-		arg.Column4,
-	)
-	var i UpdateBrandRow
-	err := row.Scan(
-		&i.ID,
-		&i.Name,
-		&i.Description,
-		&i.Images,
-	)
-	return i, err
+func (q *Queries) UpdateBrand(ctx context.Context, arg UpdateBrandParams) error {
+	_, err := q.db.Exec(ctx, updateBrand, arg.ID, arg.Name, arg.Description)
+	return err
 }
 
 const updateProduct = `-- name: UpdateProduct :one

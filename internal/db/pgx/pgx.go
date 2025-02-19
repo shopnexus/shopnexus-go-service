@@ -51,9 +51,6 @@ func InitPgConnectionPool(postgresConfig config.Postgres) error {
 
 func GetPgxPool() *pgxpool.Pool {
 	if pgxPool == nil {
-		m.Lock()
-		defer m.Unlock()
-
 		logger.Log.Info("Initializing pgxPool again")
 		err := InitPgConnectionPool(config.GetConfig().Postgres)
 		if err != nil {

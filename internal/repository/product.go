@@ -11,6 +11,7 @@ func (r *Repository) GetBrand(ctx context.Context, id []byte) (model.Brand, erro
 	if err != nil {
 		return model.Brand{}, err
 	}
+
 	return model.Brand{
 		ID:          brand.ID,
 		Name:        brand.Name,
@@ -26,11 +27,11 @@ type ListBrandsParams struct {
 }
 
 func (r *Repository) ListBrands(ctx context.Context, params ListBrandsParams) ([]model.Brand, error) {
-	brands, err := r.sqlc.ListBrands(ctx, &sqlc.ListBrandsParams{
-		Name:        params.Name,
-		Description: params.Description,
-		Limit:       params.Limit,
-		Offset:      params.Page,
+	brands, err := r.sqlc.ListBrands(ctx, sqlc.ListBrandsParams{
+		// Name:        params.Name,
+		// Description: params.Description,
+		// Limit:       params.Limit,
+		// Offset:      params.Page,
 	})
 	if err != nil {
 		return nil, err
@@ -42,7 +43,7 @@ func (r *Repository) ListBrands(ctx context.Context, params ListBrandsParams) ([
 			ID:          brand.ID,
 			Name:        brand.Name,
 			Description: brand.Description,
-			Images:      brand.Images,
+			// Images:      brand.Images,
 		}
 	}
 	return result, nil

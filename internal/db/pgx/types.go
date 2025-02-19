@@ -13,6 +13,4 @@ type DBTX interface {
 	QueryRow(context.Context, string, ...interface{}) pgx.Row
 
 	Begin(context.Context) (pgx.Tx, error)
-	Commit(context.Context) error
-	Rollback(context.Context) error
 }

@@ -26,3 +26,5 @@ go.work.sum
 
 # prisma files
 node_modules/
+
+main
