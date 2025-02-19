@@ -16,18 +16,7 @@ const (
 	PaymentMethodVnpay    PaymentMethod = "VNPAY"
 )
 
-type Invoice struct {
-	ID            []byte        `json:"id"` /* unique */
-	UserID        []byte        `json:"user_id"`
-	Address       string        `json:"address"`
-	Total         float64       `json:"total"`
-	PaymentMethod PaymentMethod `json:"payment_method"`
-	DateCreated   int64         `json:"date_created"`
-
-	Items []ItemQuantity `json:"items"`
-}
-
-type ProductOnInvoice struct {
+type ProductOnPayment struct {
 	ItemQuantityBase
 	InvoiceID  []byte `json:"invoice_id"`
 	Price      float64
@@ -36,11 +25,10 @@ type ProductOnInvoice struct {
 
 type Payment struct {
 	ID            []byte        `json:"id"` /* unique */
-	Status        PaymentStatus `json:"status"`
+	UserID        []byte        `json:"user_id"`
+	Address       string        `json:"address"`
 	PaymentMethod PaymentMethod `json:"payment_method"`
-	InvoiceID     []byte        `json:"invoice_id"`
+	Total         float64       `json:"total"`
+	Status        PaymentStatus `json:"status"`
 	DateCreated   int64         `json:"date_created"`
-	DateExpired   int64         `json:"date_expired"`
-
-	Invoice Invoice `json:"invoice"`
 }

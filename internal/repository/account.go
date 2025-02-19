@@ -1,6 +1,7 @@
 package repository
 
 import (
+	"bytes"
 	"context"
 	"shopnexus-go-service/gen/sqlc"
 	"shopnexus-go-service/internal/model"
@@ -10,6 +11,10 @@ type AddCartItemParams struct {
 	CartID         []byte
 	ProductModelID []byte
 	Quantity       int64
+}
+
+func (r *Repository) OwnCart(ctx context.Context, userID []byte, cartID []byte) (bool, error) {
+	return bytes.Equal(userID, cartID), nil
 }
 
 func (r *Repository) AddCartItem(ctx context.Context, params AddCartItemParams) (int64, error) {
@@ -46,14 +51,19 @@ func (r *Repository) RemoveCartItem(ctx context.Context, params RemoveCartItemPa
 	})
 }
 
-func (r *Repository) GetCartItems(ctx context.Context, cartID []byte) ([]model.ItemOnCart, error) {
-	rows, err := r.sqlc.GetCartItems(ctx, cartID)
+func (r *Repository) GetCart(ctx context.Context, cartID []byte) (model.Cart, error) {
+	cartRow, err := r.sqlc.GetCart(ctx, cartID)
 	if err != nil {
-		return nil, err
+		return model.Cart{}, err
 	}
 
-	items := make([]model.ItemOnCart, len(rows))
-	for i, row := range rows {
+	itemRows, err := r.sqlc.GetCartItems(ctx, cartID)
+	if err != nil {
+		return model.Cart{}, err
+	}
+
+	items := make([]model.ItemQuantity, len(itemRows))
+	for i, row := range itemRows {
 		items[i] = model.ItemOnCart{
 			ItemQuantityBase: model.ItemQuantityBase{
 				ItemID:   row.ProductModelID,
@@ -63,5 +73,8 @@ func (r *Repository) GetCartItems(ctx context.Context, cartID []byte) ([]model.I
 		}
 	}
 
-	return items, nil
+	return model.Cart{
+		ID:       cartRow,
+		Products: items,
+	}, nil
 }

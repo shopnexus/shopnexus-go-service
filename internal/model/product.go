@@ -35,8 +35,8 @@ type Sale struct {
 	ID              []byte   `json:"id"` /* unique */
 	Tag             *string  `json:"tag"`
 	ProductModelID  *[]byte  `json:"product_model_id"`
-	StartDate       int64    `json:"start_date"`
-	EndDate         *int64   `json:"end_date"`
+	DateStarted     int64    `json:"date_started"`
+	DateEnded       *int64   `json:"date_ended"`
 	Quantity        int64    `json:"quantity"`
 	Used            int64    `json:"used"`
 	IsActive        bool     `json:"is_active"`

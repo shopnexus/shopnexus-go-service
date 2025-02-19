@@ -68,6 +68,6 @@ type ItemOnCart struct {
 }
 
 type Cart struct {
-	UserID   int            `json:"user_id"` /* unique */
+	ID       []byte         `json:"id"` /* unique */
 	Products []ItemQuantity `json:"products"`
 }
