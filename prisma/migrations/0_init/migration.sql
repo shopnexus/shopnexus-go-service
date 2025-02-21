@@ -35,17 +35,17 @@ CREATE TABLE "account"."user" (
     "email" VARCHAR(255) NOT NULL,
     "phone" TEXT NOT NULL,
     "gender" "account"."gender" NOT NULL,
-    "full_name" VARCHAR(100),
+    "full_name" VARCHAR(100) NOT NULL DEFAULT '',
     "default_address_id" BIGINT NOT NULL,
 
     CONSTRAINT "user_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
-CREATE TABLE "account"."shop" (
+CREATE TABLE "account"."admin" (
     "id" BIGINT NOT NULL,
 
-    CONSTRAINT "shop_pkey" PRIMARY KEY ("id")
+    CONSTRAINT "admin_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
@@ -100,12 +100,13 @@ CREATE TABLE "product"."model" (
 
 -- CreateTable
 CREATE TABLE "product"."base" (
+    "id" BIGSERIAL NOT NULL,
     "serial_id" TEXT NOT NULL,
     "product_model_id" BIGINT NOT NULL,
     "date_created" TIMESTAMPTZ(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "date_updated" TIMESTAMPTZ(3) NOT NULL,
 
-    CONSTRAINT "base_pkey" PRIMARY KEY ("serial_id")
+    CONSTRAINT "base_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
@@ -183,11 +184,14 @@ CREATE UNIQUE INDEX "user_phone_key" ON "account"."user"("phone");
 -- CreateIndex
 CREATE UNIQUE INDEX "user_default_address_id_key" ON "account"."user"("default_address_id");
 
+-- CreateIndex
+CREATE UNIQUE INDEX "base_serial_id_key" ON "product"."base"("serial_id");
+
 -- AddForeignKey
 ALTER TABLE "account"."user" ADD CONSTRAINT "user_id_fkey" FOREIGN KEY ("id") REFERENCES "account"."base"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "account"."shop" ADD CONSTRAINT "shop_id_fkey" FOREIGN KEY ("id") REFERENCES "account"."base"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+ALTER TABLE "account"."admin" ADD CONSTRAINT "admin_id_fkey" FOREIGN KEY ("id") REFERENCES "account"."base"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "account"."address" ADD CONSTRAINT "address_user_id_fkey" FOREIGN KEY ("user_id") REFERENCES "account"."user"("id") ON DELETE CASCADE ON UPDATE CASCADE;

@@ -16,25 +16,25 @@ datasource db {
 //===== ACCOUNT =====
 
 model Account {
-  id       BigInt  @id
+  id       BigInt @id
   username String @db.VarChar(50)
   password String @db.VarChar(100)
   role     Role
 
-  user_account UserAccount?
-  shop_account AdminAccount?
+  user_account  UserAccount?
+  admin_account AdminAccount?
 
   @@map("base")
   @@schema("account")
 }
 
 model UserAccount {
-  id                 BigInt   @id
-  email              String  @unique @db.VarChar(255)
-  phone              String  @unique
+  id                 BigInt @id
+  email              String @unique @db.VarChar(255)
+  phone              String @unique
   gender             Gender
-  full_name          String? @db.VarChar(100)
-  default_address_id BigInt   @unique
+  full_name          String @default("") @db.VarChar(100)
+  default_address_id BigInt @unique
 
   account   Account   @relation(fields: [id], references: [id], onDelete: Cascade, onUpdate: Cascade)
   addresses Address[]
@@ -50,14 +50,14 @@ model AdminAccount {
 
   account Account @relation(fields: [id], references: [id], onDelete: Cascade, onUpdate: Cascade)
 
-  @@map("shop")
+  @@map("admin")
   @@schema("account")
 }
 
 //===== USER =====
 
 model Address {
-  id          BigInt  @id
+  id          BigInt @id
   user_id     BigInt
   address     String
   city        String
@@ -97,7 +97,7 @@ model ItemOnCart {
 //===== PRODUCT =====
 
 model Brand {
-  id          BigInt  @id
+  id          BigInt @id
   name        String
   description String
 
@@ -109,7 +109,7 @@ model Brand {
 }
 
 model ProductModel {
-  id                BigInt    @id
+  id                BigInt   @id
   brand_id          BigInt
   name              String
   description       String
@@ -128,11 +128,12 @@ model ProductModel {
 }
 
 model Product {
-  serial_id        String    @id
+  id               BigInt   @id @default(autoincrement())
+  serial_id        String   @unique
   product_model_id BigInt
   // shop_id     BigInt // Remove this because current web is single shop (but multi manager accounts)
-  date_created     DateTime @db.Timestamptz(3)@default(now())
-  date_updated      DateTime @db.Timestamptz(3) @updatedAt
+  date_created     DateTime @default(now()) @db.Timestamptz(3)
+  date_updated     DateTime @updatedAt @db.Timestamptz(3)
 
   // shop ShopAccount @relation(fields: [shop_id], references: [id])
   product_model ProductModel @relation(fields: [product_model_id], references: [id], onUpdate: Cascade, onDelete: Cascade)
@@ -143,16 +144,16 @@ model Product {
 
 // Note: Sale data should be removed when reach end_date
 model Sale {
-  id               BigInt     @id
+  id               BigInt    @id
   tag_name         String? // either tag_name or product_model_id
   product_model_id BigInt?
-  date_started     DateTime  @db.Timestamptz(3) @default(now())
+  date_started     DateTime  @default(now()) @db.Timestamptz(3)
   date_ended       DateTime? @db.Timestamptz(3)
   quantity         BigInt // 0 to unlimited
   used             BigInt    @default(0)
   is_active        Boolean   @default(true)
   discount_percent BigInt? // either discount_percent or discount_price
-  discount_price   BigInt?  
+  discount_price   BigInt?
 
   tag           Tag?          @relation(fields: [tag_name], references: [tag_name], onUpdate: Cascade, onDelete: Cascade)
   product_model ProductModel? @relation(fields: [product_model_id], references: [id], onUpdate: Cascade, onDelete: Cascade)
@@ -162,7 +163,7 @@ model Sale {
 }
 
 model TagOnProduct {
-  product_model_id BigInt  
+  product_model_id BigInt
   tag_name         String
   product_model    ProductModel @relation(fields: [product_model_id], references: [id], onUpdate: Cascade, onDelete: Cascade)
   tag              Tag          @relation(fields: [tag_name], references: [tag_name], onUpdate: Cascade, onDelete: Cascade)
@@ -173,8 +174,8 @@ model TagOnProduct {
 }
 
 model Tag {
-  tag_name    String  @id
-  description String  @default("")
+  tag_name    String @id
+  description String @default("")
 
   productModels TagOnProduct[]
   sales         Sale[]
@@ -186,29 +187,29 @@ model Tag {
 // ===== PAYMENT =====
 
 model ProductOnPayment {
-  id                BigInt   @id
+  id                BigInt @id
   payment_id        BigInt
   product_serial_id String
   quantity          BigInt
   price             BigInt // Single product price
-  total_price        BigInt // Final price (applied discount)
+  total_price       BigInt // Final price (applied discount)
 
-  payment       Payment @relation(fields: [payment_id], references: [id], onUpdate: Cascade, onDelete: Cascade)
+  payment Payment @relation(fields: [payment_id], references: [id], onUpdate: Cascade, onDelete: Cascade)
 
   @@map("product_on_payment")
   @@schema("payment")
 }
 
 model Payment {
-  id             BigInt         @id
+  id             BigInt        @id
   user_id        BigInt
   address        String
   payment_method PaymentMethod
-  total          BigInt       
+  total          BigInt
   status         PaymentStatus
-  date_created   DateTime      @db.Timestamptz(3) @default(now())
+  date_created   DateTime      @default(now()) @db.Timestamptz(3)
 
-  user_account UserAccount @relation(fields: [user_id], references: [id], onUpdate: Cascade, onDelete: Cascade)
+  user_account UserAccount        @relation(fields: [user_id], references: [id], onUpdate: Cascade, onDelete: Cascade)
   products     ProductOnPayment[]
 
   @@map("base")
@@ -221,7 +222,7 @@ model Image {
   // shop_id BigInt?
   brand_id         BigInt?
   product_model_id BigInt?
-  url              String @id
+  url              String  @id
 
   // shop ShopAccount? @relation(fields: [shop_id], references: [id])
   brand        Brand?        @relation(fields: [brand_id], references: [id])
