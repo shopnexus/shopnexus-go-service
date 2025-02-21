@@ -31,6 +31,13 @@ type ListBrandsParams struct {
 	Description *string
 }
 
+func (r *Repository) CountBrands(ctx context.Context, params ListBrandsParams) (int64, error) {
+	return r.sqlc.CountBrands(ctx, sqlc.CountBrandsParams{
+		Name:        *pgxutil.PtrToPgtype(&pgtype.Text{}, params.Name),
+		Description: *pgxutil.PtrToPgtype(&pgtype.Text{}, params.Description),
+	})
+}
+
 func (r *Repository) ListBrands(ctx context.Context, params ListBrandsParams) ([]model.Brand, error) {
 	brands, err := r.sqlc.ListBrands(ctx, sqlc.ListBrandsParams{
 		Offset:      params.Offset,
@@ -72,11 +79,17 @@ func (r *Repository) CreateBrand(ctx context.Context, brand model.Brand) (model.
 	}, nil
 }
 
-func (r *Repository) UpdateBrand(ctx context.Context, brand model.Brand) error {
+type UpdateBrandParams struct {
+	ID          int64
+	Name        *string
+	Description *string
+}
+
+func (r *Repository) UpdateBrand(ctx context.Context, params UpdateBrandParams) error {
 	return r.sqlc.UpdateBrand(ctx, sqlc.UpdateBrandParams{
-		ID:          brand.ID,
-		Name:        *pgxutil.PtrToPgtype(&pgtype.Text{}, &brand.Name),
-		Description: *pgxutil.PtrToPgtype(&pgtype.Text{}, &brand.Description),
+		ID:          params.ID,
+		Name:        *pgxutil.PtrToPgtype(&pgtype.Text{}, &params.Name),
+		Description: *pgxutil.PtrToPgtype(&pgtype.Text{}, &params.Description),
 	})
 }
 
@@ -109,6 +122,17 @@ type ListProductModelsParams struct {
 	ListPrice            *int64
 	DateManufacturedFrom *int64
 	DateManufacturedTo   *int64
+}
+
+func (r *Repository) CountProductModels(ctx context.Context, params ListProductModelsParams) (int64, error) {
+	return r.sqlc.CountProductModels(ctx, sqlc.CountProductModelsParams{
+		BrandID:              *pgxutil.PtrToPgtype(&pgtype.Int8{}, &params.BrandID),
+		Name:                 *pgxutil.PtrToPgtype(&pgtype.Text{}, params.Name),
+		Description:          *pgxutil.PtrToPgtype(&pgtype.Text{}, params.Description),
+		ListPrice:            *pgxutil.PtrToPgtype(&pgtype.Int8{}, params.ListPrice),
+		DateManufacturedFrom: *pgxutil.PtrToPgtype(&pgtype.Timestamptz{}, util.PtrMilisToTime(params.DateManufacturedFrom)),
+		DateManufacturedTo:   *pgxutil.PtrToPgtype(&pgtype.Timestamptz{}, util.PtrMilisToTime(params.DateManufacturedTo)),
+	})
 }
 
 func (r *Repository) ListProductModels(ctx context.Context, params ListProductModelsParams) ([]model.ProductModel, error) {
@@ -167,14 +191,23 @@ func (r *Repository) CreateProductModel(ctx context.Context, productModel model.
 	}, nil
 }
 
-func (r *Repository) UpdateProductModel(ctx context.Context, productModel model.ProductModel) error {
+type UpdateProductModelParams struct {
+	ID               int64
+	BrandID          *int64
+	Name             *string
+	Description      *string
+	ListPrice        *int64
+	DateManufactured *int64
+}
+
+func (r *Repository) UpdateProductModel(ctx context.Context, params UpdateProductModelParams) error {
 	return r.sqlc.UpdateProductModel(ctx, sqlc.UpdateProductModelParams{
-		ID:               productModel.ID,
-		BrandID:          *pgxutil.PtrToPgtype(&pgtype.Int8{}, &productModel.BrandID),
-		Name:             *pgxutil.PtrToPgtype(&pgtype.Text{}, &productModel.Name),
-		Description:      *pgxutil.PtrToPgtype(&pgtype.Text{}, &productModel.Description),
-		ListPrice:        *pgxutil.PtrToPgtype(&pgtype.Int8{}, &productModel.ListPrice),
-		DateManufactured: *pgxutil.ValueToPgtype(&pgtype.Timestamptz{}, time.UnixMilli(productModel.DateManufactured)),
+		ID:               params.ID,
+		BrandID:          *pgxutil.PtrToPgtype(&pgtype.Int8{}, &params.BrandID),
+		Name:             *pgxutil.PtrToPgtype(&pgtype.Text{}, &params.Name),
+		Description:      *pgxutil.PtrToPgtype(&pgtype.Text{}, &params.Description),
+		ListPrice:        *pgxutil.PtrToPgtype(&pgtype.Int8{}, &params.ListPrice),
+		DateManufactured: *pgxutil.ValueToPgtype(&pgtype.Timestamptz{}, util.PtrMilisToTime(params.DateManufactured)),
 	})
 }
 
@@ -182,13 +215,33 @@ func (r *Repository) DeleteProductModel(ctx context.Context, id int64) error {
 	return r.sqlc.DeleteProductModel(ctx, id)
 }
 
-func (r *Repository) GetProduct(ctx context.Context, serialID string) (model.Product, error) {
-	row, err := r.sqlc.GetProduct(ctx, serialID)
+// ----------- PRODUCT ------------
+
+type ProductIdentifier struct {
+	ID       *int64
+	SerialID *string
+}
+
+type ProductIdentifierPg struct {
+	ID       pgtype.Int8
+	SerialID pgtype.Text
+}
+
+func GetProductIdentifierPg(params ProductIdentifier) ProductIdentifierPg {
+	return ProductIdentifierPg{
+		ID:       *pgxutil.PtrToPgtype(&pgtype.Int8{}, params.ID),
+		SerialID: *pgxutil.PtrToPgtype(&pgtype.Text{}, params.SerialID),
+	}
+}
+
+func (r *Repository) GetProduct(ctx context.Context, params ProductIdentifier) (model.Product, error) {
+	row, err := r.sqlc.GetProduct(ctx, sqlc.GetProductParams(GetProductIdentifierPg(params)))
 	if err != nil {
 		return model.Product{}, err
 	}
 
 	return model.Product{
+		ID:             row.ID,
 		SerialID:       row.SerialID,
 		ProductModelID: row.ProductModelID,
 		DateCreated:    row.DateCreated.Time.UnixMilli(),
@@ -201,6 +254,14 @@ type ListProductsParams struct {
 	ProductModelID  int64
 	DateCreatedFrom *int64
 	DateCreatedTo   *int64
+}
+
+func (r *Repository) CountProducts(ctx context.Context, params ListProductsParams) (int64, error) {
+	return r.sqlc.CountProducts(ctx, sqlc.CountProductsParams{
+		ProductModelID:  *pgxutil.PtrToPgtype(&pgtype.Int8{}, &params.ProductModelID),
+		DateCreatedFrom: *pgxutil.PtrToPgtype(&pgtype.Timestamptz{}, util.PtrMilisToTime(params.DateCreatedFrom)),
+		DateCreatedTo:   *pgxutil.PtrToPgtype(&pgtype.Timestamptz{}, util.PtrMilisToTime(params.DateCreatedTo)),
+	})
 }
 
 func (r *Repository) ListProducts(ctx context.Context, params ListProductsParams) ([]model.Product, error) {
@@ -244,15 +305,22 @@ func (r *Repository) CreateProduct(ctx context.Context, product model.Product) (
 	}, nil
 }
 
-func (r *Repository) UpdateProduct(ctx context.Context, product model.Product) error {
+type UpdateProductParams struct {
+	ID             int64
+	SerialID       *string
+	ProductModelID *int64
+}
+
+func (r *Repository) UpdateProduct(ctx context.Context, params UpdateProductParams) error {
 	return r.sqlc.UpdateProduct(ctx, sqlc.UpdateProductParams{
-		SerialID:       product.SerialID,
-		ProductModelID: *pgxutil.PtrToPgtype(&pgtype.Int8{}, &product.ProductModelID),
+		ID:             params.ID,
+		SerialID:       *pgxutil.PtrToPgtype(&pgtype.Text{}, params.SerialID),
+		ProductModelID: *pgxutil.PtrToPgtype(&pgtype.Int8{}, params.ProductModelID),
 	})
 }
 
-func (r *Repository) DeleteProduct(ctx context.Context, serialID string) error {
-	return r.sqlc.DeleteProduct(ctx, serialID)
+func (r *Repository) DeleteProduct(ctx context.Context, params ProductIdentifier) error {
+	return r.sqlc.DeleteProduct(ctx, sqlc.DeleteProductParams(GetProductIdentifierPg(params)))
 }
 
 func (r *Repository) CreateSale(ctx context.Context, sale model.Sale) (model.Sale, error) {
@@ -289,19 +357,11 @@ func (r *Repository) DeleteSale(ctx context.Context, id int64) error {
 	return r.sqlc.DeleteSale(ctx, id)
 }
 
-func (r *Repository) CreateTag(ctx context.Context, tag model.Tag) (model.Tag, error) {
-	row, err := r.sqlc.CreateTag(ctx, sqlc.CreateTagParams{
+func (r *Repository) CreateTag(ctx context.Context, tag model.Tag) error {
+	return r.sqlc.CreateTag(ctx, sqlc.CreateTagParams{
 		TagName:     tag.Name,
 		Description: tag.Description,
 	})
-	if err != nil {
-		return model.Tag{}, err
-	}
-
-	return model.Tag{
-		Name:        row.TagName,
-		Description: row.Description,
-	}, nil
 }
 
 func (r *Repository) DeleteTag(ctx context.Context, name string) error {

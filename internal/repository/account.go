@@ -2,52 +2,141 @@ package repository
 
 import (
 	"context"
+	"fmt"
 	"shopnexus-go-service/gen/sqlc"
+	pgxutil "shopnexus-go-service/internal/db/pgx"
 	"shopnexus-go-service/internal/model"
+
+	"github.com/jackc/pgx/v5/pgtype"
 )
 
-type AddCartItemParams struct {
-	CartID         int64
-	ProductModelID int64
-	Quantity       int64
+func (r *Repository) GetAccountBase(ctx context.Context, accountID int64) (model.AccountBase, error) {
+	baseRow, err := r.sqlc.GetAccountBase(ctx, accountID)
+	if err != nil {
+		return model.AccountBase{}, err
+	}
+
+	return model.AccountBase{
+		ID:       baseRow.ID,
+		Username: baseRow.Username,
+		Role:     model.Role(baseRow.Role),
+	}, nil
 }
 
-func (r *Repository) OwnCart(ctx context.Context, userID int64, cartID int64) (bool, error) {
-	return userID == cartID, nil
+type GetAccountUserParams struct {
+	AccountID *int64
+	Username  *string
+	Email     *string
+	Phone     *string
 }
 
-func (r *Repository) AddCartItem(ctx context.Context, params AddCartItemParams) (int64, error) {
-	return r.sqlc.AddCartItem(ctx, sqlc.AddCartItemParams{
-		CartID:         params.CartID,
-		ProductModelID: params.ProductModelID,
-		Quantity:       params.Quantity,
+func (r *Repository) GetAccountUser(ctx context.Context, params GetAccountUserParams) (model.AccountUser, error) {
+	userRow, err := r.sqlc.GetAccountUser(ctx, sqlc.GetAccountUserParams{
+		ID:       *pgxutil.PtrToPgtype(&pgtype.Int8{}, params.AccountID),
+		Username: *pgxutil.PtrToPgtype(&pgtype.Text{}, params.Username),
+		Email:    *pgxutil.PtrToPgtype(&pgtype.Text{}, params.Email),
+		Phone:    *pgxutil.PtrToPgtype(&pgtype.Text{}, params.Phone),
 	})
+	if err != nil {
+		return model.AccountUser{}, err
+	}
+
+	return model.AccountUser{
+		AccountBase: model.AccountBase{
+			ID:       userRow.ID,
+			Username: userRow.Username,
+			Role:     model.Role(userRow.Role),
+		},
+		Email:            userRow.Email,
+		Phone:            userRow.Phone,
+		Gender:           model.Gender(userRow.Gender),
+		FullName:         userRow.FullName,
+		DefaultAddressID: userRow.DefaultAddressID,
+	}, nil
 }
 
-type DeductCartItemParams struct {
-	CartID         int64
-	ProductModelID int64
-	Quantity       int64
+type GetAccountAdminParams struct {
+	AccountID *int64
+	Username  *string
 }
 
-func (r *Repository) DeductCartItem(ctx context.Context, params DeductCartItemParams) (int64, error) {
-	return r.sqlc.DeductCartItem(ctx, sqlc.DeductCartItemParams{
-		CartID:         params.CartID,
-		ProductModelID: params.ProductModelID,
-		Quantity:       params.Quantity,
+func (r *Repository) GetAccountAdmin(ctx context.Context, params GetAccountAdminParams) (model.AccountAdmin, error) {
+	adminRow, err := r.sqlc.GetAccountAdmin(ctx, sqlc.GetAccountAdminParams{
+		ID:       *pgxutil.PtrToPgtype(&pgtype.Int8{}, params.AccountID),
+		Username: *pgxutil.PtrToPgtype(&pgtype.Text{}, params.Username),
 	})
+	if err != nil {
+		return model.AccountAdmin{}, err
+	}
+
+	return model.AccountAdmin{
+		AccountBase: model.AccountBase{
+			ID:       adminRow.ID,
+			Username: adminRow.Username,
+			Role:     model.Role(adminRow.Role),
+		},
+	}, nil
 }
 
-type RemoveCartItemParams struct {
-	CartID         int64
-	ProductModelID int64
-}
+func (r *Repository) GetAccount(ctx context.Context, find model.Account) (account model.Account, err error) {
+	switch find := find.(type) {
+	case model.AccountBase:
+		// Search by base account info (id && type)
+		accountType := find.Role
 
-func (r *Repository) RemoveCartItem(ctx context.Context, params RemoveCartItemParams) error {
-	return r.sqlc.RemoveCartItem(ctx, sqlc.RemoveCartItemParams{
-		CartID:         params.CartID,
-		ProductModelID: params.ProductModelID,
-	})
+		if accountType == "" {
+			accountBase, err := r.GetAccountBase(ctx, find.ID)
+			if err != nil {
+				return nil, err
+			}
+
+			accountType = accountBase.Role
+		}
+
+		switch accountType {
+		case model.RoleAdmin:
+			admin, err := r.GetAccountAdmin(ctx, GetAccountAdminParams{
+				AccountID: &find.ID,
+				Username:  &find.Username,
+			})
+			if err != nil {
+				return nil, err
+			}
+			account = admin
+		case model.RoleUser:
+			user, err := r.GetAccountUser(ctx, GetAccountUserParams{
+				AccountID: &find.ID,
+			})
+			if err != nil {
+				return nil, err
+			}
+			account = user
+		default:
+			return nil, fmt.Errorf("unknown account role: %s", accountType)
+		}
+
+	case model.AccountUser:
+		// Search by user info
+		account, err = r.GetAccountUser(ctx, GetAccountUserParams{
+			AccountID: &find.ID,
+			Email:     &find.Email,
+			Phone:     &find.Phone,
+		})
+
+	case model.AccountAdmin:
+		// Search by admin info
+		account, err = r.GetAccountAdmin(ctx, GetAccountAdminParams{
+			AccountID: &find.ID,
+			Username:  &find.Username,
+		})
+	default:
+		return nil, fmt.Errorf("unknown account type: %T", find)
+	}
+	if err != nil {
+		return nil, err
+	}
+
+	return account, nil
 }
 
 func (r *Repository) GetCart(ctx context.Context, cartID int64) (model.Cart, error) {
@@ -80,4 +169,48 @@ func (r *Repository) GetCart(ctx context.Context, cartID int64) (model.Cart, err
 
 func (r *Repository) CreateCart(ctx context.Context, userID int64) error {
 	return r.sqlc.CreateCart(ctx, userID)
+}
+
+type AddCartItemParams struct {
+	CartID         int64
+	ProductModelID int64
+	Quantity       int64
+}
+
+func (r *Repository) AddCartItem(ctx context.Context, params AddCartItemParams) (int64, error) {
+	return r.sqlc.AddCartItem(ctx, sqlc.AddCartItemParams{
+		CartID:         params.CartID,
+		ProductModelID: params.ProductModelID,
+		Quantity:       params.Quantity,
+	})
+}
+
+type UpdateCartItemParams struct {
+	CartID         int64
+	ProductModelID int64
+	Quantity       int64
+}
+
+func (r *Repository) UpdateCartItem(ctx context.Context, params UpdateCartItemParams) (int64, error) {
+	return r.sqlc.UpdateCartItem(ctx, sqlc.UpdateCartItemParams{
+		CartID:         params.CartID,
+		ProductModelID: params.ProductModelID,
+		Quantity:       params.Quantity,
+	})
+}
+
+type RemoveCartItemParams struct {
+	CartID         int64
+	ProductModelID int64
+}
+
+func (r *Repository) RemoveCartItem(ctx context.Context, params RemoveCartItemParams) error {
+	return r.sqlc.RemoveCartItem(ctx, sqlc.RemoveCartItemParams{
+		CartID:         params.CartID,
+		ProductModelID: params.ProductModelID,
+	})
+}
+
+func (r *Repository) ClearCart(ctx context.Context, cartID int64) error {
+	return r.sqlc.ClearCart(ctx, cartID)
 }

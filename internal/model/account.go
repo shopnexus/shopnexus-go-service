@@ -22,8 +22,7 @@ type Account interface {
 type AccountBase struct {
 	ID       int64  `json:"id"` /* unique */
 	Username string `json:"username"`
-	Password string `json:"password"`
-	Role     string `json:"role"`
+	Role     Role   `json:"role"`
 }
 
 func (AccountBase) ImplementsAccount() {}
@@ -35,7 +34,7 @@ type AccountUser struct {
 	AccountBase
 	Email            string `json:"email"` /* unique */
 	Phone            string `json:"phone"` /* unique */
-	Gender           int32  `json:"gender"`
+	Gender           Gender `json:"gender"`
 	FullName         string `json:"full_name"`
 	DefaultAddressID int64  `json:"default_address_id"`
 }

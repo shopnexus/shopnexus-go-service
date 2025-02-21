@@ -3,6 +3,7 @@ package service
 import (
 	"context"
 	"shopnexus-go-service/gen/pb"
+	"shopnexus-go-service/internal/model"
 )
 
 type PaymentService struct {
@@ -13,6 +14,13 @@ func NewPaymentService() *PaymentService {
 	return &PaymentService{}
 }
 
-func (s *PaymentService) Create(ctx context.Context, params *pb.CreatePaymentRequest) (*pb.CreatePaymentResponse, error) {
-	return nil, nil
+type CreatePaymentParams struct {
+	UserID        int64
+	Address       string
+	PaymentMethod model.PaymentMethod
+	Total         float64
+}
+
+func (s *PaymentService) CreatePayment(ctx context.Context, params CreatePaymentParams) (model.Payment, error) {
+	return model.Payment{}, nil
 }

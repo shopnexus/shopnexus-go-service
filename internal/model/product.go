@@ -21,10 +21,11 @@ type ProductModel struct {
 }
 
 type Product struct {
+	ID             int64  `json:"id"`        /* unique */
 	SerialID       string `json:"serial_id"` /* unique */
-	ProductModelID int64
-	DateCreated    int64
-	DateUpdated    int64
+	ProductModelID int64  `json:"product_model_id"`
+	DateCreated    int64  `json:"date_created"`
+	DateUpdated    int64  `json:"date_updated"`
 }
 
 type Tag struct {
