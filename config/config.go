@@ -17,12 +17,13 @@ type Config struct {
 	App           App           `yaml:"app"`
 	HttpServer    HttpServer    `yaml:"httpServer"`
 	Log           Log           `yaml:"log"`
-	Scheduler     Scheduler     `yaml:"scheduler"`
-	Schedules     []Schedule    `yaml:"schedules"`
 	Postgres      Postgres      `yaml:"postgres"`
-	Redis         []Redis       `yaml:"redis"`
 	Sentry        Sentry        `yaml:"sentry"`
 	SensitiveKeys SensitiveKeys `yaml:"sensitiveKeys"`
+}
+
+type App struct {
+	AccessTokenDuration int64 `yaml:"accessTokenDuration"`
 }
 
 type HttpServer struct {
@@ -40,64 +41,26 @@ type Log struct {
 	MaxBackups      int    `yaml:"maxBackups"`
 }
 
-type Label struct {
-	En string `json:"en"`
-	Th string `json:"th"`
-}
-
-type App struct {
-	Name     string `yaml:"name"`
-	NameSlug string `yaml:"nameSlug"`
-}
-
 type Postgres struct {
-	Url             string `yaml:"url" mapstructure:"url"`
-	Host            string `yaml:"host" mapstructure:"host"`
-	Port            int    `yaml:"port" mapstructure:"port"`
-	Username        string `yaml:"username" mapstructure:"username"`
-	Password        string `yaml:"password" mapstructure:"password"`
-	Database        string `yaml:"database" mapstructure:"database"`
-	Schema          string `yaml:"schema" mapstructure:"schema"`
-	MaxConnections  int32  `yaml:"maxConnections" mapstructure:"maxConnections"`
-	MaxConnIdleTime int32  `yaml:"maxConnIdleTime" mapstructure:"maxConnIdleTime"`
-}
-
-type Redis struct {
-	Host     string `yaml:"host" mapstructure:"host"`
-	Port     int    `yaml:"port" mapstructure:"port"`
-	Password string `yaml:"password" mapstructure:"password"`
-	Database int    `yaml:"database" mapstructure:"database"`
+	Url             string `yaml:"url"`
+	Host            string `yaml:"host"`
+	Port            int    `yaml:"port"`
+	Username        string `yaml:"username"`
+	Password        string `yaml:"password"`
+	Database        string `yaml:"database"`
+	MaxConnections  int32  `yaml:"maxConnections"`
+	MaxConnIdleTime int32  `yaml:"maxConnIdleTime"`
 }
 
 type Sentry struct {
-	Dsn         string `yaml:"dsn" mapstructure:"dsn"`
-	Environment string `yaml:"environment" mapstructure:"environment"`
-	Release     string `yaml:"release" mapstructure:"release"`
-	Debug       bool   `yaml:"debug" mapstructure:"debug"`
+	Dsn         string `yaml:"dsn"`
+	Environment string `yaml:"environment"`
+	Release     string `yaml:"release"`
+	Debug       bool   `yaml:"debug"`
 }
 
 type SensitiveKeys struct {
-	TelegramBotToken string `yaml:"telegramBotToken" mapstructure:"telegramBotToken"`
-	JWTSecret        string `yaml:"jwtSecret" mapstructure:"jwtSecret"`
-	Pepper           string `yaml:"pepper" mapstructure:"pepper"`
-	EncryptionKey    string `yaml:"encryptionKey" mapstructure:"encryptionKey"`
-	Iterations       int    `yaml:"iterations" mapstructure:"iterations"`
-}
-
-type Scheduler struct {
-	Timezone string `yaml:"timezone" mapstructure:"timezone"`
-}
-
-type Schedule struct {
-	Job       string `yaml:"job" mapstructure:"job"`
-	Cron      string `yaml:"cron" mapstructure:"cron"`
-	IsEnabled bool   `yaml:"isEnabled" mapstructure:"isEnabled"`
-}
-
-type Authentication struct {
-	Endpoint string `yaml:"endpoint" mapstructure:"endpoint"`
-	Username string `yaml:"username" mapstructure:"username"`
-	Password string `yaml:"password" mapstructure:"password"`
+	JWTSecret string `yaml:"jwtSecret" mapstructure:"jwtSecret"`
 }
 
 func GetConfig() *Config {
@@ -114,7 +77,7 @@ func SetConfig(configFile string) {
 	}
 
 	viper.SetConfigFile(configFile)
-	viper.SetConfigType("yaml")
+	viper.SetConfigType("yml")
 	err := viper.ReadInConfig()
 	if err != nil {
 		log.Fatalf("Error getting config file, %s", err)
