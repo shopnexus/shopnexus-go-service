@@ -7,6 +7,8 @@ package sqlc
 
 import (
 	"context"
+
+	"github.com/jackc/pgx/v5/pgtype"
 )
 
 const addCartItem = `-- name: AddCartItem :one
@@ -30,6 +32,16 @@ func (q *Queries) AddCartItem(ctx context.Context, arg AddCartItemParams) (int64
 	return quantity, err
 }
 
+const clearCart = `-- name: ClearCart :exec
+DELETE FROM "account".item_on_cart
+WHERE cart_id = $1
+`
+
+func (q *Queries) ClearCart(ctx context.Context, cartID int64) error {
+	_, err := q.db.Exec(ctx, clearCart, cartID)
+	return err
+}
+
 const createCart = `-- name: CreateCart :exec
 INSERT INTO "account".cart (id)
 VALUES ($1)
@@ -40,24 +52,112 @@ func (q *Queries) CreateCart(ctx context.Context, id int64) error {
 	return err
 }
 
-const deductCartItem = `-- name: DeductCartItem :one
-UPDATE "account".item_on_cart
-SET quantity = quantity - $3
-WHERE cart_id = $1 AND product_model_id = $2
-RETURNING quantity
+const getAccountAdmin = `-- name: GetAccountAdmin :one
+SELECT a.id, b.id, b.username, b.password, b.role
+FROM "account".admin a
+INNER JOIN "account".base b ON a.id = b.id
+WHERE (
+  a.id = $1 OR
+  b.username = $2
+)
 `
 
-type DeductCartItemParams struct {
-	CartID         int64
-	ProductModelID int64
-	Quantity       int64
+type GetAccountAdminParams struct {
+	ID       pgtype.Int8
+	Username pgtype.Text
 }
 
-func (q *Queries) DeductCartItem(ctx context.Context, arg DeductCartItemParams) (int64, error) {
-	row := q.db.QueryRow(ctx, deductCartItem, arg.CartID, arg.ProductModelID, arg.Quantity)
-	var quantity int64
-	err := row.Scan(&quantity)
-	return quantity, err
+type GetAccountAdminRow struct {
+	ID       int64
+	ID_2     int64
+	Username string
+	Password string
+	Role     AccountRole
+}
+
+func (q *Queries) GetAccountAdmin(ctx context.Context, arg GetAccountAdminParams) (GetAccountAdminRow, error) {
+	row := q.db.QueryRow(ctx, getAccountAdmin, arg.ID, arg.Username)
+	var i GetAccountAdminRow
+	err := row.Scan(
+		&i.ID,
+		&i.ID_2,
+		&i.Username,
+		&i.Password,
+		&i.Role,
+	)
+	return i, err
+}
+
+const getAccountBase = `-- name: GetAccountBase :one
+SELECT id, username, password, role FROM "account".base
+WHERE id = $1
+`
+
+func (q *Queries) GetAccountBase(ctx context.Context, id int64) (AccountBase, error) {
+	row := q.db.QueryRow(ctx, getAccountBase, id)
+	var i AccountBase
+	err := row.Scan(
+		&i.ID,
+		&i.Username,
+		&i.Password,
+		&i.Role,
+	)
+	return i, err
+}
+
+const getAccountUser = `-- name: GetAccountUser :one
+SELECT u.id, u.email, u.phone, u.gender, u.full_name, u.default_address_id, b.id, b.username, b.password, b.role
+FROM "account".user u
+INNER JOIN "account".base b ON u.id = b.id
+WHERE (
+  u.id = $1 OR
+  u.email = $2 OR
+  u.phone = $3 OR
+  b.username = $4
+)
+`
+
+type GetAccountUserParams struct {
+	ID       pgtype.Int8
+	Email    pgtype.Text
+	Phone    pgtype.Text
+	Username pgtype.Text
+}
+
+type GetAccountUserRow struct {
+	ID               int64
+	Email            string
+	Phone            string
+	Gender           AccountGender
+	FullName         string
+	DefaultAddressID int64
+	ID_2             int64
+	Username         string
+	Password         string
+	Role             AccountRole
+}
+
+func (q *Queries) GetAccountUser(ctx context.Context, arg GetAccountUserParams) (GetAccountUserRow, error) {
+	row := q.db.QueryRow(ctx, getAccountUser,
+		arg.ID,
+		arg.Email,
+		arg.Phone,
+		arg.Username,
+	)
+	var i GetAccountUserRow
+	err := row.Scan(
+		&i.ID,
+		&i.Email,
+		&i.Phone,
+		&i.Gender,
+		&i.FullName,
+		&i.DefaultAddressID,
+		&i.ID_2,
+		&i.Username,
+		&i.Password,
+		&i.Role,
+	)
+	return i, err
 }
 
 const getCart = `-- name: GetCart :one
@@ -109,4 +209,24 @@ type RemoveCartItemParams struct {
 func (q *Queries) RemoveCartItem(ctx context.Context, arg RemoveCartItemParams) error {
 	_, err := q.db.Exec(ctx, removeCartItem, arg.CartID, arg.ProductModelID)
 	return err
+}
+
+const updateCartItem = `-- name: UpdateCartItem :one
+UPDATE "account".item_on_cart
+SET quantity = $3
+WHERE cart_id = $1 AND product_model_id = $2
+RETURNING quantity
+`
+
+type UpdateCartItemParams struct {
+	CartID         int64
+	ProductModelID int64
+	Quantity       int64
+}
+
+func (q *Queries) UpdateCartItem(ctx context.Context, arg UpdateCartItemParams) (int64, error) {
+	row := q.db.QueryRow(ctx, updateCartItem, arg.CartID, arg.ProductModelID, arg.Quantity)
+	var quantity int64
+	err := row.Scan(&quantity)
+	return quantity, err
 }

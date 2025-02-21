@@ -36,6 +36,69 @@ func (q *Queries) CountBrands(ctx context.Context, arg CountBrandsParams) (int64
 	return count, err
 }
 
+const countProductModels = `-- name: CountProductModels :one
+WITH filtered_models AS (
+    SELECT pm.id
+    FROM product.model pm
+    WHERE (
+        (pm.brand_id = $1 OR $1 IS NULL) AND
+        (pm.name ILIKE '%' || $2 || '%' OR $2 IS NULL) AND
+        (pm.description ILIKE '%' || $3 || '%' OR $3 IS NULL) AND
+        (pm.list_price = $4 OR $4 IS NULL) AND
+        (pm.date_manufactured >= $5 OR $5 IS NULL) AND
+        (pm.date_manufactured <= $6 OR $6 IS NULL)
+    )
+)
+SELECT COUNT(id)
+FROM filtered_models
+`
+
+type CountProductModelsParams struct {
+	BrandID              pgtype.Int8
+	Name                 pgtype.Text
+	Description          pgtype.Text
+	ListPrice            pgtype.Int8
+	DateManufacturedFrom pgtype.Timestamptz
+	DateManufacturedTo   pgtype.Timestamptz
+}
+
+func (q *Queries) CountProductModels(ctx context.Context, arg CountProductModelsParams) (int64, error) {
+	row := q.db.QueryRow(ctx, countProductModels,
+		arg.BrandID,
+		arg.Name,
+		arg.Description,
+		arg.ListPrice,
+		arg.DateManufacturedFrom,
+		arg.DateManufacturedTo,
+	)
+	var count int64
+	err := row.Scan(&count)
+	return count, err
+}
+
+const countProducts = `-- name: CountProducts :one
+SELECT COUNT(id)
+FROM product.base
+WHERE (
+    (product_model_id = $1 OR $1 IS NULL) AND
+    (date_created >= $2 OR $2 IS NULL) AND
+    (date_created <= $3 OR $3 IS NULL)
+)
+`
+
+type CountProductsParams struct {
+	ProductModelID  pgtype.Int8
+	DateCreatedFrom pgtype.Timestamptz
+	DateCreatedTo   pgtype.Timestamptz
+}
+
+func (q *Queries) CountProducts(ctx context.Context, arg CountProductsParams) (int64, error) {
+	row := q.db.QueryRow(ctx, countProducts, arg.ProductModelID, arg.DateCreatedFrom, arg.DateCreatedTo)
+	var count int64
+	err := row.Scan(&count)
+	return count, err
+}
+
 const createBrand = `-- name: CreateBrand :one
 WITH inserted_brand AS (
     INSERT INTO product.brand (name, description)
@@ -89,7 +152,7 @@ INSERT INTO product.base (
 ) VALUES (
     $1, $2, NOW(), NOW()
 )
-RETURNING serial_id, product_model_id, date_created, date_updated
+RETURNING id, serial_id, product_model_id, date_created, date_updated
 `
 
 type CreateProductParams struct {
@@ -101,6 +164,7 @@ func (q *Queries) CreateProduct(ctx context.Context, arg CreateProductParams) (P
 	row := q.db.QueryRow(ctx, createProduct, arg.SerialID, arg.ProductModelID)
 	var i ProductBase
 	err := row.Scan(
+		&i.ID,
 		&i.SerialID,
 		&i.ProductModelID,
 		&i.DateCreated,
@@ -240,13 +304,13 @@ func (q *Queries) CreateSale(ctx context.Context, arg CreateSaleParams) (Product
 	return i, err
 }
 
-const createTag = `-- name: CreateTag :one
+const createTag = `-- name: CreateTag :exec
 INSERT INTO product.tag (
     tag_name,
     description
 ) VALUES (
     $1, $2
-) RETURNING tag_name, description
+)
 `
 
 type CreateTagParams struct {
@@ -254,11 +318,9 @@ type CreateTagParams struct {
 	Description string
 }
 
-func (q *Queries) CreateTag(ctx context.Context, arg CreateTagParams) (ProductTag, error) {
-	row := q.db.QueryRow(ctx, createTag, arg.TagName, arg.Description)
-	var i ProductTag
-	err := row.Scan(&i.TagName, &i.Description)
-	return i, err
+func (q *Queries) CreateTag(ctx context.Context, arg CreateTagParams) error {
+	_, err := q.db.Exec(ctx, createTag, arg.TagName, arg.Description)
+	return err
 }
 
 const deleteBrand = `-- name: DeleteBrand :exec
@@ -271,11 +333,19 @@ func (q *Queries) DeleteBrand(ctx context.Context, id int64) error {
 }
 
 const deleteProduct = `-- name: DeleteProduct :exec
-DELETE FROM product.base WHERE serial_id = $1
+DELETE FROM product.base WHERE (
+    id = $1 OR 
+    serial_id = $2
+)
 `
 
-func (q *Queries) DeleteProduct(ctx context.Context, serialID string) error {
-	_, err := q.db.Exec(ctx, deleteProduct, serialID)
+type DeleteProductParams struct {
+	ID       pgtype.Int8
+	SerialID pgtype.Text
+}
+
+func (q *Queries) DeleteProduct(ctx context.Context, arg DeleteProductParams) error {
+	_, err := q.db.Exec(ctx, deleteProduct, arg.ID, arg.SerialID)
 	return err
 }
 
@@ -336,19 +406,24 @@ func (q *Queries) GetBrand(ctx context.Context, id int64) (GetBrandRow, error) {
 }
 
 const getProduct = `-- name: GetProduct :one
-SELECT 
-    serial_id,
-    product_model_id,
-    date_created,
-    date_updated
+SELECT id, serial_id, product_model_id, date_created, date_updated
 FROM product.base
-WHERE serial_id = $1
+WHERE (
+    id = $1 OR 
+    serial_id = $2
+)
 `
 
-func (q *Queries) GetProduct(ctx context.Context, serialID string) (ProductBase, error) {
-	row := q.db.QueryRow(ctx, getProduct, serialID)
+type GetProductParams struct {
+	ID       pgtype.Int8
+	SerialID pgtype.Text
+}
+
+func (q *Queries) GetProduct(ctx context.Context, arg GetProductParams) (ProductBase, error) {
+	row := q.db.QueryRow(ctx, getProduct, arg.ID, arg.SerialID)
 	var i ProductBase
 	err := row.Scan(
+		&i.ID,
 		&i.SerialID,
 		&i.ProductModelID,
 		&i.DateCreated,
@@ -542,11 +617,7 @@ func (q *Queries) ListProductModels(ctx context.Context, arg ListProductModelsPa
 }
 
 const listProducts = `-- name: ListProducts :many
-SELECT 
-    serial_id,
-    product_model_id,
-    date_created,
-    date_updated
+SELECT id, serial_id, product_model_id, date_created, date_updated
 FROM product.base
 WHERE (
     (product_model_id = $1 OR $1 IS NULL) AND
@@ -582,6 +653,7 @@ func (q *Queries) ListProducts(ctx context.Context, arg ListProductsParams) ([]P
 	for rows.Next() {
 		var i ProductBase
 		if err := rows.Scan(
+			&i.ID,
 			&i.SerialID,
 			&i.ProductModelID,
 			&i.DateCreated,
@@ -618,19 +690,21 @@ func (q *Queries) UpdateBrand(ctx context.Context, arg UpdateBrandParams) error 
 
 const updateProduct = `-- name: UpdateProduct :exec
 UPDATE product.base
-SET 
-    product_model_id = COALESCE($2, product_model_id),
+SET
+    serial_id = COALESCE($2, serial_id),
+    product_model_id = COALESCE($3, product_model_id),
     date_updated = NOW()
-WHERE serial_id = $1
+WHERE id = $1
 `
 
 type UpdateProductParams struct {
-	SerialID       string
+	ID             int64
+	SerialID       pgtype.Text
 	ProductModelID pgtype.Int8
 }
 
 func (q *Queries) UpdateProduct(ctx context.Context, arg UpdateProductParams) error {
-	_, err := q.db.Exec(ctx, updateProduct, arg.SerialID, arg.ProductModelID)
+	_, err := q.db.Exec(ctx, updateProduct, arg.ID, arg.SerialID, arg.ProductModelID)
 	return err
 }
 

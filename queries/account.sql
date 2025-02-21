@@ -1,3 +1,27 @@
+-- name: GetAccountBase :one
+SELECT * FROM "account".base
+WHERE id = $1;
+
+-- name: GetAccountAdmin :one
+SELECT a.*, b.*
+FROM "account".admin a
+INNER JOIN "account".base b ON a.id = b.id
+WHERE (
+  a.id = sqlc.narg('id') OR
+  b.username = sqlc.narg('username')
+);
+
+-- name: GetAccountUser :one
+SELECT u.*, b.*
+FROM "account".user u
+INNER JOIN "account".base b ON u.id = b.id
+WHERE (
+  u.id = sqlc.narg('id') OR
+  u.email = sqlc.narg('email') OR
+  u.phone = sqlc.narg('phone') OR
+  b.username = sqlc.narg('username')
+);
+
 -- name: AddCartItem :one
 INSERT INTO "account".item_on_cart (cart_id, product_model_id, quantity)
 VALUES ($1, $2, $3)
@@ -5,9 +29,9 @@ ON CONFLICT (cart_id, product_model_id)
 DO UPDATE SET quantity = "account".item_on_cart.quantity + $3
 RETURNING quantity;
 
--- name: DeductCartItem :one
+-- name: UpdateCartItem :one
 UPDATE "account".item_on_cart
-SET quantity = quantity - $3
+SET quantity = $3
 WHERE cart_id = $1 AND product_model_id = $2
 RETURNING quantity;
 
@@ -26,3 +50,7 @@ WHERE id = $1;
 -- name: CreateCart :exec
 INSERT INTO "account".cart (id)
 VALUES ($1);
+
+-- name: ClearCart :exec
+DELETE FROM "account".item_on_cart
+WHERE cart_id = $1;

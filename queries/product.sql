@@ -76,6 +76,21 @@ LEFT JOIN product.tag_on_product t ON t.product_model_id = pm.id
 WHERE pm.id = $1
 GROUP BY pm.id;
 
+-- name: CountProductModels :one
+WITH filtered_models AS (
+    SELECT pm.id
+    FROM product.model pm
+    WHERE (
+        (pm.brand_id = sqlc.narg('brand_id') OR sqlc.narg('brand_id') IS NULL) AND
+        (pm.name ILIKE '%' || sqlc.narg('name') || '%' OR sqlc.narg('name') IS NULL) AND
+        (pm.description ILIKE '%' || sqlc.narg('description') || '%' OR sqlc.narg('description') IS NULL) AND
+        (pm.list_price = sqlc.narg('list_price') OR sqlc.narg('list_price') IS NULL) AND
+        (pm.date_manufactured >= sqlc.narg('date_manufactured_from') OR sqlc.narg('date_manufactured_from') IS NULL) AND
+        (pm.date_manufactured <= sqlc.narg('date_manufactured_to') OR sqlc.narg('date_manufactured_to') IS NULL)
+    )
+)
+SELECT COUNT(id)
+FROM filtered_models;
 
 -- name: ListProductModels :many
 SELECT 
@@ -143,20 +158,24 @@ WHERE id = $1;
 DELETE FROM product.model WHERE id = $1;
 
 -- name: GetProduct :one
-SELECT 
-    serial_id,
-    product_model_id,
-    date_created,
-    date_updated
+SELECT *
 FROM product.base
-WHERE serial_id = $1;
+WHERE (
+    id = sqlc.narg('id') OR 
+    serial_id = sqlc.narg('serial_id')
+);
+
+-- name: CountProducts :one
+SELECT COUNT(id)
+FROM product.base
+WHERE (
+    (product_model_id = sqlc.narg('product_model_id') OR sqlc.narg('product_model_id') IS NULL) AND
+    (date_created >= sqlc.narg('date_created_from') OR sqlc.narg('date_created_from') IS NULL) AND
+    (date_created <= sqlc.narg('date_created_to') OR sqlc.narg('date_created_to') IS NULL)
+);
 
 -- name: ListProducts :many
-SELECT 
-    serial_id,
-    product_model_id,
-    date_created,
-    date_updated
+SELECT *
 FROM product.base
 WHERE (
     (product_model_id = sqlc.narg('product_model_id') OR sqlc.narg('product_model_id') IS NULL) AND
@@ -180,13 +199,17 @@ RETURNING *;
 
 -- name: UpdateProduct :exec
 UPDATE product.base
-SET 
+SET
+    serial_id = COALESCE(sqlc.narg('serial_id'), serial_id),
     product_model_id = COALESCE(sqlc.narg('product_model_id'), product_model_id),
     date_updated = NOW()
-WHERE serial_id = $1;
+WHERE id = $1;
 
 -- name: DeleteProduct :exec
-DELETE FROM product.base WHERE serial_id = $1;
+DELETE FROM product.base WHERE (
+    id = sqlc.narg('id') OR 
+    serial_id = sqlc.narg('serial_id')
+);
 
 -- name: CreateSale :one
 INSERT INTO product.sale (
@@ -206,13 +229,13 @@ INSERT INTO product.sale (
 -- name: DeleteSale :exec
 DELETE FROM product.sale WHERE id = $1;
 
--- name: CreateTag :one
+-- name: CreateTag :exec
 INSERT INTO product.tag (
     tag_name,
     description
 ) VALUES (
     $1, $2
-) RETURNING *;
+);
 
 -- name: UpdateTag :exec
 UPDATE product.tag

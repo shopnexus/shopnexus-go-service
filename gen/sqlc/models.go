@@ -193,6 +193,10 @@ type AccountAddress struct {
 	PostalCode string
 }
 
+type AccountAdmin struct {
+	ID int64
+}
+
 type AccountBase struct {
 	ID       int64
 	Username string
@@ -210,16 +214,12 @@ type AccountItemOnCart struct {
 	Quantity       int64
 }
 
-type AccountShop struct {
-	ID int64
-}
-
 type AccountUser struct {
 	ID               int64
 	Email            string
 	Phone            string
 	Gender           AccountGender
-	FullName         pgtype.Text
+	FullName         string
 	DefaultAddressID int64
 }
 
@@ -243,6 +243,7 @@ type PaymentProductOnPayment struct {
 }
 
 type ProductBase struct {
+	ID             int64
 	SerialID       string
 	ProductModelID int64
 	DateCreated    pgtype.Timestamptz
