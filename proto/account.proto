@@ -1,0 +1,31 @@
+syntax = "proto3";
+
+package shopnexus;
+
+option go_package = "shopnexus-go-service/gen/pb";
+
+// ItemQuantity
+
+
+message LoginRequest {
+  string email = 1;
+  string password = 2;
+}
+
+message LoginResponse {
+  string token = 1;
+}
+
+message RegisterRequest {
+  string email = 1;
+  string password = 2;
+}
+
+message RegisterResponse {
+  string token = 1;
+}
+
+service Account {
+  rpc Login(LoginRequest) returns (LoginResponse) {}
+  rpc Register(RegisterRequest) returns (RegisterResponse) {}
+}
