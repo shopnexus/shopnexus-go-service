@@ -2,7 +2,6 @@ package service
 
 import (
 	"context"
-	"shopnexus-go-service/gen/pb"
 	"shopnexus-go-service/internal/model"
 	"shopnexus-go-service/internal/repository"
 )
@@ -10,11 +9,12 @@ import (
 type ProductService struct {
 	Repo    *repository.Repository
 	Account *AccountService
-	pb.UnimplementedPaymentServer
 }
 
-func NewProductService() *ProductService {
-	return &ProductService{}
+func NewProductService(repo *repository.Repository) *ProductService {
+	return &ProductService{
+		Repo: repo,
+	}
 }
 
 func (s *ProductService) GetBrand(ctx context.Context, id int64) (model.Brand, error) {

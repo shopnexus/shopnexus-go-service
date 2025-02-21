@@ -8,11 +8,6 @@ import (
 	"github.com/jackc/pgx/v5"
 )
 
-var _ RepositoryInterface = (*Repository)(nil)
-
-type RepositoryInterface interface {
-}
-
 type Repository struct {
 	db   pgxutil.DBTX
 	sqlc *sqlc.Queries

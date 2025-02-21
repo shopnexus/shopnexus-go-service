@@ -11,8 +11,10 @@ type CartService struct {
 	Repo *repository.Repository
 }
 
-func NewCartService() *CartService {
-	return &CartService{}
+func NewCartService(repo *repository.Repository) *CartService {
+	return &CartService{
+		Repo: repo,
+	}
 }
 
 func (s *CartService) GetCart(ctx context.Context, userID int64) (model.Cart, error) {

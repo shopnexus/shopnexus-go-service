@@ -2,18 +2,18 @@ package service
 
 import (
 	"context"
-	"shopnexus-go-service/gen/pb"
 	"shopnexus-go-service/internal/model"
 	repository "shopnexus-go-service/internal/repository"
 )
 
 type AccountService struct {
 	Repo *repository.Repository
-	pb.UnimplementedAccountServer
 }
 
-func NewAccountService() *AccountService {
-	return &AccountService{}
+func NewAccountService(repo *repository.Repository) *AccountService {
+	return &AccountService{
+		Repo: repo,
+	}
 }
 
 func (s *AccountService) IsAdmin(ctx context.Context, accountID int64) (bool, error) {

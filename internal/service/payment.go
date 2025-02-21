@@ -2,16 +2,18 @@ package service
 
 import (
 	"context"
-	"shopnexus-go-service/gen/pb"
 	"shopnexus-go-service/internal/model"
+	repository "shopnexus-go-service/internal/repository"
 )
 
 type PaymentService struct {
-	pb.UnimplementedPaymentServer
+	Repo *repository.Repository
 }
 
-func NewPaymentService() *PaymentService {
-	return &PaymentService{}
+func NewPaymentService(repo *repository.Repository) *PaymentService {
+	return &PaymentService{
+		Repo: repo,
+	}
 }
 
 type CreatePaymentParams struct {
