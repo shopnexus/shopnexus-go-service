@@ -1,6 +1,6 @@
 package model
 
 type PaginationParams struct {
-	Page  int `json:"page"`
-	Limit int `json:"limit"`
+	Offset int32 `json:"offset"`
+	Limit  int32 `json:"limit"`
 }

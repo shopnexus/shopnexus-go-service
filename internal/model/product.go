@@ -1,7 +1,7 @@
 package model
 
 type Brand struct {
-	ID          []byte `json:"id"` /* unique */
+	ID          int64  `json:"id"` /* unique */
 	Name        string `json:"name"`
 	Description string `json:"description"`
 
@@ -9,21 +9,22 @@ type Brand struct {
 }
 
 type ProductModel struct {
-	ID          []byte  `json:"id"` /* unique */
-	BrandID     []byte  `json:"brand_id"`
-	Name        string  `json:"name"`
-	Description string  `json:"description"`
-	ListPrice   float64 `json:"list_price"`
+	ID               int64  `json:"id"` /* unique */
+	BrandID          int64  `json:"brand_id"`
+	Name             string `json:"name"`
+	Description      string `json:"description"`
+	ListPrice        int64  `json:"list_price"`
+	DateManufactured int64  `json:"date_manufactured"`
 
 	Images []string `json:"images"`
 	Tags   []string `json:"tags"`
 }
 
 type Product struct {
-	SerialID       []byte `json:"serial_id"` /* unique */
-	ProductModelID []byte
-	EntryDate      int64
-	UpdateDate     int64
+	SerialID       string `json:"serial_id"` /* unique */
+	ProductModelID int64
+	DateCreated    int64
+	DateUpdated    int64
 }
 
 type Tag struct {
@@ -32,14 +33,14 @@ type Tag struct {
 }
 
 type Sale struct {
-	ID              []byte   `json:"id"` /* unique */
-	Tag             *string  `json:"tag"`
-	ProductModelID  *[]byte  `json:"product_model_id"`
-	DateStarted     int64    `json:"date_started"`
-	DateEnded       *int64   `json:"date_ended"`
-	Quantity        int64    `json:"quantity"`
-	Used            int64    `json:"used"`
-	IsActive        bool     `json:"is_active"`
-	DiscountPercent *float64 `json:"discount_percent"`
-	DiscountPrice   *float64 `json:"discount_price"`
+	ID              int64   `json:"id"` /* unique */
+	Tag             *string `json:"tag"`
+	ProductModelID  *int64  `json:"product_model_id"`
+	DateStarted     int64   `json:"date_started"`
+	DateEnded       *int64  `json:"date_ended"`
+	Quantity        int64   `json:"quantity"`
+	Used            int64   `json:"used"`
+	IsActive        bool    `json:"is_active"`
+	DiscountPercent *int64  `json:"discount_percent"`
+	DiscountPrice   *int64  `json:"discount_price"`
 }

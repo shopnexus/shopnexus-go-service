@@ -8,7 +8,7 @@ option go_package = "shopnexus-go-service/gen/pb";
 
 message CreatePaymentRequest {
   // fields have explicit presence, so no explicit setting needed
-  repeated bytes product_ids = 1;
+  repeated string product_model_ids = 1;
   PaymentMethod payment_method = 2;
 
   enum PaymentMethod {

@@ -24,7 +24,7 @@ message GetRefundRequest {
 
 message GetRefundResponse {
   string refund_id = 1;
-  bytes product_id = 2;
+  string product_serial_id = 2;
   string description = 3;
   repeated bytes images = 4;
   repeated bytes videos = 5;
@@ -33,7 +33,7 @@ message GetRefundResponse {
 }
 
 message CreateRefundRequest {
-  bytes product_id = 1;
+  string product_serial_id = 1;
   string description = 2;
   repeated bytes images = 3;
   repeated bytes videos = 4;

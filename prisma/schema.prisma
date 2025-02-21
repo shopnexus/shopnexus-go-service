@@ -16,7 +16,7 @@ datasource db {
 //===== ACCOUNT =====
 
 model Account {
-  id       Bytes  @id
+  id       BigInt  @id
   username String @db.VarChar(50)
   password String @db.VarChar(100)
   role     Role
@@ -29,12 +29,12 @@ model Account {
 }
 
 model UserAccount {
-  id                 Bytes   @id
+  id                 BigInt   @id
   email              String  @unique @db.VarChar(255)
   phone              String  @unique
   gender             Gender
   full_name          String? @db.VarChar(100)
-  default_address_id Bytes   @unique
+  default_address_id BigInt   @unique
 
   account   Account   @relation(fields: [id], references: [id], onDelete: Cascade, onUpdate: Cascade)
   addresses Address[]
@@ -46,7 +46,7 @@ model UserAccount {
 }
 
 model AdminAccount {
-  id Bytes @id
+  id BigInt @id
 
   account Account @relation(fields: [id], references: [id], onDelete: Cascade, onUpdate: Cascade)
 
@@ -57,8 +57,8 @@ model AdminAccount {
 //===== USER =====
 
 model Address {
-  id          Bytes  @id
-  user_id     Bytes
+  id          BigInt  @id
+  user_id     BigInt
   address     String
   city        String
   province    String
@@ -72,7 +72,7 @@ model Address {
 }
 
 model Cart {
-  id Bytes @id
+  id BigInt @id
 
   products     ItemOnCart[]
   user_account UserAccount  @relation(fields: [id], references: [id], onUpdate: Cascade, onDelete: Cascade)
@@ -82,8 +82,8 @@ model Cart {
 }
 
 model ItemOnCart {
-  cart_id          Bytes
-  product_model_id Bytes
+  cart_id          BigInt
+  product_model_id BigInt
   quantity         BigInt
 
   cart         Cart         @relation(fields: [cart_id], references: [id], onUpdate: Cascade, onDelete: Cascade)
@@ -97,7 +97,7 @@ model ItemOnCart {
 //===== PRODUCT =====
 
 model Brand {
-  id          Bytes  @id
+  id          BigInt  @id
   name        String
   description String
 
@@ -109,12 +109,12 @@ model Brand {
 }
 
 model ProductModel {
-  id                Bytes    @id
-  brand_id          Bytes
+  id                BigInt    @id
+  brand_id          BigInt
   name              String
   description       String
-  list_price        Decimal  @db.Decimal(10, 2)
-  date_manufactured DateTime
+  list_price        BigInt
+  date_manufactured DateTime @db.Timestamptz(3)
 
   images   Image[]
   tags     TagOnProduct[]
@@ -128,11 +128,11 @@ model ProductModel {
 }
 
 model Product {
-  serial_id        Bytes    @id
-  product_model_id Bytes
-  // shop_id     Bytes // Remove this because current web is single shop (but multi manager accounts)
-  date_created     DateTime @default(now())
-  date_update      DateTime @updatedAt
+  serial_id        String    @id
+  product_model_id BigInt
+  // shop_id     BigInt // Remove this because current web is single shop (but multi manager accounts)
+  date_created     DateTime @db.Timestamptz(3)@default(now())
+  date_updated      DateTime @db.Timestamptz(3) @updatedAt
 
   // shop ShopAccount @relation(fields: [shop_id], references: [id])
   product_model ProductModel @relation(fields: [product_model_id], references: [id], onUpdate: Cascade, onDelete: Cascade)
@@ -143,16 +143,16 @@ model Product {
 
 // Note: Sale data should be removed when reach end_date
 model Sale {
-  id               Bytes     @id
+  id               BigInt     @id
   tag_name         String? // either tag_name or product_model_id
-  product_model_id Bytes?
-  date_started     DateTime  @default(now())
-  date_ended       DateTime?
+  product_model_id BigInt?
+  date_started     DateTime  @db.Timestamptz(3) @default(now())
+  date_ended       DateTime? @db.Timestamptz(3)
   quantity         BigInt // 0 to unlimited
   used             BigInt    @default(0)
   is_active        Boolean   @default(true)
-  discount_percent Int? // either discount_percent or discount_price
-  discount_price   Decimal?  @db.Decimal(10, 2)
+  discount_percent BigInt? // either discount_percent or discount_price
+  discount_price   BigInt?  
 
   tag           Tag?          @relation(fields: [tag_name], references: [tag_name], onUpdate: Cascade, onDelete: Cascade)
   product_model ProductModel? @relation(fields: [product_model_id], references: [id], onUpdate: Cascade, onDelete: Cascade)
@@ -162,7 +162,7 @@ model Sale {
 }
 
 model TagOnProduct {
-  product_model_id Bytes
+  product_model_id BigInt  
   tag_name         String
   product_model    ProductModel @relation(fields: [product_model_id], references: [id], onUpdate: Cascade, onDelete: Cascade)
   tag              Tag          @relation(fields: [tag_name], references: [tag_name], onUpdate: Cascade, onDelete: Cascade)
@@ -174,7 +174,7 @@ model TagOnProduct {
 
 model Tag {
   tag_name    String  @id
-  description String?
+  description String  @default("")
 
   productModels TagOnProduct[]
   sales         Sale[]
@@ -186,12 +186,12 @@ model Tag {
 // ===== PAYMENT =====
 
 model ProductOnPayment {
-  id                Bytes   @id
-  payment_id        Bytes
-  product_serial_id Bytes
+  id                BigInt   @id
+  payment_id        BigInt
+  product_serial_id String
   quantity          BigInt
-  price             Decimal @db.Decimal(10, 2) // Single product price
-  totalPrice        Decimal @db.Decimal(10, 2) // Final price (applied discount)
+  price             BigInt // Single product price
+  total_price        BigInt // Final price (applied discount)
 
   payment       Payment @relation(fields: [payment_id], references: [id], onUpdate: Cascade, onDelete: Cascade)
 
@@ -200,13 +200,13 @@ model ProductOnPayment {
 }
 
 model Payment {
-  id             Bytes         @id
-  user_id        Bytes
+  id             BigInt         @id
+  user_id        BigInt
   address        String
   payment_method PaymentMethod
-  total          Decimal       @db.Decimal(10, 2)
+  total          BigInt       
   status         PaymentStatus
-  date_created   DateTime      @default(now()) @db.Timestamp(0)
+  date_created   DateTime      @db.Timestamptz(3) @default(now())
 
   user_account UserAccount @relation(fields: [user_id], references: [id], onUpdate: Cascade, onDelete: Cascade)
   products     ProductOnPayment[]
@@ -218,9 +218,9 @@ model Payment {
 // ===== OTHER =====
 
 model Image {
-  // shop_id Bytes?
-  brand_id         Bytes?
-  product_model_id Bytes?
+  // shop_id BigInt?
+  brand_id         BigInt?
+  product_model_id BigInt?
   url              String @id
 
   // shop ShopAccount? @relation(fields: [shop_id], references: [id])

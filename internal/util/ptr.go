@@ -41,6 +41,15 @@ func PtrMilisToTime(v *int64) *time.Time {
 	return ToPtr(time.UnixMilli(*v))
 }
 
+// PtrTimeToMilis converts a time.Time pointer to a millisecond timestamp
+func PtrTimeToMilis(v *time.Time) *int64 {
+	if v == nil {
+		return nil
+	}
+
+	return ToPtr(v.UnixMilli())
+}
+
 func BrandedToStringPtr[T ~string](b *T) *string {
 	if b == nil {
 		return nil

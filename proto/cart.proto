@@ -7,15 +7,15 @@ option go_package = "shopnexus-go-service/gen/pb";
 
 // ItemQuantity
 message ItemQuantity {
-  bytes item_id = 1;
+  int64 item_id = 1;
   int64 quantity = 2;
 }
 
 // ADD ITEM
 message AddItemRequest {
-  bytes user_id = 1;
-  bytes product_model_id = 2;
-  bytes cart_id = 3;
+  int64 user_id = 1;
+  int64 product_model_id = 2;
+  int64 cart_id = 3;
   int64 quantity = 4;
 }
 
@@ -25,40 +25,40 @@ message AddItemResponse {
 
 // GET CART
 message GetCartRequest {
-  bytes user_id = 1;
-  bytes cart_id = 2;
+  int64 user_id = 1;
+  int64 cart_id = 2;
 }
 
 message GetCartResponse {
-  bytes cart_id = 1;
+  int64 cart_id = 1;
   repeated ItemQuantity products = 2;
 }
 
 // REMOVE ITEM
 message RemoveItemRequest {
-  bytes product_id = 2;
+  int64 product_model_id = 2;
 }
 
 message RemoveItemResponse {
-  bytes cart_id = 1;
+  int64 cart_id = 1;
 }
 
 // CLEAR
 message ClearRequest {
-  bytes cart_id = 1;
+  int64 cart_id = 1;
 }
 
 message ClearResponse {
-  bytes cart_id = 1;
+  int64 cart_id = 1;
 }
 
 // CHECKOUT
 message CheckoutRequest {
-  bytes cart_id = 1;
+  int64 cart_id = 1;
 }
 
 message CheckoutResponse {
-  bytes cart_id = 1;
+  int64 cart_id = 1;
 }
 
 service Cart {

@@ -17,18 +17,19 @@ const (
 )
 
 type ProductOnPayment struct {
-	ItemQuantityBase
-	InvoiceID  []byte `json:"invoice_id"`
-	Price      float64
-	TotalPrice float64
+	ItemQuantityBase[string]
+	Price      int64 `json:"price"`
+	TotalPrice int64 `json:"total_price"`
 }
 
 type Payment struct {
-	ID            []byte        `json:"id"` /* unique */
-	UserID        []byte        `json:"user_id"`
+	ID            int64         `json:"id"` /* unique */
+	UserID        int64         `json:"user_id"`
 	Address       string        `json:"address"`
 	PaymentMethod PaymentMethod `json:"payment_method"`
-	Total         float64       `json:"total"`
+	Total         int64         `json:"total"`
 	Status        PaymentStatus `json:"status"`
 	DateCreated   int64         `json:"date_created"`
+
+	Products []ProductOnPayment `json:"products"`
 }

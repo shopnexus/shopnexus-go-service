@@ -1,20 +1,19 @@
 package repository
 
 import (
-	"bytes"
 	"context"
 	"shopnexus-go-service/gen/sqlc"
 	"shopnexus-go-service/internal/model"
 )
 
 type AddCartItemParams struct {
-	CartID         []byte
-	ProductModelID []byte
+	CartID         int64
+	ProductModelID int64
 	Quantity       int64
 }
 
-func (r *Repository) OwnCart(ctx context.Context, userID []byte, cartID []byte) (bool, error) {
-	return bytes.Equal(userID, cartID), nil
+func (r *Repository) OwnCart(ctx context.Context, userID int64, cartID int64) (bool, error) {
+	return userID == cartID, nil
 }
 
 func (r *Repository) AddCartItem(ctx context.Context, params AddCartItemParams) (int64, error) {
@@ -26,8 +25,8 @@ func (r *Repository) AddCartItem(ctx context.Context, params AddCartItemParams) 
 }
 
 type DeductCartItemParams struct {
-	CartID         []byte
-	ProductModelID []byte
+	CartID         int64
+	ProductModelID int64
 	Quantity       int64
 }
 
@@ -40,8 +39,8 @@ func (r *Repository) DeductCartItem(ctx context.Context, params DeductCartItemPa
 }
 
 type RemoveCartItemParams struct {
-	CartID         []byte
-	ProductModelID []byte
+	CartID         int64
+	ProductModelID int64
 }
 
 func (r *Repository) RemoveCartItem(ctx context.Context, params RemoveCartItemParams) error {
@@ -51,7 +50,7 @@ func (r *Repository) RemoveCartItem(ctx context.Context, params RemoveCartItemPa
 	})
 }
 
-func (r *Repository) GetCart(ctx context.Context, cartID []byte) (model.Cart, error) {
+func (r *Repository) GetCart(ctx context.Context, cartID int64) (model.Cart, error) {
 	cartRow, err := r.sqlc.GetCart(ctx, cartID)
 	if err != nil {
 		return model.Cart{}, err
@@ -62,10 +61,10 @@ func (r *Repository) GetCart(ctx context.Context, cartID []byte) (model.Cart, er
 		return model.Cart{}, err
 	}
 
-	items := make([]model.ItemQuantity, len(itemRows))
+	items := make([]model.ItemQuantity[int64], len(itemRows))
 	for i, row := range itemRows {
 		items[i] = model.ItemOnCart{
-			ItemQuantityBase: model.ItemQuantityBase{
+			ItemQuantityBase: model.ItemQuantityBase[int64]{
 				ItemID:   row.ProductModelID,
 				Quantity: row.Quantity,
 			},
@@ -77,4 +76,8 @@ func (r *Repository) GetCart(ctx context.Context, cartID []byte) (model.Cart, er
 		ID:       cartRow,
 		Products: items,
 	}, nil
+}
+
+func (r *Repository) CreateCart(ctx context.Context, userID int64) error {
+	return r.sqlc.CreateCart(ctx, userID)
 }

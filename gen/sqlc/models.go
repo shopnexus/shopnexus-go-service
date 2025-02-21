@@ -184,8 +184,8 @@ func (ns NullPaymentStatus) Value() (driver.Value, error) {
 }
 
 type AccountAddress struct {
-	ID         []byte
-	UserID     []byte
+	ID         int64
+	UserID     int64
 	Address    string
 	City       string
 	Province   string
@@ -194,101 +194,101 @@ type AccountAddress struct {
 }
 
 type AccountBase struct {
-	ID       []byte
+	ID       int64
 	Username string
 	Password string
 	Role     AccountRole
 }
 
 type AccountCart struct {
-	ID []byte
+	ID int64
 }
 
 type AccountItemOnCart struct {
-	CartID         []byte
-	ProductModelID []byte
+	CartID         int64
+	ProductModelID int64
 	Quantity       int64
 }
 
 type AccountShop struct {
-	ID []byte
+	ID int64
 }
 
 type AccountUser struct {
-	ID               []byte
+	ID               int64
 	Email            string
 	Phone            string
 	Gender           AccountGender
 	FullName         pgtype.Text
-	DefaultAddressID []byte
+	DefaultAddressID int64
 }
 
 type PaymentBase struct {
-	ID            []byte
-	UserID        []byte
+	ID            int64
+	UserID        int64
 	Address       string
 	PaymentMethod PaymentPaymentMethod
-	Total         pgtype.Numeric
+	Total         int64
 	Status        PaymentStatus
-	DateCreated   pgtype.Timestamp
+	DateCreated   pgtype.Timestamptz
 }
 
 type PaymentProductOnPayment struct {
-	ID              []byte
-	PaymentID       []byte
-	ProductSerialID []byte
+	ID              int64
+	PaymentID       int64
+	ProductSerialID string
 	Quantity        int64
-	Price           pgtype.Numeric
-	TotalPrice      pgtype.Numeric
+	Price           int64
+	TotalPrice      int64
 }
 
 type ProductBase struct {
-	SerialID       []byte
-	ProductModelID []byte
-	DateCreated    pgtype.Timestamp
-	DateUpdate     pgtype.Timestamp
+	SerialID       string
+	ProductModelID int64
+	DateCreated    pgtype.Timestamptz
+	DateUpdated    pgtype.Timestamptz
 }
 
 type ProductBrand struct {
-	ID          []byte
+	ID          int64
 	Name        string
 	Description string
 }
 
 type ProductImage struct {
-	BrandID        []byte
-	ProductModelID []byte
+	BrandID        pgtype.Int8
+	ProductModelID pgtype.Int8
 	Url            string
 }
 
 type ProductModel struct {
-	ID               []byte
-	BrandID          []byte
+	ID               int64
+	BrandID          int64
 	Name             string
 	Description      string
-	ListPrice        pgtype.Numeric
-	DateManufactured pgtype.Timestamp
+	ListPrice        int64
+	DateManufactured pgtype.Timestamptz
 }
 
 type ProductSale struct {
-	ID              []byte
+	ID              int64
 	TagName         pgtype.Text
-	ProductModelID  []byte
-	DateStarted     pgtype.Timestamp
-	DateEnded       pgtype.Timestamp
+	ProductModelID  pgtype.Int8
+	DateStarted     pgtype.Timestamptz
+	DateEnded       pgtype.Timestamptz
 	Quantity        int64
 	Used            int64
 	IsActive        bool
-	DiscountPercent pgtype.Int4
-	DiscountPrice   pgtype.Numeric
+	DiscountPercent pgtype.Int8
+	DiscountPrice   pgtype.Int8
 }
 
 type ProductTag struct {
 	TagName     string
-	Description pgtype.Text
+	Description string
 }
 
 type ProductTagOnProduct struct {
-	ProductModelID []byte
+	ProductModelID int64
 	TagName        string
 }

@@ -20,7 +20,7 @@ type Account interface {
 }
 
 type AccountBase struct {
-	ID       []byte `json:"id"` /* unique */
+	ID       int64  `json:"id"` /* unique */
 	Username string `json:"username"`
 	Password string `json:"password"`
 	Role     string `json:"role"`
@@ -37,37 +37,37 @@ type AccountUser struct {
 	Phone            string `json:"phone"` /* unique */
 	Gender           int32  `json:"gender"`
 	FullName         string `json:"full_name"`
-	DefaultAddressID []byte `json:"default_address_id"`
+	DefaultAddressID int64  `json:"default_address_id"`
 }
 
 type AccountAdmin struct {
 	AccountBase
 }
 
-type ItemQuantity interface {
-	GetID() []byte
+type ItemQuantity[T any] interface {
+	GetID() T
 	GetQuantity() int64
 }
 
-type ItemQuantityBase struct {
-	ItemID   []byte `json:"item_id"`
-	Quantity int64  `json:"quantity"`
+type ItemQuantityBase[T any] struct {
+	ItemID   T     `json:"item_id"`
+	Quantity int64 `json:"quantity"`
 }
 
-func (i ItemQuantityBase) GetID() []byte {
+func (i ItemQuantityBase[T]) GetID() T {
 	return i.ItemID
 }
 
-func (i ItemQuantityBase) GetQuantity() int64 {
+func (i ItemQuantityBase[T]) GetQuantity() int64 {
 	return i.Quantity
 }
 
 type ItemOnCart struct {
-	ItemQuantityBase
-	CartID []byte `json:"cart_id"`
+	ItemQuantityBase[int64]
+	CartID int64 `json:"cart_id"`
 }
 
 type Cart struct {
-	ID       []byte         `json:"id"` /* unique */
-	Products []ItemQuantity `json:"products"`
+	ID       int64                 `json:"id"` /* unique */
+	Products []ItemQuantity[int64] `json:"products"`
 }

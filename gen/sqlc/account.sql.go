@@ -18,8 +18,8 @@ RETURNING quantity
 `
 
 type AddCartItemParams struct {
-	CartID         []byte
-	ProductModelID []byte
+	CartID         int64
+	ProductModelID int64
 	Quantity       int64
 }
 
@@ -30,6 +30,16 @@ func (q *Queries) AddCartItem(ctx context.Context, arg AddCartItemParams) (int64
 	return quantity, err
 }
 
+const createCart = `-- name: CreateCart :exec
+INSERT INTO "account".cart (id)
+VALUES ($1)
+`
+
+func (q *Queries) CreateCart(ctx context.Context, id int64) error {
+	_, err := q.db.Exec(ctx, createCart, id)
+	return err
+}
+
 const deductCartItem = `-- name: DeductCartItem :one
 UPDATE "account".item_on_cart
 SET quantity = quantity - $3
@@ -38,8 +48,8 @@ RETURNING quantity
 `
 
 type DeductCartItemParams struct {
-	CartID         []byte
-	ProductModelID []byte
+	CartID         int64
+	ProductModelID int64
 	Quantity       int64
 }
 
@@ -55,7 +65,7 @@ SELECT id FROM "account".cart
 WHERE id = $1
 `
 
-func (q *Queries) GetCart(ctx context.Context, id []byte) ([]byte, error) {
+func (q *Queries) GetCart(ctx context.Context, id int64) (int64, error) {
 	row := q.db.QueryRow(ctx, getCart, id)
 	err := row.Scan(&id)
 	return id, err
@@ -66,7 +76,7 @@ SELECT cart_id, product_model_id, quantity FROM "account".item_on_cart
 WHERE cart_id = $1
 `
 
-func (q *Queries) GetCartItems(ctx context.Context, cartID []byte) ([]AccountItemOnCart, error) {
+func (q *Queries) GetCartItems(ctx context.Context, cartID int64) ([]AccountItemOnCart, error) {
 	rows, err := q.db.Query(ctx, getCartItems, cartID)
 	if err != nil {
 		return nil, err
@@ -92,8 +102,8 @@ WHERE cart_id = $1 AND product_model_id = $2
 `
 
 type RemoveCartItemParams struct {
-	CartID         []byte
-	ProductModelID []byte
+	CartID         int64
+	ProductModelID int64
 }
 
 func (q *Queries) RemoveCartItem(ctx context.Context, arg RemoveCartItemParams) error {

@@ -5,12 +5,12 @@ package shopnexus;
 option go_package = "shopnexus-go-service/gen/pb";
 
 message GetProductRequest {
-  bytes serial_id = 1;
+  string product_serial_id = 1;
 }
 
 message GetProductResponse {
-  bytes product_id = 1;
-  bytes product_model_id = 2;
+  string product_serial_id = 1;
+  int64 product_model_id = 2;
   int64 date_created = 3;
   int64 date_updated = 4;
 }
@@ -18,7 +18,7 @@ message GetProductResponse {
 message ListProductRequest {
   int32 page = 1;
   int32 limit = 2;
-  optional bytes product_model_id = 3;
+  optional int64 product_model_id = 3;
   optional int64 date_created_from = 4;
   optional int64 date_created_to = 5;
   optional int64 date_updated_from = 6;
@@ -30,19 +30,19 @@ message ListProductResponse {
 }
 
 message CreateProductRequest {
-  bytes product_model_id = 1;
+  int64 product_model_id = 1;
 }
 
 message CreateProductResponse {
-  bytes serial_id = 1;
+  int64 product_serial_id = 1;
 }
 
 message DeleteProductRequest {
-  bytes serial_id = 1;
+  int64 product_serial_id = 1;
 }
 
 message DeleteProductResponse {
-  bytes serial_id = 1;
+  int64 product_serial_id = 1;
 }
 
 service Product {

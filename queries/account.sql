@@ -22,3 +22,7 @@ WHERE cart_id = $1;
 -- name: GetCart :one
 SELECT * FROM "account".cart
 WHERE id = $1;
+
+-- name: CreateCart :exec
+INSERT INTO "account".cart (id)
+VALUES ($1);

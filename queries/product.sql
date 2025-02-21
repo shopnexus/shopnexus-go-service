@@ -12,8 +12,8 @@ WITH filtered_brands AS (
   SELECT b.id
   FROM product.brand b
   WHERE (
-    (name ILIKE sqlc.narg('name') OR sqlc.narg('name') IS NULL) AND
-    (description ILIKE sqlc.narg('description') OR sqlc.narg('description') IS NULL)
+    (name ILIKE '%' || sqlc.narg('name') || '%' OR sqlc.narg('name') IS NULL) AND
+    (description ILIKE '%' || sqlc.narg('description') || '%' OR sqlc.narg('description') IS NULL)
   )
 )
 SELECT COUNT(id)
@@ -27,8 +27,8 @@ WITH filtered_brands AS (
   FROM product.brand b
   INNER JOIN product.image i ON i.brand_id = b.id
   WHERE (
-    (name ILIKE sqlc.narg('name') OR sqlc.narg('name') IS NULL) AND
-    (description ILIKE sqlc.narg('description') OR sqlc.narg('description') IS NULL)
+    (name ILIKE '%' || sqlc.narg('name') || '%' OR sqlc.narg('name') IS NULL) AND
+    (description ILIKE '%' || sqlc.narg('description') || '%' OR sqlc.narg('description') IS NULL)
   )
   GROUP BY b.id
 )
@@ -39,8 +39,8 @@ OFFSET sqlc.arg('offset');
 
 -- name: CreateBrand :one
 WITH inserted_brand AS (
-    INSERT INTO product.brand (id, name, description)
-    VALUES ($1, $2, $3)
+    INSERT INTO product.brand (name, description)
+    VALUES ($1, $2)
     RETURNING *
 ),
 inserted_images AS (
@@ -50,7 +50,7 @@ inserted_images AS (
 )
 SELECT 
     b.*,
-    COALESCE(array_agg(i.url), '{}') as images
+    COALESCE(array_agg(i.url), '{}')::text[] as images
 FROM inserted_brand b
 LEFT JOIN inserted_images i ON true
 GROUP BY b.id;
@@ -58,8 +58,8 @@ GROUP BY b.id;
 -- name: UpdateBrand :exec
 UPDATE product.brand
 SET
-    name = COALESCE($2, name),
-    description = COALESCE($3, description)
+    name = COALESCE(sqlc.narg('name'), name),
+    description = COALESCE(sqlc.narg('description'), description)
 WHERE id = $1;
 
 -- name: DeleteBrand :exec
@@ -68,8 +68,8 @@ DELETE FROM product.brand WHERE id = $1;
 -- name: GetProductModel :one
 SELECT 
     pm.*,
-    COALESCE(array_agg(i.url) FILTER (WHERE i.url IS NOT NULL), '{}') as images,
-    COALESCE(array_agg(t.tag_name) FILTER (WHERE t.tag_name IS NOT NULL), '{}') as tags
+    COALESCE(array_agg(i.url) FILTER (WHERE i.url IS NOT NULL), '{}')::text[] as images,
+    COALESCE(array_agg(t.tag_name) FILTER (WHERE t.tag_name IS NOT NULL), '{}')::text[] as tags
 FROM product.model pm
 LEFT JOIN product.image i ON i.product_model_id = pm.id
 LEFT JOIN product.tag_on_product t ON t.product_model_id = pm.id
@@ -80,18 +80,18 @@ GROUP BY pm.id;
 -- name: ListProductModels :many
 SELECT 
     pm.*,
-    COALESCE(array_agg(DISTINCT i.url) FILTER (WHERE i.url IS NOT NULL), '{}') as images,
-    COALESCE(array_agg(DISTINCT t.tag_name) FILTER (WHERE t.tag_name IS NOT NULL), '{}') as tags
+    COALESCE(array_agg(DISTINCT i.url) FILTER (WHERE i.url IS NOT NULL), '{}')::text[] as images,
+    COALESCE(array_agg(DISTINCT t.tag_name) FILTER (WHERE t.tag_name IS NOT NULL), '{}')::text[] as tags
 FROM product.model pm
 LEFT JOIN product.image i ON i.product_model_id = pm.id
 LEFT JOIN product.tag_on_product t ON t.product_model_id = pm.id
 WHERE (
-    (pm.brand_id = $1 OR $1 IS NULL) AND
-    (pm.name ILIKE '%' || $2 || '%' OR $2 IS NULL) AND
-    (pm.description ILIKE '%' || $3 || '%' OR $3 IS NULL) AND
-    (pm.list_price = $4 OR $4 IS NULL) AND 
-    (pm.date_manufactured >= sqlc.arg('date_manufactured_from') OR sqlc.arg('date_manufactured_from') IS NULL) AND
-    (pm.date_manufactured <= sqlc.arg('date_manufactured_to') OR sqlc.arg('date_manufactured_to') IS NULL)
+    (pm.brand_id = sqlc.narg('brand_id') OR sqlc.narg('brand_id') IS NULL) AND
+    (pm.name ILIKE '%' || sqlc.narg('name') || '%' OR sqlc.narg('name') IS NULL) AND
+    (pm.description ILIKE '%' || sqlc.narg('description') || '%' OR sqlc.narg('description') IS NULL) AND
+    (pm.list_price = sqlc.narg('list_price') OR sqlc.narg('list_price') IS NULL) AND
+    (pm.date_manufactured >= sqlc.narg('date_manufactured_from') OR sqlc.narg('date_manufactured_from') IS NULL) AND
+    (pm.date_manufactured <= sqlc.narg('date_manufactured_to') OR sqlc.narg('date_manufactured_to') IS NULL)
 )
 GROUP BY pm.id
 ORDER BY pm.id DESC
@@ -101,19 +101,19 @@ OFFSET sqlc.arg('offset');
 -- name: CreateProductModel :one
 WITH inserted_model AS (
     INSERT INTO product.model (
-        id, brand_id, name, description, list_price, date_manufactured
+        brand_id, name, description, list_price, date_manufactured
     ) VALUES (
-        $1, $2, $3, $4, $5, $6
+        $1, $2, $3, $4, $5
     ) RETURNING *
 ),
 inserted_images AS (
     INSERT INTO product.image (product_model_id, url)
-    SELECT $1, unnest($7::text[])
+    SELECT $1, unnest(sqlc.arg('images')::text[])
     RETURNING url
 ),
 inserted_tags AS (
     INSERT INTO product.tag_on_product (product_model_id, tag_name)
-    SELECT $1, unnest($8::text[])
+    SELECT $1, unnest(sqlc.arg('tags')::text[])
     RETURNING tag_name
 )
 SELECT 
@@ -122,54 +122,22 @@ SELECT
     m.name,
     m.description,
     m.list_price,
-    COALESCE(array_agg(DISTINCT i.url) FILTER (WHERE i.url IS NOT NULL), '{}') as images,
-    COALESCE(array_agg(DISTINCT t.tag_name) FILTER (WHERE t.tag_name IS NOT NULL), '{}') as tags
+    COALESCE(array_agg(DISTINCT i.url) FILTER (WHERE i.url IS NOT NULL), '{}')::text[] as images,
+    COALESCE(array_agg(DISTINCT t.tag_name) FILTER (WHERE t.tag_name IS NOT NULL), '{}')::text[] as tags
 FROM inserted_model m
 LEFT JOIN inserted_images i ON true
 LEFT JOIN inserted_tags t ON true
 GROUP BY m.id;
 
--- name: UpdateProductModel :one
-WITH updated_model AS (
-    UPDATE product.model
-    SET brand_id = $2,
-        name = $3,
-        description = $4,
-        list_price = $5,
-        date_manufactured = $6
-    WHERE id = $1
-    RETURNING *
-),
-deleted_images AS (
-    DELETE FROM product.image
-    WHERE product_model_id = $1
-),
-deleted_tags AS (
-    DELETE FROM product.tag_on_product
-    WHERE product_model_id = $1
-),
-inserted_images AS (
-    INSERT INTO product.image (product_model_id, url)
-    SELECT $1, unnest($7::text[])
-    RETURNING url
-),
-inserted_tags AS (
-    INSERT INTO product.tag_on_product (product_model_id, tag_name)
-    SELECT $1, unnest($8::text[])
-    RETURNING tag_name
-)
-SELECT 
-    m.id,
-    m.brand_id,
-    m.name,
-    m.description,
-    m.list_price,
-    COALESCE(array_agg(DISTINCT i.url) FILTER (WHERE i.url IS NOT NULL), '{}') as images,
-    COALESCE(array_agg(DISTINCT t.tag_name) FILTER (WHERE t.tag_name IS NOT NULL), '{}') as tags
-FROM updated_model m
-LEFT JOIN inserted_images i ON true
-LEFT JOIN inserted_tags t ON true
-GROUP BY m.id;
+-- name: UpdateProductModel :exec
+UPDATE product.model
+SET 
+    brand_id = COALESCE(sqlc.narg('brand_id'), brand_id),
+    name = COALESCE(sqlc.narg('name'), name),
+    description = COALESCE(sqlc.narg('description'), description),
+    list_price = COALESCE(sqlc.narg('list_price'), list_price),
+    date_manufactured = COALESCE(sqlc.narg('date_manufactured'), date_manufactured)
+WHERE id = $1;
 
 -- name: DeleteProductModel :exec
 DELETE FROM product.model WHERE id = $1;
@@ -178,8 +146,8 @@ DELETE FROM product.model WHERE id = $1;
 SELECT 
     serial_id,
     product_model_id,
-    EXTRACT(EPOCH FROM date_created)::bigint as date_created,
-    EXTRACT(EPOCH FROM date_update)::bigint as date_update
+    date_created,
+    date_updated
 FROM product.base
 WHERE serial_id = $1;
 
@@ -187,47 +155,41 @@ WHERE serial_id = $1;
 SELECT 
     serial_id,
     product_model_id,
-    EXTRACT(EPOCH FROM date_created)::bigint as date_created,
-    EXTRACT(EPOCH FROM date_update)::bigint as date_update
+    date_created,
+    date_updated
 FROM product.base
-WHERE ($1::bytea IS NULL OR product_model_id = $1)
-    AND ($2::timestamp IS NULL OR date_created >= $2)
-    AND ($3::timestamp IS NULL OR date_created <= $3)
+WHERE (
+    (product_model_id = sqlc.narg('product_model_id') OR sqlc.narg('product_model_id') IS NULL) AND
+    (date_created >= sqlc.narg('date_created_from') OR sqlc.narg('date_created_from') IS NULL) AND
+    (date_created <= sqlc.narg('date_created_to') OR sqlc.narg('date_created_to') IS NULL)
+)
 ORDER BY date_created DESC
-LIMIT $4 OFFSET $5;
+LIMIT sqlc.arg('limit')
+OFFSET sqlc.arg('offset');
 
 -- name: CreateProduct :one
 INSERT INTO product.base (
     serial_id,
     product_model_id,
     date_created,
-    date_update
+    date_updated
 ) VALUES (
     $1, $2, NOW(), NOW()
-) RETURNING 
-    serial_id,
-    product_model_id,
-    EXTRACT(EPOCH FROM date_created)::bigint as date_created,
-    EXTRACT(EPOCH FROM date_update)::bigint as date_update;
+)
+RETURNING *;
 
--- name: UpdateProduct :one
+-- name: UpdateProduct :exec
 UPDATE product.base
 SET 
-    product_model_id = $2,
-    date_update = NOW()
-WHERE serial_id = $1
-RETURNING 
-    serial_id,
-    product_model_id,
-    EXTRACT(EPOCH FROM date_created)::bigint as date_created,
-    EXTRACT(EPOCH FROM date_update)::bigint as date_update;
+    product_model_id = COALESCE(sqlc.narg('product_model_id'), product_model_id),
+    date_updated = NOW()
+WHERE serial_id = $1;
 
 -- name: DeleteProduct :exec
 DELETE FROM product.base WHERE serial_id = $1;
 
 -- name: CreateSale :one
 INSERT INTO product.sale (
-    id,
     tag_name,
     product_model_id,
     date_started,
@@ -238,7 +200,7 @@ INSERT INTO product.sale (
     discount_percent,
     discount_price
 ) VALUES (
-    $1, $2, $3, $4, $5, $6, $7, $8, $9, $10
+    $1, $2, $3, $4, $5, $6, $7, $8, $9
 ) RETURNING *;
 
 -- name: DeleteSale :exec
@@ -251,6 +213,12 @@ INSERT INTO product.tag (
 ) VALUES (
     $1, $2
 ) RETURNING *;
+
+-- name: UpdateTag :exec
+UPDATE product.tag
+SET 
+    description = COALESCE(sqlc.narg('description'), description)
+WHERE tag_name = $1;
 
 -- name: DeleteTag :exec
 DELETE FROM product.tag WHERE tag_name = $1;

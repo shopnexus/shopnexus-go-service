@@ -21,7 +21,7 @@ CREATE TYPE "payment"."payment_method" AS ENUM ('CASH', 'MOMO', 'VNPAY');
 
 -- CreateTable
 CREATE TABLE "account"."base" (
-    "id" BYTEA NOT NULL,
+    "id" BIGINT NOT NULL,
     "username" VARCHAR(50) NOT NULL,
     "password" VARCHAR(100) NOT NULL,
     "role" "account"."role" NOT NULL,
@@ -31,27 +31,27 @@ CREATE TABLE "account"."base" (
 
 -- CreateTable
 CREATE TABLE "account"."user" (
-    "id" BYTEA NOT NULL,
+    "id" BIGINT NOT NULL,
     "email" VARCHAR(255) NOT NULL,
     "phone" TEXT NOT NULL,
     "gender" "account"."gender" NOT NULL,
     "full_name" VARCHAR(100),
-    "default_address_id" BYTEA NOT NULL,
+    "default_address_id" BIGINT NOT NULL,
 
     CONSTRAINT "user_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
 CREATE TABLE "account"."shop" (
-    "id" BYTEA NOT NULL,
+    "id" BIGINT NOT NULL,
 
     CONSTRAINT "shop_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
 CREATE TABLE "account"."address" (
-    "id" BYTEA NOT NULL,
-    "user_id" BYTEA NOT NULL,
+    "id" BIGINT NOT NULL,
+    "user_id" BIGINT NOT NULL,
     "address" TEXT NOT NULL,
     "city" TEXT NOT NULL,
     "province" TEXT NOT NULL,
@@ -63,15 +63,15 @@ CREATE TABLE "account"."address" (
 
 -- CreateTable
 CREATE TABLE "account"."cart" (
-    "id" BYTEA NOT NULL,
+    "id" BIGINT NOT NULL,
 
     CONSTRAINT "cart_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
 CREATE TABLE "account"."item_on_cart" (
-    "cart_id" BYTEA NOT NULL,
-    "product_model_id" BYTEA NOT NULL,
+    "cart_id" BIGINT NOT NULL,
+    "product_model_id" BIGINT NOT NULL,
     "quantity" BIGINT NOT NULL,
 
     CONSTRAINT "item_on_cart_pkey" PRIMARY KEY ("cart_id","product_model_id")
@@ -79,7 +79,7 @@ CREATE TABLE "account"."item_on_cart" (
 
 -- CreateTable
 CREATE TABLE "product"."brand" (
-    "id" BYTEA NOT NULL,
+    "id" BIGINT NOT NULL,
     "name" TEXT NOT NULL,
     "description" TEXT NOT NULL,
 
@@ -88,45 +88,45 @@ CREATE TABLE "product"."brand" (
 
 -- CreateTable
 CREATE TABLE "product"."model" (
-    "id" BYTEA NOT NULL,
-    "brand_id" BYTEA NOT NULL,
+    "id" BIGINT NOT NULL,
+    "brand_id" BIGINT NOT NULL,
     "name" TEXT NOT NULL,
     "description" TEXT NOT NULL,
-    "list_price" DECIMAL(10,2) NOT NULL,
-    "date_manufactured" TIMESTAMP(3) NOT NULL,
+    "list_price" BIGINT NOT NULL,
+    "date_manufactured" TIMESTAMPTZ(3) NOT NULL,
 
     CONSTRAINT "model_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
 CREATE TABLE "product"."base" (
-    "serial_id" BYTEA NOT NULL,
-    "product_model_id" BYTEA NOT NULL,
-    "date_created" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    "date_update" TIMESTAMP(3) NOT NULL,
+    "serial_id" TEXT NOT NULL,
+    "product_model_id" BIGINT NOT NULL,
+    "date_created" TIMESTAMPTZ(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "date_updated" TIMESTAMPTZ(3) NOT NULL,
 
     CONSTRAINT "base_pkey" PRIMARY KEY ("serial_id")
 );
 
 -- CreateTable
 CREATE TABLE "product"."sale" (
-    "id" BYTEA NOT NULL,
+    "id" BIGINT NOT NULL,
     "tag_name" TEXT,
-    "product_model_id" BYTEA,
-    "date_started" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    "date_ended" TIMESTAMP(3),
+    "product_model_id" BIGINT,
+    "date_started" TIMESTAMPTZ(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "date_ended" TIMESTAMPTZ(3),
     "quantity" BIGINT NOT NULL,
     "used" BIGINT NOT NULL DEFAULT 0,
     "is_active" BOOLEAN NOT NULL DEFAULT true,
-    "discount_percent" INTEGER,
-    "discount_price" DECIMAL(10,2),
+    "discount_percent" BIGINT,
+    "discount_price" BIGINT,
 
     CONSTRAINT "sale_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
 CREATE TABLE "product"."tag_on_product" (
-    "product_model_id" BYTEA NOT NULL,
+    "product_model_id" BIGINT NOT NULL,
     "tag_name" TEXT NOT NULL,
 
     CONSTRAINT "tag_on_product_pkey" PRIMARY KEY ("product_model_id","tag_name")
@@ -135,40 +135,40 @@ CREATE TABLE "product"."tag_on_product" (
 -- CreateTable
 CREATE TABLE "product"."tag" (
     "tag_name" TEXT NOT NULL,
-    "description" TEXT,
+    "description" TEXT NOT NULL DEFAULT '',
 
     CONSTRAINT "tag_pkey" PRIMARY KEY ("tag_name")
 );
 
 -- CreateTable
 CREATE TABLE "payment"."product_on_payment" (
-    "id" BYTEA NOT NULL,
-    "payment_id" BYTEA NOT NULL,
-    "product_serial_id" BYTEA NOT NULL,
+    "id" BIGINT NOT NULL,
+    "payment_id" BIGINT NOT NULL,
+    "product_serial_id" TEXT NOT NULL,
     "quantity" BIGINT NOT NULL,
-    "price" DECIMAL(10,2) NOT NULL,
-    "totalPrice" DECIMAL(10,2) NOT NULL,
+    "price" BIGINT NOT NULL,
+    "total_price" BIGINT NOT NULL,
 
     CONSTRAINT "product_on_payment_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
 CREATE TABLE "payment"."base" (
-    "id" BYTEA NOT NULL,
-    "user_id" BYTEA NOT NULL,
+    "id" BIGINT NOT NULL,
+    "user_id" BIGINT NOT NULL,
     "address" TEXT NOT NULL,
     "payment_method" "payment"."payment_method" NOT NULL,
-    "total" DECIMAL(10,2) NOT NULL,
+    "total" BIGINT NOT NULL,
     "status" "payment"."status" NOT NULL,
-    "date_created" TIMESTAMP(0) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "date_created" TIMESTAMPTZ(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
     CONSTRAINT "base_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
 CREATE TABLE "product"."image" (
-    "brand_id" BYTEA,
-    "product_model_id" BYTEA,
+    "brand_id" BIGINT,
+    "product_model_id" BIGINT,
     "url" TEXT NOT NULL,
 
     CONSTRAINT "image_pkey" PRIMARY KEY ("url")
