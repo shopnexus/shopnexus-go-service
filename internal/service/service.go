@@ -9,7 +9,7 @@ type Service struct {
 	Product *ProductService
 }
 
-func NewService(repo *repository.Repository) *Service {
+func NewServices(repo *repository.Repository) *Service {
 	account := NewAccountService(repo)
 	cart := NewCartService(repo)
 	payment := NewPaymentService(repo)
