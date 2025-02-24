@@ -22,6 +22,7 @@ type Account interface {
 type AccountBase struct {
 	ID       int64  `json:"id"` /* unique */
 	Username string `json:"username"`
+	Password string `json:"-"`
 	Role     Role   `json:"role"`
 }
 
@@ -36,7 +37,7 @@ type AccountUser struct {
 	Phone            string `json:"phone"` /* unique */
 	Gender           Gender `json:"gender"`
 	FullName         string `json:"full_name"`
-	DefaultAddressID int64  `json:"default_address_id"`
+	DefaultAddressID *int64 `json:"default_address_id"`
 }
 
 type AccountAdmin struct {
