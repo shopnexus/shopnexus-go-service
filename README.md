@@ -39,6 +39,7 @@ A gRPC-based microservice for handling e-commerce operations including user acco
 
 ## Project Structure
 
+```
 .
 ├── cmd/
 │ ├── main.go # Service entry point
@@ -47,8 +48,9 @@ A gRPC-based microservice for handling e-commerce operations including user acco
 ├── gen/ # Generated code (protobuf, sqlc)
 ├── internal/
 │ ├── model/ # Domain models
-│ ├── service/ # Business logic
+│ ├── repository/ # Database operations
 │ ├── server/ # gRPC server implementation
+│ ├── service/ # Business logic
 │ └── util/ # Utility functions
 ├── prisma/ # Database schema and migrations
 └── proto/ # Protocol buffer definitions
@@ -67,6 +69,7 @@ A gRPC-based microservice for handling e-commerce operations including user acco
 ### Installation
 
 1. Clone the repository:
+
 ```bash
 git clone https://github.com/shopnexus/shopnexus-go-service.git
 cd shopnexus-go-service
@@ -79,10 +82,10 @@ go mod download
 npm install
 ```
 
-3. Set up the database:
+3. Initialize the database:
 
 ```bash
-npx prisma migrate diff --from-empty --to-schema-datamodel prisma/schema.prisma --script > prisma/migrations/0_init/migration.sql
+make init-migrate
 ```
 
 4. Generate required code:
