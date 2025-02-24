@@ -33,7 +33,7 @@ func (s *AccountServer) LoginUser(ctx context.Context, req *pb.LoginRequest) (*p
 
 func (s *AccountServer) LoginAdmin(ctx context.Context, req *pb.LoginRequest) (*pb.TokenResponse, error) {
 	token, err := s.service.Login(ctx, service.LoginUserParams{
-		Role:     model.RoleUser,
+		Role:     model.RoleAdmin,
 		Username: req.Username,
 		Email:    req.Email,
 		Phone:    req.Phone,

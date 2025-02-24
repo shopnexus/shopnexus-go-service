@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"fmt"
 	"shopnexus-go-service/internal/model"
 	repository "shopnexus-go-service/internal/repository"
 	"shopnexus-go-service/internal/util"
@@ -46,21 +47,33 @@ type FindAccountParams struct {
 	Username *string
 	Email    *string
 	Phone    *string
+	Role     model.Role
 	Password string
 }
 
-func (s *AccountService) FindAccount(ctx context.Context, params FindAccountParams) (model.Account, error) {
+func (s *AccountService) FindAccount(ctx context.Context, params FindAccountParams) (account model.Account, err error) {
 	if params.Username == nil && params.Email == nil && params.Phone == nil {
 		return nil, model.ErrInvalidCreds
 	}
 
-	account, err := s.repo.GetAccount(ctx, model.AccountUser{
-		AccountBase: model.AccountBase{
-			Username: util.DerefDefault(params.Username, ""),
-		},
-		Email: util.DerefDefault(params.Email, ""),
-		Phone: util.DerefDefault(params.Phone, ""),
-	})
+	switch params.Role {
+	case model.RoleAdmin:
+		account, err = s.repo.GetAccount(ctx, model.AccountAdmin{
+			AccountBase: model.AccountBase{
+				Username: util.DerefDefault(params.Username, ""),
+			},
+		})
+	case model.RoleUser:
+		account, err = s.repo.GetAccount(ctx, model.AccountUser{
+			AccountBase: model.AccountBase{
+				Username: util.DerefDefault(params.Username, ""),
+			},
+			Email: util.DerefDefault(params.Email, ""),
+			Phone: util.DerefDefault(params.Phone, ""),
+		})
+	default:
+		return nil, fmt.Errorf("unknown account role: %s", params.Role)
+	}
 	if err != nil {
 		return nil, err
 	}
@@ -73,13 +86,7 @@ func (s *AccountService) FindAccount(ctx context.Context, params FindAccountPara
 	return account, nil
 }
 
-type LoginUserParams struct {
-	Username *string
-	Email    *string
-	Phone    *string
-	Role     model.Role
-	Password string
-}
+type LoginUserParams = FindAccountParams
 
 func (s *AccountService) Login(ctx context.Context, params LoginUserParams) (string, error) {
 	if params.Username == nil && params.Email == nil && params.Phone == nil {
@@ -96,6 +103,7 @@ func (s *AccountService) Login(ctx context.Context, params LoginUserParams) (str
 		account, err = s.FindAccount(ctx, FindAccountParams{
 			Username: params.Username,
 			Password: params.Password,
+			Role:     model.RoleAdmin,
 		})
 	case model.RoleUser:
 		account, err = s.FindAccount(ctx, FindAccountParams{
@@ -103,6 +111,7 @@ func (s *AccountService) Login(ctx context.Context, params LoginUserParams) (str
 			Email:    params.Email,
 			Phone:    params.Phone,
 			Password: params.Password,
+			Role:     model.RoleUser,
 		})
 	}
 

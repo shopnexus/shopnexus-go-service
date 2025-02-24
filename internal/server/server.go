@@ -20,7 +20,7 @@ import (
 func NewServer(address string) error {
 	// Setup auth matcher.
 	matchFunc := func(ctx context.Context, callMeta interceptors.CallMeta) bool {
-		return true
+		return pb.Account_ServiceDesc.ServiceName != callMeta.Service
 		// return pb.Product_ServiceDesc.ServiceName == callMeta.Service
 	}
 
