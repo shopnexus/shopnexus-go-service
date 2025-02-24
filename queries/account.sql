@@ -22,6 +22,28 @@ WHERE (
   b.username = sqlc.narg('username')
 );
 
+-- name: CreateAccountUser :one
+WITH base AS (
+  INSERT INTO "account".base (username, password, role)
+  VALUES ($1, $2, 'user')
+  RETURNING id
+)
+INSERT INTO "account".user (id, email, phone, gender, full_name)
+SELECT id, $3, $4, $5, $6
+FROM base
+RETURNING id;
+
+-- name: CreateAccountAdmin :one
+WITH base AS (
+  INSERT INTO "account".base (username, password, role)
+  VALUES ($1, $2, 'admin')
+  RETURNING id
+)
+INSERT INTO "account".admin (id)
+SELECT id
+FROM base
+RETURNING id;
+
 -- name: AddCartItem :one
 INSERT INTO "account".item_on_cart (cart_id, product_model_id, quantity)
 VALUES ($1, $2, $3)

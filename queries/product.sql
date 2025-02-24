@@ -84,7 +84,8 @@ WITH filtered_models AS (
         (pm.brand_id = sqlc.narg('brand_id') OR sqlc.narg('brand_id') IS NULL) AND
         (pm.name ILIKE '%' || sqlc.narg('name') || '%' OR sqlc.narg('name') IS NULL) AND
         (pm.description ILIKE '%' || sqlc.narg('description') || '%' OR sqlc.narg('description') IS NULL) AND
-        (pm.list_price = sqlc.narg('list_price') OR sqlc.narg('list_price') IS NULL) AND
+        (pm.list_price >= sqlc.narg('list_price_from') OR sqlc.narg('list_price_from') IS NULL) AND
+        (pm.list_price <= sqlc.narg('list_price_to') OR sqlc.narg('list_price_to') IS NULL) AND
         (pm.date_manufactured >= sqlc.narg('date_manufactured_from') OR sqlc.narg('date_manufactured_from') IS NULL) AND
         (pm.date_manufactured <= sqlc.narg('date_manufactured_to') OR sqlc.narg('date_manufactured_to') IS NULL)
     )
@@ -104,7 +105,8 @@ WHERE (
     (pm.brand_id = sqlc.narg('brand_id') OR sqlc.narg('brand_id') IS NULL) AND
     (pm.name ILIKE '%' || sqlc.narg('name') || '%' OR sqlc.narg('name') IS NULL) AND
     (pm.description ILIKE '%' || sqlc.narg('description') || '%' OR sqlc.narg('description') IS NULL) AND
-    (pm.list_price = sqlc.narg('list_price') OR sqlc.narg('list_price') IS NULL) AND
+    (pm.list_price >= sqlc.narg('list_price_from') OR sqlc.narg('list_price_from') IS NULL) AND
+    (pm.list_price <= sqlc.narg('list_price_to') OR sqlc.narg('list_price_to') IS NULL) AND
     (pm.date_manufactured >= sqlc.narg('date_manufactured_from') OR sqlc.narg('date_manufactured_from') IS NULL) AND
     (pm.date_manufactured <= sqlc.narg('date_manufactured_to') OR sqlc.narg('date_manufactured_to') IS NULL)
 )
