@@ -10,18 +10,18 @@ import (
 	"github.com/golang-jwt/jwt/v5"
 )
 
-func GenerateAccessToken(userID int64, role model.Role) (string, error) {
+func GenerateAccessToken(account model.Account) (string, error) {
 	tokenDuration := time.Duration(config.GetConfig().App.AccessTokenDuration)
 
 	claims := model.Claims{
-		UserID: userID,
-		Role:   role,
+		UserID: account.GetBase().ID,
+		Role:   account.GetBase().Role,
 		RegisteredClaims: jwt.RegisteredClaims{
 			ExpiresAt: jwt.NewNumericDate(time.Now().Add(tokenDuration)),
 			IssuedAt:  jwt.NewNumericDate(time.Now()),
-			Issuer:    "safe-trade",
-			Subject:   strconv.Itoa(int(userID)),
-			Audience:  []string{"safe-trade"},
+			Issuer:    "shopnexus",
+			Subject:   strconv.Itoa(int(account.GetBase().ID)),
+			Audience:  []string{"shopnexus"},
 		},
 	}
 
