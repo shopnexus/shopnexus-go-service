@@ -4,48 +4,46 @@ import (
 	"flag"
 	"fmt"
 	"log"
-	"net"
 	"os"
-
-	"google.golang.org/grpc"
+	"shopnexus-go-service/config"
+	"shopnexus-go-service/internal/logger"
+	"shopnexus-go-service/internal/server"
 )
+
+const defaultConfigFile = "config/config.dev.yml"
+const productionConfigFile = "config/config.production.yml"
+
+var configFile string
 
 var (
 	port = flag.Int("port", 50051, "The server port")
 )
 
 func main() {
+	setUpConfig()
+	setupLogger()
 
-	// // Register servers
-	// // pb.RegisterPaymentServer(s, &PaymentServer{})
-	// pb.RegisterRefundServer(s, &RefundServer{})
+	err := server.NewServer(fmt.Sprintf(":%d", *port))
+	if err != nil {
+		log.Fatal(err)
+	}
 
-	// log.Printf("server listening at %v", lis.Addr())
-	// if err := s.Serve(lis); err != nil {
-	// 	log.Fatalf("failed to serve: %v", err)
-	// }
 }
 
 func setUpConfig() {
 	fmt.Println("APP_STAGE", os.Getenv("APP_STAGE"))
 
-	// if os.Getenv("APP_STAGE") == "production" {
-	// 	configFile = productionConfigFile
-	// } else {
-	// 	configFile = defaultConfigFile
-	// }
+	if os.Getenv("APP_STAGE") == "production" {
+		configFile = productionConfigFile
+	} else {
+		configFile = defaultConfigFile
+	}
 
-	// log.Default().Printf("Using config file: %s", configFile)
-	// config.SetConfig(configFile)
+	log.Default().Printf("Using config file: %s", configFile)
+	config.SetConfig(configFile)
 }
 
-func setupGrpcServer() (*grpc.Server, net.Listener) {
-	flag.Parse()
-	lis, err := net.Listen("tcp", fmt.Sprintf(":%d", *port))
-	if err != nil {
-		log.Fatalf("failed to listen: %v", err)
-	}
-	s := grpc.NewServer()
-
-	return s, lis
+func setupLogger() {
+	log.Default().Printf("Using log level: %s", config.GetConfig().Log.Level)
+	logger.InitLogger("zap")
 }
