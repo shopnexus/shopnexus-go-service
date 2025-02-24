@@ -5,6 +5,8 @@ generator client {
 
 generator dbml {
   provider = "prisma-dbml-generator"
+  mapToDbSchema = false
+  includeRelationFields = false
 }
 
 datasource db {
@@ -16,7 +18,7 @@ datasource db {
 //===== ACCOUNT =====
 
 model Account {
-  id       BigInt @id
+  id       BigInt @id @default(autoincrement())
   username String @db.VarChar(50)
   password String @db.VarChar(100)
   role     Role
@@ -29,12 +31,12 @@ model Account {
 }
 
 model UserAccount {
-  id                 BigInt @id
-  email              String @unique @db.VarChar(255)
-  phone              String @unique
+  id                 BigInt  @id
+  email              String  @unique @db.VarChar(255)
+  phone              String  @unique
   gender             Gender
-  full_name          String @default("") @db.VarChar(100)
-  default_address_id BigInt? 
+  full_name          String  @default("") @db.VarChar(100)
+  default_address_id BigInt?
 
   account   Account   @relation(fields: [id], references: [id], onDelete: Cascade, onUpdate: Cascade)
   addresses Address[]
@@ -57,7 +59,7 @@ model AdminAccount {
 //===== USER =====
 
 model Address {
-  id          BigInt @id
+  id          BigInt @id @default(autoincrement())
   user_id     BigInt
   address     String
   city        String
@@ -97,7 +99,7 @@ model ItemOnCart {
 //===== PRODUCT =====
 
 model Brand {
-  id          BigInt @id
+  id          BigInt @id @default(autoincrement())
   name        String
   description String
 
@@ -109,7 +111,7 @@ model Brand {
 }
 
 model ProductModel {
-  id                BigInt   @id
+  id                BigInt   @id @default(autoincrement())
   brand_id          BigInt
   name              String
   description       String
@@ -144,7 +146,7 @@ model Product {
 
 // Note: Sale data should be removed when reach end_date
 model Sale {
-  id               BigInt    @id
+  id               BigInt    @id @default(autoincrement())
   tag_name         String? // either tag_name or product_model_id
   product_model_id BigInt?
   date_started     DateTime  @default(now()) @db.Timestamptz(3)
@@ -187,7 +189,6 @@ model Tag {
 // ===== PAYMENT =====
 
 model ProductOnPayment {
-  id                BigInt @id
   payment_id        BigInt
   product_serial_id String
   quantity          BigInt
@@ -196,12 +197,13 @@ model ProductOnPayment {
 
   payment Payment @relation(fields: [payment_id], references: [id], onUpdate: Cascade, onDelete: Cascade)
 
+  @@id([payment_id, product_serial_id])
   @@map("product_on_payment")
   @@schema("payment")
 }
 
 model Payment {
-  id             BigInt        @id
+  id             BigInt        @id @default(autoincrement())
   user_id        BigInt
   address        String
   payment_method PaymentMethod
@@ -219,10 +221,11 @@ model Payment {
 // ===== OTHER =====
 
 model Image {
+  id               BigInt  @id @default(autoincrement())
   // shop_id BigInt?
   brand_id         BigInt?
   product_model_id BigInt?
-  url              String  @id
+  url              String
 
   // shop ShopAccount? @relation(fields: [shop_id], references: [id])
   brand        Brand?        @relation(fields: [brand_id], references: [id])

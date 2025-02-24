@@ -21,7 +21,7 @@ CREATE TYPE "payment"."payment_method" AS ENUM ('CASH', 'MOMO', 'VNPAY');
 
 -- CreateTable
 CREATE TABLE "account"."base" (
-    "id" BIGINT NOT NULL,
+    "id" BIGSERIAL NOT NULL,
     "username" VARCHAR(50) NOT NULL,
     "password" VARCHAR(100) NOT NULL,
     "role" "account"."role" NOT NULL,
@@ -50,7 +50,7 @@ CREATE TABLE "account"."admin" (
 
 -- CreateTable
 CREATE TABLE "account"."address" (
-    "id" BIGINT NOT NULL,
+    "id" BIGSERIAL NOT NULL,
     "user_id" BIGINT NOT NULL,
     "address" TEXT NOT NULL,
     "city" TEXT NOT NULL,
@@ -79,7 +79,7 @@ CREATE TABLE "account"."item_on_cart" (
 
 -- CreateTable
 CREATE TABLE "product"."brand" (
-    "id" BIGINT NOT NULL,
+    "id" BIGSERIAL NOT NULL,
     "name" TEXT NOT NULL,
     "description" TEXT NOT NULL,
 
@@ -88,7 +88,7 @@ CREATE TABLE "product"."brand" (
 
 -- CreateTable
 CREATE TABLE "product"."model" (
-    "id" BIGINT NOT NULL,
+    "id" BIGSERIAL NOT NULL,
     "brand_id" BIGINT NOT NULL,
     "name" TEXT NOT NULL,
     "description" TEXT NOT NULL,
@@ -111,7 +111,7 @@ CREATE TABLE "product"."base" (
 
 -- CreateTable
 CREATE TABLE "product"."sale" (
-    "id" BIGINT NOT NULL,
+    "id" BIGSERIAL NOT NULL,
     "tag_name" TEXT,
     "product_model_id" BIGINT,
     "date_started" TIMESTAMPTZ(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -143,19 +143,18 @@ CREATE TABLE "product"."tag" (
 
 -- CreateTable
 CREATE TABLE "payment"."product_on_payment" (
-    "id" BIGINT NOT NULL,
     "payment_id" BIGINT NOT NULL,
     "product_serial_id" TEXT NOT NULL,
     "quantity" BIGINT NOT NULL,
     "price" BIGINT NOT NULL,
     "total_price" BIGINT NOT NULL,
 
-    CONSTRAINT "product_on_payment_pkey" PRIMARY KEY ("id")
+    CONSTRAINT "product_on_payment_pkey" PRIMARY KEY ("payment_id","product_serial_id")
 );
 
 -- CreateTable
 CREATE TABLE "payment"."base" (
-    "id" BIGINT NOT NULL,
+    "id" BIGSERIAL NOT NULL,
     "user_id" BIGINT NOT NULL,
     "address" TEXT NOT NULL,
     "payment_method" "payment"."payment_method" NOT NULL,
@@ -168,11 +167,12 @@ CREATE TABLE "payment"."base" (
 
 -- CreateTable
 CREATE TABLE "product"."image" (
+    "id" BIGSERIAL NOT NULL,
     "brand_id" BIGINT,
     "product_model_id" BIGINT,
     "url" TEXT NOT NULL,
 
-    CONSTRAINT "image_pkey" PRIMARY KEY ("url")
+    CONSTRAINT "image_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateIndex
