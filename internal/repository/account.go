@@ -19,6 +19,7 @@ func (r *Repository) GetAccountBase(ctx context.Context, accountID int64) (model
 	return model.AccountBase{
 		ID:       baseRow.ID,
 		Username: baseRow.Username,
+		Password: baseRow.Password,
 		Role:     model.Role(baseRow.Role),
 	}, nil
 }
@@ -45,13 +46,14 @@ func (r *Repository) GetAccountUser(ctx context.Context, params GetAccountUserPa
 		AccountBase: model.AccountBase{
 			ID:       userRow.ID,
 			Username: userRow.Username,
+			Password: userRow.Password,
 			Role:     model.Role(userRow.Role),
 		},
 		Email:            userRow.Email,
 		Phone:            userRow.Phone,
 		Gender:           model.Gender(userRow.Gender),
 		FullName:         userRow.FullName,
-		DefaultAddressID: userRow.DefaultAddressID,
+		DefaultAddressID: pgxutil.PgtypeToPtr[int64](userRow.DefaultAddressID),
 	}, nil
 }
 
@@ -73,6 +75,7 @@ func (r *Repository) GetAccountAdmin(ctx context.Context, params GetAccountAdmin
 		AccountBase: model.AccountBase{
 			ID:       adminRow.ID,
 			Username: adminRow.Username,
+			Password: adminRow.Password,
 			Role:     model.Role(adminRow.Role),
 		},
 	}, nil
@@ -137,6 +140,55 @@ func (r *Repository) GetAccount(ctx context.Context, find model.Account) (accoun
 	}
 
 	return account, nil
+}
+
+func (r *Repository) CreateAccount(ctx context.Context, account model.Account) (model.Account, error) {
+	switch account := account.(type) {
+	case model.AccountUser:
+		id, err := r.sqlc.CreateAccountUser(ctx, sqlc.CreateAccountUserParams{
+			Username: account.Username,
+			Password: account.Password,
+			Email:    account.Email,
+			Phone:    account.Phone,
+			Gender:   sqlc.AccountGender(account.Gender),
+			FullName: account.FullName,
+		})
+		if err != nil {
+			return nil, err
+		}
+
+		return model.AccountUser{
+			AccountBase: model.AccountBase{
+				ID:       id,
+				Username: account.Username,
+				Password: account.Password,
+				Role:     model.RoleUser,
+			},
+			Email:    account.Email,
+			Phone:    account.Phone,
+			Gender:   account.Gender,
+			FullName: account.FullName,
+		}, nil
+	case model.AccountAdmin:
+		id, err := r.sqlc.CreateAccountAdmin(ctx, sqlc.CreateAccountAdminParams{
+			Username: account.Username,
+			Password: account.Password,
+		})
+		if err != nil {
+			return nil, err
+		}
+
+		return model.AccountAdmin{
+			AccountBase: model.AccountBase{
+				ID:       id,
+				Username: account.Username,
+				Password: account.Password,
+				Role:     model.RoleAdmin,
+			},
+		}, nil
+	default:
+		return nil, fmt.Errorf("unknown account type: %T", account)
+	}
 }
 
 func (r *Repository) GetCart(ctx context.Context, cartID int64) (model.Cart, error) {

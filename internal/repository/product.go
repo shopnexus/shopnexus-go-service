@@ -116,20 +116,22 @@ func (r *Repository) GetProductModel(ctx context.Context, id int64) (model.Produ
 
 type ListProductModelsParams struct {
 	model.PaginationParams
-	BrandID              int64
+	BrandID              *int64
 	Name                 *string
 	Description          *string
-	ListPrice            *int64
+	ListPriceFrom        *int64
+	ListPriceTo          *int64
 	DateManufacturedFrom *int64
 	DateManufacturedTo   *int64
 }
 
 func (r *Repository) CountProductModels(ctx context.Context, params ListProductModelsParams) (int64, error) {
 	return r.sqlc.CountProductModels(ctx, sqlc.CountProductModelsParams{
-		BrandID:              *pgxutil.PtrToPgtype(&pgtype.Int8{}, &params.BrandID),
+		BrandID:              *pgxutil.PtrToPgtype(&pgtype.Int8{}, params.BrandID),
 		Name:                 *pgxutil.PtrToPgtype(&pgtype.Text{}, params.Name),
 		Description:          *pgxutil.PtrToPgtype(&pgtype.Text{}, params.Description),
-		ListPrice:            *pgxutil.PtrToPgtype(&pgtype.Int8{}, params.ListPrice),
+		ListPriceFrom:        *pgxutil.PtrToPgtype(&pgtype.Int8{}, params.ListPriceFrom),
+		ListPriceTo:          *pgxutil.PtrToPgtype(&pgtype.Int8{}, params.ListPriceTo),
 		DateManufacturedFrom: *pgxutil.PtrToPgtype(&pgtype.Timestamptz{}, util.PtrMilisToTime(params.DateManufacturedFrom)),
 		DateManufacturedTo:   *pgxutil.PtrToPgtype(&pgtype.Timestamptz{}, util.PtrMilisToTime(params.DateManufacturedTo)),
 	})
@@ -139,10 +141,11 @@ func (r *Repository) ListProductModels(ctx context.Context, params ListProductMo
 	productModels, err := r.sqlc.ListProductModels(ctx, sqlc.ListProductModelsParams{
 		Offset:               params.Offset,
 		Limit:                params.Limit,
-		BrandID:              *pgxutil.PtrToPgtype(&pgtype.Int8{}, &params.BrandID),
+		BrandID:              *pgxutil.PtrToPgtype(&pgtype.Int8{}, params.BrandID),
 		Name:                 *pgxutil.PtrToPgtype(&pgtype.Text{}, params.Name),
 		Description:          *pgxutil.PtrToPgtype(&pgtype.Text{}, params.Description),
-		ListPrice:            *pgxutil.PtrToPgtype(&pgtype.Int8{}, params.ListPrice),
+		ListPriceFrom:        *pgxutil.PtrToPgtype(&pgtype.Int8{}, params.ListPriceFrom),
+		ListPriceTo:          *pgxutil.PtrToPgtype(&pgtype.Int8{}, params.ListPriceTo),
 		DateManufacturedFrom: *pgxutil.PtrToPgtype(&pgtype.Timestamptz{}, util.PtrMilisToTime(params.DateManufacturedFrom)),
 		DateManufacturedTo:   *pgxutil.PtrToPgtype(&pgtype.Timestamptz{}, util.PtrMilisToTime(params.DateManufacturedTo)),
 	})
@@ -251,14 +254,14 @@ func (r *Repository) GetProduct(ctx context.Context, params ProductIdentifier) (
 
 type ListProductsParams struct {
 	model.PaginationParams
-	ProductModelID  int64
+	ProductModelID  *int64
 	DateCreatedFrom *int64
 	DateCreatedTo   *int64
 }
 
 func (r *Repository) CountProducts(ctx context.Context, params ListProductsParams) (int64, error) {
 	return r.sqlc.CountProducts(ctx, sqlc.CountProductsParams{
-		ProductModelID:  *pgxutil.PtrToPgtype(&pgtype.Int8{}, &params.ProductModelID),
+		ProductModelID:  *pgxutil.PtrToPgtype(&pgtype.Int8{}, params.ProductModelID),
 		DateCreatedFrom: *pgxutil.PtrToPgtype(&pgtype.Timestamptz{}, util.PtrMilisToTime(params.DateCreatedFrom)),
 		DateCreatedTo:   *pgxutil.PtrToPgtype(&pgtype.Timestamptz{}, util.PtrMilisToTime(params.DateCreatedTo)),
 	})
@@ -268,7 +271,7 @@ func (r *Repository) ListProducts(ctx context.Context, params ListProductsParams
 	products, err := r.sqlc.ListProducts(ctx, sqlc.ListProductsParams{
 		Offset:          params.Offset,
 		Limit:           params.Limit,
-		ProductModelID:  *pgxutil.PtrToPgtype(&pgtype.Int8{}, &params.ProductModelID),
+		ProductModelID:  *pgxutil.PtrToPgtype(&pgtype.Int8{}, params.ProductModelID),
 		DateCreatedFrom: *pgxutil.PtrToPgtype(&pgtype.Timestamptz{}, util.PtrMilisToTime(params.DateCreatedFrom)),
 		DateCreatedTo:   *pgxutil.PtrToPgtype(&pgtype.Timestamptz{}, util.PtrMilisToTime(params.DateCreatedTo)),
 	})
