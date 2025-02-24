@@ -234,7 +234,6 @@ type PaymentBase struct {
 }
 
 type PaymentProductOnPayment struct {
-	ID              int64
 	PaymentID       int64
 	ProductSerialID string
 	Quantity        int64
@@ -257,6 +256,7 @@ type ProductBrand struct {
 }
 
 type ProductImage struct {
+	ID             int64
 	BrandID        pgtype.Int8
 	ProductModelID pgtype.Int8
 	Url            string
