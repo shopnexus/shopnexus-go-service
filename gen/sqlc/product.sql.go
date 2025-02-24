@@ -44,9 +44,10 @@ WITH filtered_models AS (
         (pm.brand_id = $1 OR $1 IS NULL) AND
         (pm.name ILIKE '%' || $2 || '%' OR $2 IS NULL) AND
         (pm.description ILIKE '%' || $3 || '%' OR $3 IS NULL) AND
-        (pm.list_price = $4 OR $4 IS NULL) AND
-        (pm.date_manufactured >= $5 OR $5 IS NULL) AND
-        (pm.date_manufactured <= $6 OR $6 IS NULL)
+        (pm.list_price >= $4 OR $4 IS NULL) AND
+        (pm.list_price <= $5 OR $5 IS NULL) AND
+        (pm.date_manufactured >= $6 OR $6 IS NULL) AND
+        (pm.date_manufactured <= $7 OR $7 IS NULL)
     )
 )
 SELECT COUNT(id)
@@ -57,7 +58,8 @@ type CountProductModelsParams struct {
 	BrandID              pgtype.Int8
 	Name                 pgtype.Text
 	Description          pgtype.Text
-	ListPrice            pgtype.Int8
+	ListPriceFrom        pgtype.Int8
+	ListPriceTo          pgtype.Int8
 	DateManufacturedFrom pgtype.Timestamptz
 	DateManufacturedTo   pgtype.Timestamptz
 }
@@ -67,7 +69,8 @@ func (q *Queries) CountProductModels(ctx context.Context, arg CountProductModels
 		arg.BrandID,
 		arg.Name,
 		arg.Description,
-		arg.ListPrice,
+		arg.ListPriceFrom,
+		arg.ListPriceTo,
 		arg.DateManufacturedFrom,
 		arg.DateManufacturedTo,
 	)
@@ -546,21 +549,23 @@ WHERE (
     (pm.brand_id = $1 OR $1 IS NULL) AND
     (pm.name ILIKE '%' || $2 || '%' OR $2 IS NULL) AND
     (pm.description ILIKE '%' || $3 || '%' OR $3 IS NULL) AND
-    (pm.list_price = $4 OR $4 IS NULL) AND
-    (pm.date_manufactured >= $5 OR $5 IS NULL) AND
-    (pm.date_manufactured <= $6 OR $6 IS NULL)
+    (pm.list_price >= $4 OR $4 IS NULL) AND
+    (pm.list_price <= $5 OR $5 IS NULL) AND
+    (pm.date_manufactured >= $6 OR $6 IS NULL) AND
+    (pm.date_manufactured <= $7 OR $7 IS NULL)
 )
 GROUP BY pm.id
 ORDER BY pm.id DESC
-LIMIT $8
-OFFSET $7
+LIMIT $9
+OFFSET $8
 `
 
 type ListProductModelsParams struct {
 	BrandID              pgtype.Int8
 	Name                 pgtype.Text
 	Description          pgtype.Text
-	ListPrice            pgtype.Int8
+	ListPriceFrom        pgtype.Int8
+	ListPriceTo          pgtype.Int8
 	DateManufacturedFrom pgtype.Timestamptz
 	DateManufacturedTo   pgtype.Timestamptz
 	Offset               int32
@@ -583,7 +588,8 @@ func (q *Queries) ListProductModels(ctx context.Context, arg ListProductModelsPa
 		arg.BrandID,
 		arg.Name,
 		arg.Description,
-		arg.ListPrice,
+		arg.ListPriceFrom,
+		arg.ListPriceTo,
 		arg.DateManufacturedFrom,
 		arg.DateManufacturedTo,
 		arg.Offset,

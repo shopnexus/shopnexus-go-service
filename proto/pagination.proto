@@ -1,0 +1,17 @@
+syntax = "proto3";
+
+package shopnexus;
+
+option go_package = "shopnexus-go-service/gen/pb";
+
+message PaginationRequest {
+  int32 offset = 1;
+  int32 limit = 2;
+  optional string cursor = 3;
+}
+
+message PaginationResponse {
+  int64 total = 1;
+  optional int32 next_page = 2;
+  optional string next_cursor = 3;
+}

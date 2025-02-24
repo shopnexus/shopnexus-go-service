@@ -220,7 +220,7 @@ type AccountUser struct {
 	Phone            string
 	Gender           AccountGender
 	FullName         string
-	DefaultAddressID int64
+	DefaultAddressID pgtype.Int8
 }
 
 type PaymentBase struct {

@@ -42,6 +42,65 @@ func (q *Queries) ClearCart(ctx context.Context, cartID int64) error {
 	return err
 }
 
+const createAccountAdmin = `-- name: CreateAccountAdmin :one
+WITH base AS (
+  INSERT INTO "account".base (username, password, role)
+  VALUES ($1, $2, 'admin')
+  RETURNING id
+)
+INSERT INTO "account".admin (id)
+SELECT id
+FROM base
+RETURNING id
+`
+
+type CreateAccountAdminParams struct {
+	Username string
+	Password string
+}
+
+func (q *Queries) CreateAccountAdmin(ctx context.Context, arg CreateAccountAdminParams) (int64, error) {
+	row := q.db.QueryRow(ctx, createAccountAdmin, arg.Username, arg.Password)
+	var id int64
+	err := row.Scan(&id)
+	return id, err
+}
+
+const createAccountUser = `-- name: CreateAccountUser :one
+WITH base AS (
+  INSERT INTO "account".base (username, password, role)
+  VALUES ($1, $2, 'user')
+  RETURNING id
+)
+INSERT INTO "account".user (id, email, phone, gender, full_name)
+SELECT id, $3, $4, $5, $6
+FROM base
+RETURNING id
+`
+
+type CreateAccountUserParams struct {
+	Username string
+	Password string
+	Email    string
+	Phone    string
+	Gender   AccountGender
+	FullName string
+}
+
+func (q *Queries) CreateAccountUser(ctx context.Context, arg CreateAccountUserParams) (int64, error) {
+	row := q.db.QueryRow(ctx, createAccountUser,
+		arg.Username,
+		arg.Password,
+		arg.Email,
+		arg.Phone,
+		arg.Gender,
+		arg.FullName,
+	)
+	var id int64
+	err := row.Scan(&id)
+	return id, err
+}
+
 const createCart = `-- name: CreateCart :exec
 INSERT INTO "account".cart (id)
 VALUES ($1)
@@ -130,7 +189,7 @@ type GetAccountUserRow struct {
 	Phone            string
 	Gender           AccountGender
 	FullName         string
-	DefaultAddressID int64
+	DefaultAddressID pgtype.Int8
 	ID_2             int64
 	Username         string
 	Password         string

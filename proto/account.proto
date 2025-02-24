@@ -4,28 +4,34 @@ package shopnexus;
 
 option go_package = "shopnexus-go-service/gen/pb";
 
-// ItemQuantity
+message TokenResponse {
+  string token = 1;
+}
 
+message RegisterUserRequest {
+  string username = 1;
+  string email = 2;
+  string phone = 3;
+  string password = 4;
+  string gender = 5;
+  string full_name = 6;
+}
+
+message RegisterAdminRequest {
+  string username = 1;
+  string password = 2;
+}
 
 message LoginRequest {
-  string email = 1;
-  string password = 2;
-}
-
-message LoginResponse {
-  string token = 1;
-}
-
-message RegisterRequest {
-  string email = 1;
-  string password = 2;
-}
-
-message RegisterResponse {
-  string token = 1;
+  optional string username = 1;
+  optional string email = 2;
+  optional string phone = 3;
+  string password = 4;
 }
 
 service Account {
-  rpc Login(LoginRequest) returns (LoginResponse) {}
-  rpc Register(RegisterRequest) returns (RegisterResponse) {}
+  rpc LoginUser(LoginRequest) returns (TokenResponse) {}
+  rpc LoginAdmin(LoginRequest) returns (TokenResponse) {}
+  rpc RegisterUser(RegisterUserRequest) returns (TokenResponse) {}
+  rpc RegisterAdmin(RegisterAdminRequest) returns (TokenResponse) {}
 }
