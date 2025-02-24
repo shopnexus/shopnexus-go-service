@@ -36,7 +36,7 @@ CREATE TABLE "account"."user" (
     "phone" TEXT NOT NULL,
     "gender" "account"."gender" NOT NULL,
     "full_name" VARCHAR(100) NOT NULL DEFAULT '',
-    "default_address_id" BIGINT NOT NULL,
+    "default_address_id" BIGINT,
 
     CONSTRAINT "user_pkey" PRIMARY KEY ("id")
 );
@@ -180,9 +180,6 @@ CREATE UNIQUE INDEX "user_email_key" ON "account"."user"("email");
 
 -- CreateIndex
 CREATE UNIQUE INDEX "user_phone_key" ON "account"."user"("phone");
-
--- CreateIndex
-CREATE UNIQUE INDEX "user_default_address_id_key" ON "account"."user"("default_address_id");
 
 -- CreateIndex
 CREATE UNIQUE INDEX "base_serial_id_key" ON "product"."base"("serial_id");

@@ -34,7 +34,7 @@ model UserAccount {
   phone              String @unique
   gender             Gender
   full_name          String @default("") @db.VarChar(100)
-  default_address_id BigInt @unique
+  default_address_id BigInt? 
 
   account   Account   @relation(fields: [id], references: [id], onDelete: Cascade, onUpdate: Cascade)
   addresses Address[]
