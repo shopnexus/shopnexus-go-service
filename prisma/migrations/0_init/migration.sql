@@ -19,6 +19,9 @@ CREATE TYPE "payment"."status" AS ENUM ('PENDING', 'SUCCESS', 'CANCELLED', 'FAIL
 -- CreateEnum
 CREATE TYPE "payment"."payment_method" AS ENUM ('CASH', 'MOMO', 'VNPAY');
 
+-- CreateEnum
+CREATE TYPE "payment"."refund_method" AS ENUM ('DROP_OFF', 'PICK_UP');
+
 -- CreateTable
 CREATE TABLE "account"."base" (
     "id" BIGSERIAL NOT NULL,
@@ -103,8 +106,9 @@ CREATE TABLE "product"."base" (
     "id" BIGSERIAL NOT NULL,
     "serial_id" TEXT NOT NULL,
     "product_model_id" BIGINT NOT NULL,
+    "sold" BOOLEAN NOT NULL DEFAULT false,
     "date_created" TIMESTAMPTZ(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    "date_updated" TIMESTAMPTZ(3) NOT NULL,
+    "date_updated" TIMESTAMPTZ(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
     CONSTRAINT "base_pkey" PRIMARY KEY ("id")
 );
@@ -156,23 +160,35 @@ CREATE TABLE "payment"."product_on_payment" (
 CREATE TABLE "payment"."base" (
     "id" BIGSERIAL NOT NULL,
     "user_id" BIGINT NOT NULL,
-    "address" TEXT NOT NULL,
-    "payment_method" "payment"."payment_method" NOT NULL,
-    "total" BIGINT NOT NULL,
+    "method" "payment"."payment_method" NOT NULL,
     "status" "payment"."status" NOT NULL,
+    "address" TEXT NOT NULL,
+    "total" BIGINT NOT NULL,
     "date_created" TIMESTAMPTZ(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
     CONSTRAINT "base_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
-CREATE TABLE "product"."image" (
+CREATE TABLE "payment"."refund" (
     "id" BIGSERIAL NOT NULL,
-    "brand_id" BIGINT,
-    "product_model_id" BIGINT,
-    "url" TEXT NOT NULL,
+    "payment_id" BIGINT NOT NULL,
+    "method" "payment"."refund_method" NOT NULL,
+    "status" "payment"."status" NOT NULL,
+    "reason" TEXT NOT NULL,
+    "address" TEXT,
+    "date_created" TIMESTAMPTZ(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "date_updated" TIMESTAMPTZ(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
-    CONSTRAINT "image_pkey" PRIMARY KEY ("id")
+    CONSTRAINT "refund_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "product"."resource" (
+    "owner_id" BIGINT NOT NULL,
+    "s3_id" TEXT NOT NULL,
+
+    CONSTRAINT "resource_pkey" PRIMARY KEY ("owner_id","s3_id")
 );
 
 -- CreateIndex
@@ -183,6 +199,9 @@ CREATE UNIQUE INDEX "user_phone_key" ON "account"."user"("phone");
 
 -- CreateIndex
 CREATE UNIQUE INDEX "base_serial_id_key" ON "product"."base"("serial_id");
+
+-- CreateIndex
+CREATE INDEX "base_product_model_id_sold_idx" ON "product"."base"("product_model_id", "sold");
 
 -- AddForeignKey
 ALTER TABLE "account"."user" ADD CONSTRAINT "user_id_fkey" FOREIGN KEY ("id") REFERENCES "account"."base"("id") ON DELETE CASCADE ON UPDATE CASCADE;
@@ -224,11 +243,11 @@ ALTER TABLE "product"."tag_on_product" ADD CONSTRAINT "tag_on_product_tag_name_f
 ALTER TABLE "payment"."product_on_payment" ADD CONSTRAINT "product_on_payment_payment_id_fkey" FOREIGN KEY ("payment_id") REFERENCES "payment"."base"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
+ALTER TABLE "payment"."product_on_payment" ADD CONSTRAINT "product_on_payment_product_serial_id_fkey" FOREIGN KEY ("product_serial_id") REFERENCES "product"."base"("serial_id") ON DELETE NO ACTION ON UPDATE CASCADE;
+
+-- AddForeignKey
 ALTER TABLE "payment"."base" ADD CONSTRAINT "base_user_id_fkey" FOREIGN KEY ("user_id") REFERENCES "account"."user"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "product"."image" ADD CONSTRAINT "image_brand_id_fkey" FOREIGN KEY ("brand_id") REFERENCES "product"."brand"("id") ON DELETE SET NULL ON UPDATE CASCADE;
-
--- AddForeignKey
-ALTER TABLE "product"."image" ADD CONSTRAINT "image_product_model_id_fkey" FOREIGN KEY ("product_model_id") REFERENCES "product"."model"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+ALTER TABLE "payment"."refund" ADD CONSTRAINT "refund_payment_id_fkey" FOREIGN KEY ("payment_id") REFERENCES "payment"."base"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 

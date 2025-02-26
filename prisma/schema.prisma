@@ -4,8 +4,8 @@ generator client {
 }
 
 generator dbml {
-  provider = "prisma-dbml-generator"
-  mapToDbSchema = false
+  provider              = "prisma-dbml-generator"
+  mapToDbSchema         = false
   includeRelationFields = false
 }
 
@@ -103,7 +103,6 @@ model Brand {
   name        String
   description String
 
-  images        Image[]
   productModels ProductModel[]
 
   @@map("brand")
@@ -118,12 +117,11 @@ model ProductModel {
   list_price        BigInt
   date_manufactured DateTime @db.Timestamptz(3)
 
-  images   Image[]
-  tags     TagOnProduct[]
-  brand    Brand          @relation(fields: [brand_id], references: [id], onUpdate: Cascade, onDelete: Cascade)
-  products Product[]
-  sales    Sale[]
-  carts    ItemOnCart[]
+  tags      TagOnProduct[]
+  brand     Brand          @relation(fields: [brand_id], references: [id], onUpdate: Cascade, onDelete: Cascade)
+  products  Product[]
+  sales     Sale[]
+  carts     ItemOnCart[]
 
   @@map("model")
   @@schema("product")
@@ -133,13 +131,16 @@ model Product {
   id               BigInt   @id @default(autoincrement())
   serial_id        String   @unique
   product_model_id BigInt
+  sold            Boolean @default(false) // Update sold if payment success, back to false if refunded successfully
   // shop_id     BigInt // Remove this because current web is single shop (but multi manager accounts)
   date_created     DateTime @default(now()) @db.Timestamptz(3)
-  date_updated     DateTime @updatedAt @db.Timestamptz(3)
+  date_updated     DateTime @default(now()) @db.Timestamptz(3)
 
   // shop ShopAccount @relation(fields: [shop_id], references: [id])
   product_model ProductModel @relation(fields: [product_model_id], references: [id], onUpdate: Cascade, onDelete: Cascade)
+  payments      ProductOnPayment[]
 
+  @@index([product_model_id, sold]) // faster GetOneAvailableProduct
   @@map("base")
   @@schema("product")
 }
@@ -167,6 +168,7 @@ model Sale {
 model TagOnProduct {
   product_model_id BigInt
   tag_name         String
+  
   product_model    ProductModel @relation(fields: [product_model_id], references: [id], onUpdate: Cascade, onDelete: Cascade)
   tag              Tag          @relation(fields: [tag_name], references: [tag_name], onUpdate: Cascade, onDelete: Cascade)
 
@@ -196,6 +198,7 @@ model ProductOnPayment {
   total_price       BigInt // Final price (applied discount)
 
   payment Payment @relation(fields: [payment_id], references: [id], onUpdate: Cascade, onDelete: Cascade)
+  product Product @relation(fields: [product_serial_id], references: [serial_id], onUpdate: Cascade, onDelete: NoAction)
 
   @@id([payment_id, product_serial_id])
   @@map("product_on_payment")
@@ -203,35 +206,48 @@ model ProductOnPayment {
 }
 
 model Payment {
-  id             BigInt        @id @default(autoincrement())
-  user_id        BigInt
-  address        String
-  payment_method PaymentMethod
-  total          BigInt
-  status         PaymentStatus
-  date_created   DateTime      @default(now()) @db.Timestamptz(3)
+  id           BigInt        @id @default(autoincrement())
+  user_id      BigInt
+  method       PaymentMethod
+  status       Status
+  address      String
+  total        BigInt
+  date_created DateTime      @default(now()) @db.Timestamptz(3)
 
   user_account UserAccount        @relation(fields: [user_id], references: [id], onUpdate: Cascade, onDelete: Cascade)
   products     ProductOnPayment[]
+  refunds      Refund[]
 
   @@map("base")
   @@schema("payment")
 }
 
+model Refund {
+  id         BigInt       @id @default(autoincrement())
+  payment_id BigInt
+  method     RefundMethod
+  status     Status
+
+  reason       String
+  address      String? // Address to pick up (only method PICK_UP)
+  date_created DateTime @default(now()) @db.Timestamptz(3)
+  date_updated DateTime @default(now()) @db.Timestamptz(3)
+
+  payment   Payment    @relation(fields: [payment_id], references: [id], onUpdate: Cascade, onDelete: Cascade)
+
+  @@map("refund")
+  @@schema("payment")
+}
+
 // ===== OTHER =====
 
-model Image {
-  id               BigInt  @id @default(autoincrement())
-  // shop_id BigInt?
-  brand_id         BigInt?
-  product_model_id BigInt?
-  url              String
+// TODO: catch remove event and remove them in s3; https://chatgpt.com/c/67bea496-7388-800f-a564-9641dc54c520
+model Resource {
+  owner_id BigInt
+  s3_id String
 
-  // shop ShopAccount? @relation(fields: [shop_id], references: [id])
-  brand        Brand?        @relation(fields: [brand_id], references: [id])
-  productModel ProductModel? @relation(fields: [product_model_id], references: [id], onUpdate: Cascade, onDelete: Cascade)
-
-  @@map("image")
+  @@id([owner_id, s3_id])
+  @@map("resource")
   @@schema("product")
 }
 
@@ -252,7 +268,7 @@ enum Gender {
   @@schema("account")
 }
 
-enum PaymentStatus {
+enum Status {
   PENDING
   SUCCESS
   CANCELLED
@@ -268,5 +284,13 @@ enum PaymentMethod {
   VNPAY
 
   @@map("payment_method")
+  @@schema("payment")
+}
+
+enum RefundMethod {
+  DROP_OFF
+  PICK_UP
+
+  @@map("refund_method")
   @@schema("payment")
 }

@@ -66,7 +66,7 @@ Table Product {
   serial_id String [unique, not null]
   product_model_id BigInt [not null]
   date_created DateTime [default: `now()`, not null]
-  date_updated DateTime [not null]
+  date_updated DateTime [default: `now()`, not null]
 }
 
 Table Sale {
@@ -111,18 +111,31 @@ Table ProductOnPayment {
 Table Payment {
   id BigInt [pk, increment]
   user_id BigInt [not null]
+  method PaymentMethod [not null]
+  status Status [not null]
   address String [not null]
-  payment_method PaymentMethod [not null]
   total BigInt [not null]
-  status PaymentStatus [not null]
   date_created DateTime [default: `now()`, not null]
 }
 
-Table Image {
+Table Refund {
   id BigInt [pk, increment]
-  brand_id BigInt
-  product_model_id BigInt
-  url String [not null]
+  payment_id BigInt [not null]
+  method RefundMethod [not null]
+  status Status [not null]
+  reason String [not null]
+  address String
+  date_created DateTime [default: `now()`, not null]
+  date_updated DateTime [default: `now()`, not null]
+}
+
+Table Resource {
+  owner_id BigInt [not null]
+  s3_id String [not null]
+
+  indexes {
+    (owner_id, s3_id) [pk]
+  }
 }
 
 Enum Role {
@@ -136,7 +149,7 @@ Enum Gender {
   OTHER
 }
 
-Enum PaymentStatus {
+Enum Status {
   PENDING
   SUCCESS
   CANCELLED
@@ -147,6 +160,11 @@ Enum PaymentMethod {
   CASH
   MOMO
   VNPAY
+}
+
+Enum RefundMethod {
+  DROP_OFF
+  PICKUP
 }
 
 Ref: UserAccount.id - Account.id [delete: Cascade]
@@ -177,6 +195,4 @@ Ref: ProductOnPayment.payment_id > Payment.id [delete: Cascade]
 
 Ref: Payment.user_id > UserAccount.id [delete: Cascade]
 
-Ref: Image.brand_id > Brand.id
-
-Ref: Image.product_model_id > ProductModel.id [delete: Cascade]
+Ref: Refund.payment_id > Payment.id [delete: Cascade]
