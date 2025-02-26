@@ -21,7 +21,7 @@ func (r *Repository) GetBrand(ctx context.Context, id int64) (model.Brand, error
 		ID:          brand.ID,
 		Name:        brand.Name,
 		Description: brand.Description,
-		Images:      brand.Images,
+		Resources:   brand.Resources,
 	}, nil
 }
 
@@ -55,7 +55,7 @@ func (r *Repository) ListBrands(ctx context.Context, params ListBrandsParams) ([
 			ID:          brand.ID,
 			Name:        brand.Name,
 			Description: brand.Description,
-			Images:      brand.Images,
+			Resources:   brand.Resources,
 		}
 	}
 	return result, nil
@@ -65,7 +65,7 @@ func (r *Repository) CreateBrand(ctx context.Context, brand model.Brand) (model.
 	row, err := r.sqlc.CreateBrand(ctx, sqlc.CreateBrandParams{
 		Name:        brand.Name,
 		Description: brand.Description,
-		Images:      brand.Images,
+		Resources:   brand.Resources,
 	})
 	if err != nil {
 		return model.Brand{}, err
@@ -73,9 +73,9 @@ func (r *Repository) CreateBrand(ctx context.Context, brand model.Brand) (model.
 
 	return model.Brand{
 		ID:          row.ID,
-		Name:        row.Name,
-		Description: row.Description,
-		Images:      row.Images,
+		Name:        brand.Name,
+		Description: brand.Description,
+		Resources:   row.Resources,
 	}, nil
 }
 
@@ -109,7 +109,7 @@ func (r *Repository) GetProductModel(ctx context.Context, id int64) (model.Produ
 		Name:        productModel.Name,
 		Description: productModel.Description,
 		ListPrice:   productModel.ListPrice,
-		Images:      productModel.Images,
+		Resources:   productModel.Resources,
 		Tags:        productModel.Tags,
 	}, nil
 }
@@ -162,7 +162,7 @@ func (r *Repository) ListProductModels(ctx context.Context, params ListProductMo
 			Name:        productModel.Name,
 			Description: productModel.Description,
 			ListPrice:   productModel.ListPrice,
-			Images:      productModel.Images,
+			Resources:   productModel.Resources,
 			Tags:        productModel.Tags,
 		}
 	}
@@ -176,7 +176,7 @@ func (r *Repository) CreateProductModel(ctx context.Context, productModel model.
 		Name:        productModel.Name,
 		Description: productModel.Description,
 		ListPrice:   productModel.ListPrice,
-		Images:      productModel.Images,
+		Resources:   productModel.Resources,
 		Tags:        productModel.Tags,
 	})
 	if err != nil {
@@ -184,13 +184,14 @@ func (r *Repository) CreateProductModel(ctx context.Context, productModel model.
 	}
 
 	return model.ProductModel{
-		ID:          row.ID,
-		BrandID:     row.BrandID,
-		Name:        row.Name,
-		Description: row.Description,
-		ListPrice:   row.ListPrice,
-		Images:      row.Images,
-		Tags:        row.Tags,
+		ID:               row.ID,
+		BrandID:          productModel.BrandID,
+		Name:             productModel.Name,
+		Description:      productModel.Description,
+		ListPrice:        productModel.ListPrice,
+		DateManufactured: productModel.DateManufactured,
+		Resources:        row.Resources,
+		Tags:             row.Tags,
 	}, nil
 }
 
@@ -220,6 +221,7 @@ func (r *Repository) DeleteProductModel(ctx context.Context, id int64) error {
 
 // ----------- PRODUCT ------------
 
+// ProductIdentifier is a struct to identify a product, either by ID or SerialID
 type ProductIdentifier struct {
 	ID       *int64
 	SerialID *string
@@ -230,15 +232,15 @@ type ProductIdentifierPg struct {
 	SerialID pgtype.Text
 }
 
-func GetProductIdentifierPg(params ProductIdentifier) ProductIdentifierPg {
+func (p ProductIdentifier) ToPgtype() ProductIdentifierPg {
 	return ProductIdentifierPg{
-		ID:       *pgxutil.PtrToPgtype(&pgtype.Int8{}, params.ID),
-		SerialID: *pgxutil.PtrToPgtype(&pgtype.Text{}, params.SerialID),
+		ID:       *pgxutil.PtrToPgtype(&pgtype.Int8{}, p.ID),
+		SerialID: *pgxutil.PtrToPgtype(&pgtype.Text{}, p.SerialID),
 	}
 }
 
-func (r *Repository) GetProduct(ctx context.Context, params ProductIdentifier) (model.Product, error) {
-	row, err := r.sqlc.GetProduct(ctx, sqlc.GetProductParams(GetProductIdentifierPg(params)))
+func (r *Repository) GetProduct(ctx context.Context, id ProductIdentifier) (model.Product, error) {
+	row, err := r.sqlc.GetProduct(ctx, sqlc.GetProductParams(id.ToPgtype()))
 	if err != nil {
 		return model.Product{}, err
 	}
@@ -250,6 +252,29 @@ func (r *Repository) GetProduct(ctx context.Context, params ProductIdentifier) (
 		DateCreated:    row.DateCreated.Time.UnixMilli(),
 		DateUpdated:    row.DateUpdated.Time.UnixMilli(),
 	}, nil
+}
+
+func (r *Repository) GetAvailableProducts(ctx context.Context, productModelID, amount int64) ([]model.Product, error) {
+	rows, err := r.sqlc.GetAvailableProducts(ctx, sqlc.GetAvailableProductsParams{
+		ProductModelID: productModelID,
+		Amount:         int32(amount),
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	result := make([]model.Product, len(rows))
+	for i, row := range rows {
+		result[i] = model.Product{
+			ID:             row.ID,
+			SerialID:       row.SerialID,
+			ProductModelID: row.ProductModelID,
+			DateCreated:    row.DateCreated.Time.UnixMilli(),
+			DateUpdated:    row.DateUpdated.Time.UnixMilli(),
+		}
+	}
+
+	return result, nil
 }
 
 type ListProductsParams struct {
@@ -322,8 +347,8 @@ func (r *Repository) UpdateProduct(ctx context.Context, params UpdateProductPara
 	})
 }
 
-func (r *Repository) DeleteProduct(ctx context.Context, params ProductIdentifier) error {
-	return r.sqlc.DeleteProduct(ctx, sqlc.DeleteProductParams(GetProductIdentifierPg(params)))
+func (r *Repository) DeleteProduct(ctx context.Context, id ProductIdentifier) error {
+	return r.sqlc.DeleteProduct(ctx, sqlc.DeleteProductParams(id.ToPgtype()))
 }
 
 func (r *Repository) CreateSale(ctx context.Context, sale model.Sale) (model.Sale, error) {

@@ -214,8 +214,8 @@ func (r *Repository) GetCart(ctx context.Context, cartID int64) (model.Cart, err
 	}
 
 	return model.Cart{
-		ID:       cartRow,
-		Products: items,
+		ID:            cartRow,
+		ProductModels: items,
 	}, nil
 }
 

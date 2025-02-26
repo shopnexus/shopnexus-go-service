@@ -5,7 +5,7 @@ type Brand struct {
 	Name        string `json:"name"`
 	Description string `json:"description"`
 
-	Images []string `json:"images"`
+	Resources []string `json:"resources"`
 }
 
 type ProductModel struct {
@@ -16,8 +16,8 @@ type ProductModel struct {
 	ListPrice        int64  `json:"list_price"`
 	DateManufactured int64  `json:"date_manufactured"`
 
-	Images []string `json:"images"`
-	Tags   []string `json:"tags"`
+	Resources []string `json:"resources"`
+	Tags      []string `json:"tags"`
 }
 
 type Product struct {
