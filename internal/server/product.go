@@ -5,6 +5,8 @@ import (
 	"shopnexus-go-service/gen/pb"
 	"shopnexus-go-service/internal/model"
 	"shopnexus-go-service/internal/service"
+
+	"google.golang.org/protobuf/types/known/emptypb"
 )
 
 type ProductServer struct {
@@ -54,13 +56,13 @@ func (s *ProductServer) ListProductModels(ctx context.Context, req *pb.ListProdu
 	}, nil
 }
 
-func (s *ProductServer) DeleteProductModel(ctx context.Context, req *pb.DeleteProductModelRequest) (*pb.DeleteProductModelResponse, error) {
+func (s *ProductServer) DeleteProductModel(ctx context.Context, req *pb.DeleteProductModelRequest) (*emptypb.Empty, error) {
 	err := s.service.DeleteProductModel(ctx, req.GetId())
 	if err != nil {
 		return nil, err
 	}
 
-	return &pb.DeleteProductModelResponse{}, nil
+	return &emptypb.Empty{}, nil
 }
 
 func (s *ProductServer) GetProduct(ctx context.Context, req *pb.GetProductRequest) (*pb.ProductEntity, error) {
@@ -112,7 +114,7 @@ func (s *ProductServer) CreateProduct(ctx context.Context, req *pb.CreateProduct
 	return modelToProductEntity(data), nil
 }
 
-func (s *ProductServer) UpdateProduct(ctx context.Context, req *pb.UpdateProductRequest) (*pb.UpdateProductResponse, error) {
+func (s *ProductServer) UpdateProduct(ctx context.Context, req *pb.UpdateProductRequest) (*emptypb.Empty, error) {
 	err := s.service.UpdateProduct(ctx, service.UpdateProductParams{
 		ID:             req.GetId(),
 		SerialID:       req.SerialId,
@@ -122,10 +124,10 @@ func (s *ProductServer) UpdateProduct(ctx context.Context, req *pb.UpdateProduct
 		return nil, err
 	}
 
-	return &pb.UpdateProductResponse{}, nil
+	return &emptypb.Empty{}, nil
 }
 
-func (s *ProductServer) DeleteProduct(ctx context.Context, req *pb.DeleteProductRequest) (*pb.DeleteProductResponse, error) {
+func (s *ProductServer) DeleteProduct(ctx context.Context, req *pb.DeleteProductRequest) (*emptypb.Empty, error) {
 	err := s.service.DeleteProduct(ctx, service.ProductIdentifier{
 		ID:       req.Id,
 		SerialID: req.SerialId,
@@ -134,7 +136,7 @@ func (s *ProductServer) DeleteProduct(ctx context.Context, req *pb.DeleteProduct
 		return nil, err
 	}
 
-	return &pb.DeleteProductResponse{}, nil
+	return &emptypb.Empty{}, nil
 }
 
 func modelToProductModelEntity(data model.ProductModel) *pb.ProductModelEntity {

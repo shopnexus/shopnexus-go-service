@@ -16,7 +16,7 @@ func NewAccountServer(service *service.AccountService) *AccountServer {
 	return &AccountServer{service: service}
 }
 
-func (s *AccountServer) LoginUser(ctx context.Context, req *pb.LoginRequest) (*pb.TokenResponse, error) {
+func (s *AccountServer) LoginUser(ctx context.Context, req *pb.LoginUserRequest) (*pb.TokenResponse, error) {
 	token, err := s.service.Login(ctx, service.LoginUserParams{
 		Role:     model.RoleUser,
 		Username: req.Username,
@@ -31,12 +31,10 @@ func (s *AccountServer) LoginUser(ctx context.Context, req *pb.LoginRequest) (*p
 	return &pb.TokenResponse{Token: token}, nil
 }
 
-func (s *AccountServer) LoginAdmin(ctx context.Context, req *pb.LoginRequest) (*pb.TokenResponse, error) {
+func (s *AccountServer) LoginAdmin(ctx context.Context, req *pb.LoginAdminRequest) (*pb.TokenResponse, error) {
 	token, err := s.service.Login(ctx, service.LoginUserParams{
 		Role:     model.RoleAdmin,
-		Username: req.Username,
-		Email:    req.Email,
-		Phone:    req.Phone,
+		Username: &req.Username,
 		Password: req.Password,
 	})
 	if err != nil {
@@ -59,7 +57,7 @@ func (s *AccountServer) RegisterUser(ctx context.Context, req *pb.RegisterUserRe
 		},
 		Email:    req.GetEmail(),
 		Phone:    req.GetPhone(),
-		Gender:   model.Gender(req.GetGender()),
+		Gender:   convertGender(req.GetGender()),
 		FullName: req.GetFullName(),
 	})
 	if err != nil {
@@ -86,4 +84,17 @@ func (s *AccountServer) RegisterAdmin(ctx context.Context, req *pb.RegisterAdmin
 	}
 
 	return &pb.TokenResponse{Token: token}, nil
+}
+
+func convertGender(protoGender pb.Gender) model.Gender {
+	switch protoGender {
+	case pb.Gender_MALE:
+		return model.GenderMale
+	case pb.Gender_FEMALE:
+		return model.GenderFemale
+	case pb.Gender_GENDER_UNSPECIFIED:
+		panic("gender is unspecified")
+	default:
+		panic("unknown gender")
+	}
 }
