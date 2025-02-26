@@ -2,7 +2,6 @@ package service
 
 import (
 	"context"
-	"shopnexus-go-service/gen/pb"
 	"shopnexus-go-service/internal/model"
 	repository "shopnexus-go-service/internal/repository"
 )
@@ -32,10 +31,10 @@ type AddCartItemParams struct {
 	Quantity       int64
 }
 
-func (s *CartService) AddCartItem(ctx context.Context, params AddCartItemParams) (*pb.AddItemResponse, error) {
+func (s *CartService) AddCartItem(ctx context.Context, params AddCartItemParams) (int64, error) {
 	txRepo, err := s.Repo.Begin(ctx)
 	if err != nil {
-		return nil, err
+		return 0, err
 	}
 	defer txRepo.Rollback(ctx)
 
@@ -45,16 +44,14 @@ func (s *CartService) AddCartItem(ctx context.Context, params AddCartItemParams)
 		Quantity:       params.Quantity,
 	})
 	if err != nil {
-		return nil, err
+		return 0, err
 	}
 
 	if err = txRepo.Commit(ctx); err != nil {
-		return nil, err
+		return 0, err
 	}
 
-	return &pb.AddItemResponse{
-		Quantity: newQty,
-	}, nil
+	return newQty, nil
 }
 
 type UpdateCartItemParams struct {
