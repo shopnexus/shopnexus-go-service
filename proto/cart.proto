@@ -2,6 +2,8 @@ syntax = "proto3";
 
 package shopnexus;
 
+import "google/protobuf/empty.proto";
+
 option go_package = "shopnexus-go-service/gen/pb";
 
 
@@ -11,60 +13,34 @@ message ItemQuantity {
   int64 quantity = 2;
 }
 
-// ADD ITEM
-message AddItemRequest {
-  int64 user_id = 1;
-  int64 product_model_id = 2;
-  int64 cart_id = 3;
-  int64 quantity = 4;
-}
-
-message AddItemResponse {
-  int64 quantity = 1;
-}
-
 // GET CART
 message GetCartRequest {
-  int64 user_id = 1;
-  int64 cart_id = 2;
+  int64 cart_id = 1;
 }
 
 message GetCartResponse {
-  int64 cart_id = 1;
-  repeated ItemQuantity products = 2;
+  repeated ItemQuantity items = 1;
 }
 
-// REMOVE ITEM
-message RemoveItemRequest {
-  int64 product_model_id = 2;
+// ADD CART ITEM
+message AddCartItemRequest {
+  int64 product_model_id = 1;
+  int64 quantity = 2;
 }
 
-message RemoveItemResponse {
-  int64 cart_id = 1;
+message AddCartItemResponse {
+  int64 quantity = 1;
 }
 
-// CLEAR
-message ClearRequest {
-  int64 cart_id = 1;
-}
-
-message ClearResponse {
-  int64 cart_id = 1;
-}
-
-// CHECKOUT
-message CheckoutRequest {
-  int64 cart_id = 1;
-}
-
-message CheckoutResponse {
-  int64 cart_id = 1;
+// UPDATE CART ITEM
+message UpdateCartItemRequest {
+  int64 product_model_id = 1;
+  int64 quantity = 2;
 }
 
 service Cart {
-  rpc AddItem(AddItemRequest) returns (AddItemResponse) {}
   rpc GetCart(GetCartRequest) returns (GetCartResponse) {}
-  rpc RemoveItem(RemoveItemRequest) returns (RemoveItemResponse) {}
-  rpc Clear(GetCartRequest) returns (GetCartResponse) {}
-  rpc Checkout(GetCartRequest) returns (GetCartResponse) {}
+  rpc AddCartItem(AddCartItemRequest) returns (AddCartItemResponse) {}
+  rpc UpdateCartItem(UpdateCartItemRequest) returns (google.protobuf.Empty) {}
+  rpc ClearCart(google.protobuf.Empty) returns (google.protobuf.Empty) {}
 }

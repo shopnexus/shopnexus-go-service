@@ -4,6 +4,13 @@ package shopnexus;
 
 option go_package = "shopnexus-go-service/gen/pb";
 
+enum Gender {
+  GENDER_UNSPECIFIED = 0;
+  MALE = 1;
+  FEMALE = 2;
+  OTHER = 3;
+}
+
 message TokenResponse {
   string token = 1;
 }
@@ -13,7 +20,7 @@ message RegisterUserRequest {
   string email = 2;
   string phone = 3;
   string password = 4;
-  string gender = 5;
+  Gender gender = 5;
   string full_name = 6;
 }
 
@@ -22,16 +29,21 @@ message RegisterAdminRequest {
   string password = 2;
 }
 
-message LoginRequest {
+message LoginUserRequest {
   optional string username = 1;
   optional string email = 2;
   optional string phone = 3;
   string password = 4;
 }
 
+message LoginAdminRequest {
+  string username = 1;
+  string password = 2;
+}
+
 service Account {
-  rpc LoginUser(LoginRequest) returns (TokenResponse) {}
-  rpc LoginAdmin(LoginRequest) returns (TokenResponse) {}
+  rpc LoginUser(LoginUserRequest) returns (TokenResponse) {}
+  rpc LoginAdmin(LoginAdminRequest) returns (TokenResponse) {}
   rpc RegisterUser(RegisterUserRequest) returns (TokenResponse) {}
   rpc RegisterAdmin(RegisterAdminRequest) returns (TokenResponse) {}
 }

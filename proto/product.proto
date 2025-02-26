@@ -5,6 +5,7 @@ package shopnexus;
 option go_package = "shopnexus-go-service/gen/pb";
 
 import "pagination.proto";
+import "google/protobuf/empty.proto";
 
 // PRODUCT MODEL
 
@@ -54,14 +55,8 @@ message UpdateProductModelRequest {
   optional int64 date_manufactured = 6;
 }
 
-message UpdateProductModelResponse {
-}
-
 message DeleteProductModelRequest {
   int64 id = 1;
-}
-
-message DeleteProductModelResponse {
 }
 
 // PRODUCT
@@ -102,27 +97,21 @@ message UpdateProductRequest {
   optional int64 product_model_id = 3;
 }
 
-message UpdateProductResponse {
-}
-
 message DeleteProductRequest {
   optional int64 id = 1;
   optional string serial_id = 2;
-}
-
-message DeleteProductResponse {
 }
 
 service Product {
   rpc GetProductModel(GetProductModelRequest) returns (ProductModelEntity) {}
   rpc ListProductModels(ListProductModelsRequest) returns (ListProductModelsResponse) {}
   rpc CreateProductModel(CreateProductModelRequest) returns (ProductModelEntity) {}
-  rpc UpdateProductModel(UpdateProductModelRequest) returns (UpdateProductModelResponse) {}
-  rpc DeleteProductModel(DeleteProductModelRequest) returns (DeleteProductModelResponse) {}
+  rpc UpdateProductModel(UpdateProductModelRequest) returns (google.protobuf.Empty) {}
+  rpc DeleteProductModel(DeleteProductModelRequest) returns (google.protobuf.Empty) {}
 
   rpc GetProduct(GetProductRequest) returns (ProductEntity) {}
   rpc ListProducts(ListProductsRequest) returns (ListProductsResponse) {}
   rpc CreateProduct(CreateProductRequest) returns (ProductEntity) {}
-  rpc UpdateProduct(UpdateProductRequest) returns (UpdateProductResponse) {}
-  rpc DeleteProduct(DeleteProductRequest) returns (DeleteProductResponse) {}
+  rpc UpdateProduct(UpdateProductRequest) returns (google.protobuf.Empty) {}
+  rpc DeleteProduct(DeleteProductRequest) returns (google.protobuf.Empty) {}
 }

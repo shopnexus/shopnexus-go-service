@@ -4,19 +4,17 @@ package shopnexus;
 
 option go_package = "shopnexus-go-service/gen/pb";
 
+enum PaymentMethod {
+  PAYMENT_METHOD_UNSPECIFIED = 0;
+  CASH = 1;
+  MOMO = 2;
+  VNPAY = 3;
+}
+
 // CREATE PAYMENT
-
 message CreatePaymentRequest {
-  // fields have explicit presence, so no explicit setting needed
-  repeated string product_model_ids = 1;
-  PaymentMethod payment_method = 2;
-
-  enum PaymentMethod {
-    PAYMENT_METHOD_UNSPECIFIED = 0;
-    CASH = 1;
-    MOMO = 2;
-    VNPAY = 3;
-  }
+  PaymentMethod payment_method = 1;
+  string address = 2;
 }
 
 message CreatePaymentResponse {
