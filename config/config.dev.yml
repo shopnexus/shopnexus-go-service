@@ -6,8 +6,8 @@ app:
   name: "Safe Trade"
   nameSlug: "safe-trade"
   decimals: 9 # Max decimals for handling float number
-  depositAddress: "" # Deposit wallet address
-  holdDuration: 604800 # in seconds (604800 = 7 days)
+  accessTokenDuration: 86400 # 1 day
+  refreshTokenDuration: 604800 # 7 days
 
 relaybot:
   appID: 0
