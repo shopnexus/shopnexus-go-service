@@ -11,7 +11,7 @@ import (
 )
 
 func GenerateAccessToken(account model.Account) (string, error) {
-	tokenDuration := time.Duration(config.GetConfig().App.AccessTokenDuration)
+	tokenDuration := time.Duration(config.GetConfig().App.AccessTokenDuration * int64(time.Second))
 
 	claims := model.Claims{
 		UserID: account.GetBase().ID,
@@ -38,8 +38,7 @@ func GenerateAccessToken(account model.Account) (string, error) {
 }
 
 func ValidateAccessToken(tokenStr string) (claims model.Claims, err error) {
-	keys := config.GetConfig().SensitiveKeys
-	secret := keys.JWTSecret
+	secret := config.GetConfig().SensitiveKeys.JWTSecret
 
 	token, err := jwt.ParseWithClaims(tokenStr, &claims, func(token *jwt.Token) (interface{}, error) {
 		return []byte(secret), nil
