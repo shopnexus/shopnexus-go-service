@@ -1,9 +1,9 @@
 -- name: GetBrand :one
 SELECT 
     b.*,
-    COALESCE(array_agg(i.url) FILTER (WHERE i.url IS NOT NULL), '{}')::TEXT[] as images
+    COALESCE(array_agg(i.url) FILTER (WHERE i.url IS NOT NULL), '{}')::TEXT[] as resources
 FROM product.brand b
-LEFT JOIN product.image i ON i.brand_id = b.id
+LEFT JOIN product.resource i ON i.brand_id = b.id
 WHERE b.id = $1
 GROUP BY b.id;
 
@@ -23,9 +23,9 @@ FROM filtered_brands;
 WITH filtered_brands AS (
   SELECT
     b.*, 
-    COALESCE(array_agg(i.url) FILTER (WHERE i.url IS NOT NULL), '{}')::TEXT[] as images
+    COALESCE(array_agg(i.url) FILTER (WHERE i.url IS NOT NULL), '{}')::TEXT[] as resources
   FROM product.brand b
-  INNER JOIN product.image i ON i.brand_id = b.id
+  INNER JOIN product.resource i ON i.brand_id = b.id
   WHERE (
     (name ILIKE '%' || sqlc.narg('name') || '%' OR sqlc.narg('name') IS NULL) AND
     (description ILIKE '%' || sqlc.narg('description') || '%' OR sqlc.narg('description') IS NULL)
@@ -43,16 +43,16 @@ WITH inserted_brand AS (
     VALUES ($1, $2)
     RETURNING *
 ),
-inserted_images AS (
-    INSERT INTO product.image (brand_id, url)
-    SELECT $1, unnest(sqlc.arg('images')::text[])
-    RETURNING url
+inserted_resources AS (
+    INSERT INTO product.resource (brand_id, url)
+    SELECT id, unnest(sqlc.arg('resources')::text[]) FROM inserted_brand
+    RETURNING s3_id
 )
 SELECT 
-    b.*,
-    COALESCE(array_agg(i.url), '{}')::text[] as images
+    b.id,
+    COALESCE(array_agg(res.s3_id), '{}')::text[] as resources
 FROM inserted_brand b
-LEFT JOIN inserted_images i ON true
+LEFT JOIN inserted_resources res ON true
 GROUP BY b.id;
 
 -- name: UpdateBrand :exec
@@ -68,10 +68,10 @@ DELETE FROM product.brand WHERE id = $1;
 -- name: GetProductModel :one
 SELECT 
     pm.*,
-    COALESCE(array_agg(i.url) FILTER (WHERE i.url IS NOT NULL), '{}')::text[] as images,
+    COALESCE(array_agg(i.url) FILTER (WHERE i.url IS NOT NULL), '{}')::text[] as resources,
     COALESCE(array_agg(t.tag_name) FILTER (WHERE t.tag_name IS NOT NULL), '{}')::text[] as tags
 FROM product.model pm
-LEFT JOIN product.image i ON i.product_model_id = pm.id
+LEFT JOIN product.resource i ON i.product_model_id = pm.id
 LEFT JOIN product.tag_on_product t ON t.product_model_id = pm.id
 WHERE pm.id = $1
 GROUP BY pm.id;
@@ -96,10 +96,10 @@ FROM filtered_models;
 -- name: ListProductModels :many
 SELECT 
     pm.*,
-    COALESCE(array_agg(DISTINCT i.url) FILTER (WHERE i.url IS NOT NULL), '{}')::text[] as images,
+    COALESCE(array_agg(DISTINCT i.url) FILTER (WHERE i.url IS NOT NULL), '{}')::text[] as resources,
     COALESCE(array_agg(DISTINCT t.tag_name) FILTER (WHERE t.tag_name IS NOT NULL), '{}')::text[] as tags
 FROM product.model pm
-LEFT JOIN product.image i ON i.product_model_id = pm.id
+LEFT JOIN product.resource i ON i.product_model_id = pm.id
 LEFT JOIN product.tag_on_product t ON t.product_model_id = pm.id
 WHERE (
     (pm.brand_id = sqlc.narg('brand_id') OR sqlc.narg('brand_id') IS NULL) AND
@@ -123,26 +123,22 @@ WITH inserted_model AS (
         $1, $2, $3, $4, $5
     ) RETURNING *
 ),
-inserted_images AS (
-    INSERT INTO product.image (product_model_id, url)
-    SELECT $1, unnest(sqlc.arg('images')::text[])
-    RETURNING url
+inserted_resources AS (
+    INSERT INTO product.resource (product_model_id, url)
+    SELECT id, unnest(sqlc.arg('resources')::text[]) FROM inserted_model
+    RETURNING s3_id
 ),
 inserted_tags AS (
     INSERT INTO product.tag_on_product (product_model_id, tag_name)
-    SELECT $1, unnest(sqlc.arg('tags')::text[])
+    SELECT id, unnest(sqlc.arg('tags')::text[]) FROM inserted_model
     RETURNING tag_name
 )
 SELECT 
     m.id,
-    m.brand_id,
-    m.name,
-    m.description,
-    m.list_price,
-    COALESCE(array_agg(DISTINCT i.url) FILTER (WHERE i.url IS NOT NULL), '{}')::text[] as images,
-    COALESCE(array_agg(DISTINCT t.tag_name) FILTER (WHERE t.tag_name IS NOT NULL), '{}')::text[] as tags
+    COALESCE(array_agg(res.url), '{}')::text[] as resources,
+    COALESCE(array_agg(t.tag_name), '{}')::text[] as tags
 FROM inserted_model m
-LEFT JOIN inserted_images i ON true
+LEFT JOIN inserted_resources res ON true
 LEFT JOIN inserted_tags t ON true
 GROUP BY m.id;
 
@@ -167,11 +163,21 @@ WHERE (
     serial_id = sqlc.narg('serial_id')
 );
 
+-- name: GetAvailableProducts :many
+SELECT *
+FROM product.base
+WHERE (
+    product_model_id = $1 AND
+    sold = false
+)
+LIMIT sqlc.arg('amount');
+
 -- name: CountProducts :one
 SELECT COUNT(id)
 FROM product.base
 WHERE (
     (product_model_id = sqlc.narg('product_model_id') OR sqlc.narg('product_model_id') IS NULL) AND
+    (sold = sqlc.narg('sold') OR sqlc.narg('sold') IS NULL) AND
     (date_created >= sqlc.narg('date_created_from') OR sqlc.narg('date_created_from') IS NULL) AND
     (date_created <= sqlc.narg('date_created_to') OR sqlc.narg('date_created_to') IS NULL)
 );
@@ -181,6 +187,7 @@ SELECT *
 FROM product.base
 WHERE (
     (product_model_id = sqlc.narg('product_model_id') OR sqlc.narg('product_model_id') IS NULL) AND
+    (sold = sqlc.narg('sold') OR sqlc.narg('sold') IS NULL) AND
     (date_created >= sqlc.narg('date_created_from') OR sqlc.narg('date_created_from') IS NULL) AND
     (date_created <= sqlc.narg('date_created_to') OR sqlc.narg('date_created_to') IS NULL)
 )
@@ -192,10 +199,9 @@ OFFSET sqlc.arg('offset');
 INSERT INTO product.base (
     serial_id,
     product_model_id,
-    date_created,
-    date_updated
+    sold
 ) VALUES (
-    $1, $2, NOW(), NOW()
+    $1, $2, $3
 )
 RETURNING *;
 
@@ -204,6 +210,7 @@ UPDATE product.base
 SET
     serial_id = COALESCE(sqlc.narg('serial_id'), serial_id),
     product_model_id = COALESCE(sqlc.narg('product_model_id'), product_model_id),
+    sold = COALESCE(sqlc.narg('sold'), sold),
     date_updated = NOW()
 WHERE id = $1;
 
