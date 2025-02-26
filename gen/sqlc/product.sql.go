@@ -84,19 +84,26 @@ SELECT COUNT(id)
 FROM product.base
 WHERE (
     (product_model_id = $1 OR $1 IS NULL) AND
-    (date_created >= $2 OR $2 IS NULL) AND
-    (date_created <= $3 OR $3 IS NULL)
+    (sold = $2 OR $2 IS NULL) AND
+    (date_created >= $3 OR $3 IS NULL) AND
+    (date_created <= $4 OR $4 IS NULL)
 )
 `
 
 type CountProductsParams struct {
 	ProductModelID  pgtype.Int8
+	Sold            pgtype.Bool
 	DateCreatedFrom pgtype.Timestamptz
 	DateCreatedTo   pgtype.Timestamptz
 }
 
 func (q *Queries) CountProducts(ctx context.Context, arg CountProductsParams) (int64, error) {
-	row := q.db.QueryRow(ctx, countProducts, arg.ProductModelID, arg.DateCreatedFrom, arg.DateCreatedTo)
+	row := q.db.QueryRow(ctx, countProducts,
+		arg.ProductModelID,
+		arg.Sold,
+		arg.DateCreatedFrom,
+		arg.DateCreatedTo,
+	)
 	var count int64
 	err := row.Scan(&count)
 	return count, err
@@ -108,41 +115,34 @@ WITH inserted_brand AS (
     VALUES ($1, $2)
     RETURNING id, name, description
 ),
-inserted_images AS (
-    INSERT INTO product.image (brand_id, url)
-    SELECT $1, unnest($3::text[])
-    RETURNING url
+inserted_resources AS (
+    INSERT INTO product.resource (brand_id, url)
+    SELECT id, unnest($3::text[]) FROM inserted_brand
+    RETURNING s3_id
 )
 SELECT 
-    b.id, b.name, b.description,
-    COALESCE(array_agg(i.url), '{}')::text[] as images
+    b.id,
+    COALESCE(array_agg(res.s3_id), '{}')::text[] as resources
 FROM inserted_brand b
-LEFT JOIN inserted_images i ON true
+LEFT JOIN inserted_resources res ON true
 GROUP BY b.id
 `
 
 type CreateBrandParams struct {
 	Name        string
 	Description string
-	Images      []string
+	Resources   []string
 }
 
 type CreateBrandRow struct {
-	ID          int64
-	Name        string
-	Description string
-	Images      []string
+	ID        int64
+	Resources []string
 }
 
 func (q *Queries) CreateBrand(ctx context.Context, arg CreateBrandParams) (CreateBrandRow, error) {
-	row := q.db.QueryRow(ctx, createBrand, arg.Name, arg.Description, arg.Images)
+	row := q.db.QueryRow(ctx, createBrand, arg.Name, arg.Description, arg.Resources)
 	var i CreateBrandRow
-	err := row.Scan(
-		&i.ID,
-		&i.Name,
-		&i.Description,
-		&i.Images,
-	)
+	err := row.Scan(&i.ID, &i.Resources)
 	return i, err
 }
 
@@ -150,26 +150,27 @@ const createProduct = `-- name: CreateProduct :one
 INSERT INTO product.base (
     serial_id,
     product_model_id,
-    date_created,
-    date_updated
+    sold
 ) VALUES (
-    $1, $2, NOW(), NOW()
+    $1, $2, $3
 )
-RETURNING id, serial_id, product_model_id, date_created, date_updated
+RETURNING id, serial_id, product_model_id, sold, date_created, date_updated
 `
 
 type CreateProductParams struct {
 	SerialID       string
 	ProductModelID int64
+	Sold           bool
 }
 
 func (q *Queries) CreateProduct(ctx context.Context, arg CreateProductParams) (ProductBase, error) {
-	row := q.db.QueryRow(ctx, createProduct, arg.SerialID, arg.ProductModelID)
+	row := q.db.QueryRow(ctx, createProduct, arg.SerialID, arg.ProductModelID, arg.Sold)
 	var i ProductBase
 	err := row.Scan(
 		&i.ID,
 		&i.SerialID,
 		&i.ProductModelID,
+		&i.Sold,
 		&i.DateCreated,
 		&i.DateUpdated,
 	)
@@ -184,26 +185,22 @@ WITH inserted_model AS (
         $1, $2, $3, $4, $5
     ) RETURNING id, brand_id, name, description, list_price, date_manufactured
 ),
-inserted_images AS (
-    INSERT INTO product.image (product_model_id, url)
-    SELECT $1, unnest($6::text[])
-    RETURNING url
+inserted_resources AS (
+    INSERT INTO product.resource (product_model_id, url)
+    SELECT id, unnest($6::text[]) FROM inserted_model
+    RETURNING s3_id
 ),
 inserted_tags AS (
     INSERT INTO product.tag_on_product (product_model_id, tag_name)
-    SELECT $1, unnest($7::text[])
+    SELECT id, unnest($7::text[]) FROM inserted_model
     RETURNING tag_name
 )
 SELECT 
     m.id,
-    m.brand_id,
-    m.name,
-    m.description,
-    m.list_price,
-    COALESCE(array_agg(DISTINCT i.url) FILTER (WHERE i.url IS NOT NULL), '{}')::text[] as images,
-    COALESCE(array_agg(DISTINCT t.tag_name) FILTER (WHERE t.tag_name IS NOT NULL), '{}')::text[] as tags
+    COALESCE(array_agg(res.url), '{}')::text[] as resources,
+    COALESCE(array_agg(t.tag_name), '{}')::text[] as tags
 FROM inserted_model m
-LEFT JOIN inserted_images i ON true
+LEFT JOIN inserted_resources res ON true
 LEFT JOIN inserted_tags t ON true
 GROUP BY m.id
 `
@@ -214,18 +211,14 @@ type CreateProductModelParams struct {
 	Description      string
 	ListPrice        int64
 	DateManufactured pgtype.Timestamptz
-	Images           []string
+	Resources        []string
 	Tags             []string
 }
 
 type CreateProductModelRow struct {
-	ID          int64
-	BrandID     int64
-	Name        string
-	Description string
-	ListPrice   int64
-	Images      []string
-	Tags        []string
+	ID        int64
+	Resources []string
+	Tags      []string
 }
 
 func (q *Queries) CreateProductModel(ctx context.Context, arg CreateProductModelParams) (CreateProductModelRow, error) {
@@ -235,19 +228,11 @@ func (q *Queries) CreateProductModel(ctx context.Context, arg CreateProductModel
 		arg.Description,
 		arg.ListPrice,
 		arg.DateManufactured,
-		arg.Images,
+		arg.Resources,
 		arg.Tags,
 	)
 	var i CreateProductModelRow
-	err := row.Scan(
-		&i.ID,
-		&i.BrandID,
-		&i.Name,
-		&i.Description,
-		&i.ListPrice,
-		&i.Images,
-		&i.Tags,
-	)
+	err := row.Scan(&i.ID, &i.Resources, &i.Tags)
 	return i, err
 }
 
@@ -379,12 +364,54 @@ func (q *Queries) DeleteTag(ctx context.Context, tagName string) error {
 	return err
 }
 
+const getAvailableProducts = `-- name: GetAvailableProducts :many
+SELECT id, serial_id, product_model_id, sold, date_created, date_updated
+FROM product.base
+WHERE (
+    product_model_id = $1 AND
+    sold = false
+)
+LIMIT $2
+`
+
+type GetAvailableProductsParams struct {
+	ProductModelID int64
+	Amount         int32
+}
+
+func (q *Queries) GetAvailableProducts(ctx context.Context, arg GetAvailableProductsParams) ([]ProductBase, error) {
+	rows, err := q.db.Query(ctx, getAvailableProducts, arg.ProductModelID, arg.Amount)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []ProductBase
+	for rows.Next() {
+		var i ProductBase
+		if err := rows.Scan(
+			&i.ID,
+			&i.SerialID,
+			&i.ProductModelID,
+			&i.Sold,
+			&i.DateCreated,
+			&i.DateUpdated,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const getBrand = `-- name: GetBrand :one
 SELECT 
     b.id, b.name, b.description,
-    COALESCE(array_agg(i.url) FILTER (WHERE i.url IS NOT NULL), '{}')::TEXT[] as images
+    COALESCE(array_agg(i.url) FILTER (WHERE i.url IS NOT NULL), '{}')::TEXT[] as resources
 FROM product.brand b
-LEFT JOIN product.image i ON i.brand_id = b.id
+LEFT JOIN product.resource i ON i.brand_id = b.id
 WHERE b.id = $1
 GROUP BY b.id
 `
@@ -393,7 +420,7 @@ type GetBrandRow struct {
 	ID          int64
 	Name        string
 	Description string
-	Images      []string
+	Resources   []string
 }
 
 func (q *Queries) GetBrand(ctx context.Context, id int64) (GetBrandRow, error) {
@@ -403,13 +430,13 @@ func (q *Queries) GetBrand(ctx context.Context, id int64) (GetBrandRow, error) {
 		&i.ID,
 		&i.Name,
 		&i.Description,
-		&i.Images,
+		&i.Resources,
 	)
 	return i, err
 }
 
 const getProduct = `-- name: GetProduct :one
-SELECT id, serial_id, product_model_id, date_created, date_updated
+SELECT id, serial_id, product_model_id, sold, date_created, date_updated
 FROM product.base
 WHERE (
     id = $1 OR 
@@ -429,6 +456,7 @@ func (q *Queries) GetProduct(ctx context.Context, arg GetProductParams) (Product
 		&i.ID,
 		&i.SerialID,
 		&i.ProductModelID,
+		&i.Sold,
 		&i.DateCreated,
 		&i.DateUpdated,
 	)
@@ -438,10 +466,10 @@ func (q *Queries) GetProduct(ctx context.Context, arg GetProductParams) (Product
 const getProductModel = `-- name: GetProductModel :one
 SELECT 
     pm.id, pm.brand_id, pm.name, pm.description, pm.list_price, pm.date_manufactured,
-    COALESCE(array_agg(i.url) FILTER (WHERE i.url IS NOT NULL), '{}')::text[] as images,
+    COALESCE(array_agg(i.url) FILTER (WHERE i.url IS NOT NULL), '{}')::text[] as resources,
     COALESCE(array_agg(t.tag_name) FILTER (WHERE t.tag_name IS NOT NULL), '{}')::text[] as tags
 FROM product.model pm
-LEFT JOIN product.image i ON i.product_model_id = pm.id
+LEFT JOIN product.resource i ON i.product_model_id = pm.id
 LEFT JOIN product.tag_on_product t ON t.product_model_id = pm.id
 WHERE pm.id = $1
 GROUP BY pm.id
@@ -454,7 +482,7 @@ type GetProductModelRow struct {
 	Description      string
 	ListPrice        int64
 	DateManufactured pgtype.Timestamptz
-	Images           []string
+	Resources        []string
 	Tags             []string
 }
 
@@ -468,7 +496,7 @@ func (q *Queries) GetProductModel(ctx context.Context, id int64) (GetProductMode
 		&i.Description,
 		&i.ListPrice,
 		&i.DateManufactured,
-		&i.Images,
+		&i.Resources,
 		&i.Tags,
 	)
 	return i, err
@@ -478,16 +506,16 @@ const listBrands = `-- name: ListBrands :many
 WITH filtered_brands AS (
   SELECT
     b.id, b.name, b.description, 
-    COALESCE(array_agg(i.url) FILTER (WHERE i.url IS NOT NULL), '{}')::TEXT[] as images
+    COALESCE(array_agg(i.url) FILTER (WHERE i.url IS NOT NULL), '{}')::TEXT[] as resources
   FROM product.brand b
-  INNER JOIN product.image i ON i.brand_id = b.id
+  INNER JOIN product.resource i ON i.brand_id = b.id
   WHERE (
     (name ILIKE '%' || $3 || '%' OR $3 IS NULL) AND
     (description ILIKE '%' || $4 || '%' OR $4 IS NULL)
   )
   GROUP BY b.id
 )
-SELECT id, name, description, images
+SELECT id, name, description, resources
 FROM filtered_brands
 LIMIT $2
 OFFSET $1
@@ -504,7 +532,7 @@ type ListBrandsRow struct {
 	ID          int64
 	Name        string
 	Description string
-	Images      []string
+	Resources   []string
 }
 
 func (q *Queries) ListBrands(ctx context.Context, arg ListBrandsParams) ([]ListBrandsRow, error) {
@@ -525,7 +553,7 @@ func (q *Queries) ListBrands(ctx context.Context, arg ListBrandsParams) ([]ListB
 			&i.ID,
 			&i.Name,
 			&i.Description,
-			&i.Images,
+			&i.Resources,
 		); err != nil {
 			return nil, err
 		}
@@ -540,10 +568,10 @@ func (q *Queries) ListBrands(ctx context.Context, arg ListBrandsParams) ([]ListB
 const listProductModels = `-- name: ListProductModels :many
 SELECT 
     pm.id, pm.brand_id, pm.name, pm.description, pm.list_price, pm.date_manufactured,
-    COALESCE(array_agg(DISTINCT i.url) FILTER (WHERE i.url IS NOT NULL), '{}')::text[] as images,
+    COALESCE(array_agg(DISTINCT i.url) FILTER (WHERE i.url IS NOT NULL), '{}')::text[] as resources,
     COALESCE(array_agg(DISTINCT t.tag_name) FILTER (WHERE t.tag_name IS NOT NULL), '{}')::text[] as tags
 FROM product.model pm
-LEFT JOIN product.image i ON i.product_model_id = pm.id
+LEFT JOIN product.resource i ON i.product_model_id = pm.id
 LEFT JOIN product.tag_on_product t ON t.product_model_id = pm.id
 WHERE (
     (pm.brand_id = $1 OR $1 IS NULL) AND
@@ -579,7 +607,7 @@ type ListProductModelsRow struct {
 	Description      string
 	ListPrice        int64
 	DateManufactured pgtype.Timestamptz
-	Images           []string
+	Resources        []string
 	Tags             []string
 }
 
@@ -609,7 +637,7 @@ func (q *Queries) ListProductModels(ctx context.Context, arg ListProductModelsPa
 			&i.Description,
 			&i.ListPrice,
 			&i.DateManufactured,
-			&i.Images,
+			&i.Resources,
 			&i.Tags,
 		); err != nil {
 			return nil, err
@@ -623,20 +651,22 @@ func (q *Queries) ListProductModels(ctx context.Context, arg ListProductModelsPa
 }
 
 const listProducts = `-- name: ListProducts :many
-SELECT id, serial_id, product_model_id, date_created, date_updated
+SELECT id, serial_id, product_model_id, sold, date_created, date_updated
 FROM product.base
 WHERE (
     (product_model_id = $1 OR $1 IS NULL) AND
-    (date_created >= $2 OR $2 IS NULL) AND
-    (date_created <= $3 OR $3 IS NULL)
+    (sold = $2 OR $2 IS NULL) AND
+    (date_created >= $3 OR $3 IS NULL) AND
+    (date_created <= $4 OR $4 IS NULL)
 )
 ORDER BY date_created DESC
-LIMIT $5
-OFFSET $4
+LIMIT $6
+OFFSET $5
 `
 
 type ListProductsParams struct {
 	ProductModelID  pgtype.Int8
+	Sold            pgtype.Bool
 	DateCreatedFrom pgtype.Timestamptz
 	DateCreatedTo   pgtype.Timestamptz
 	Offset          int32
@@ -646,6 +676,7 @@ type ListProductsParams struct {
 func (q *Queries) ListProducts(ctx context.Context, arg ListProductsParams) ([]ProductBase, error) {
 	rows, err := q.db.Query(ctx, listProducts,
 		arg.ProductModelID,
+		arg.Sold,
 		arg.DateCreatedFrom,
 		arg.DateCreatedTo,
 		arg.Offset,
@@ -662,6 +693,7 @@ func (q *Queries) ListProducts(ctx context.Context, arg ListProductsParams) ([]P
 			&i.ID,
 			&i.SerialID,
 			&i.ProductModelID,
+			&i.Sold,
 			&i.DateCreated,
 			&i.DateUpdated,
 		); err != nil {
@@ -699,6 +731,7 @@ UPDATE product.base
 SET
     serial_id = COALESCE($2, serial_id),
     product_model_id = COALESCE($3, product_model_id),
+    sold = COALESCE($4, sold),
     date_updated = NOW()
 WHERE id = $1
 `
@@ -707,10 +740,16 @@ type UpdateProductParams struct {
 	ID             int64
 	SerialID       pgtype.Text
 	ProductModelID pgtype.Int8
+	Sold           pgtype.Bool
 }
 
 func (q *Queries) UpdateProduct(ctx context.Context, arg UpdateProductParams) error {
-	_, err := q.db.Exec(ctx, updateProduct, arg.ID, arg.SerialID, arg.ProductModelID)
+	_, err := q.db.Exec(ctx, updateProduct,
+		arg.ID,
+		arg.SerialID,
+		arg.ProductModelID,
+		arg.Sold,
+	)
 	return err
 }
 

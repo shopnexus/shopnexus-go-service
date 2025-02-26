@@ -7,47 +7,48 @@ package sqlc
 
 import (
 	"context"
+
+	"github.com/jackc/pgx/v5/pgtype"
 )
 
 const createPayment = `-- name: CreatePayment :one
 INSERT INTO payment.base (
     user_id,
-    address,
-    payment_method,
-    total,
+    method,
     status,
-    date_created
+    address,
+    total
 )
 VALUES (
-    $1, $2, $3, $4, $5, NOW()
+    $1, $2, $3, $4, $5
 ) 
-RETURNING id, user_id, address, payment_method, total, status, date_created
+RETURNING id, user_id, method, status, address, total, date_created
 `
 
 type CreatePaymentParams struct {
-	UserID        int64
-	Address       string
-	PaymentMethod PaymentPaymentMethod
-	Total         int64
-	Status        PaymentStatus
+	UserID  int64
+	Method  PaymentPaymentMethod
+	Status  PaymentStatus
+	Address string
+	Total   int64
 }
 
 func (q *Queries) CreatePayment(ctx context.Context, arg CreatePaymentParams) (PaymentBase, error) {
 	row := q.db.QueryRow(ctx, createPayment,
 		arg.UserID,
-		arg.Address,
-		arg.PaymentMethod,
-		arg.Total,
+		arg.Method,
 		arg.Status,
+		arg.Address,
+		arg.Total,
 	)
 	var i PaymentBase
 	err := row.Scan(
 		&i.ID,
 		&i.UserID,
-		&i.Address,
-		&i.PaymentMethod,
-		&i.Total,
+		&i.Method,
 		&i.Status,
+		&i.Address,
+		&i.Total,
 		&i.DateCreated,
 	)
 	return i, err
@@ -59,4 +60,232 @@ type CreatePaymentProductsParams struct {
 	Quantity        int64
 	Price           int64
 	TotalPrice      int64
+}
+
+const createRefund = `-- name: CreateRefund :one
+WITH inserted_refund AS (
+    INSERT INTO payment.refund (
+        payment_id,
+        method,
+        status,
+        reason,
+        address
+    )
+    VALUES (
+        $1, $2, $3, $4, $5
+    )
+    RETURNING id, payment_id, method, status, reason, address, date_created, date_updated
+),
+inserted_resources AS (
+    INSERT INTO product.resource (owner_id, s3_id)
+    SELECT id, unnest($6::text[]) FROM inserted_refund
+    RETURNING s3_id
+)
+SELECT r.id, COALESCE(array_agg(res.s3_id), '{}')::text[] as resources
+FROM inserted_refund r
+LEFT JOIN inserted_resources res ON true
+GROUP BY r.id
+`
+
+type CreateRefundParams struct {
+	PaymentID int64
+	Method    PaymentRefundMethod
+	Status    PaymentStatus
+	Reason    string
+	Address   pgtype.Text
+	Resources []string
+}
+
+type CreateRefundRow struct {
+	ID        int64
+	Resources []string
+}
+
+func (q *Queries) CreateRefund(ctx context.Context, arg CreateRefundParams) (CreateRefundRow, error) {
+	row := q.db.QueryRow(ctx, createRefund,
+		arg.PaymentID,
+		arg.Method,
+		arg.Status,
+		arg.Reason,
+		arg.Address,
+		arg.Resources,
+	)
+	var i CreateRefundRow
+	err := row.Scan(&i.ID, &i.Resources)
+	return i, err
+}
+
+const deleteRefund = `-- name: DeleteRefund :exec
+DELETE FROM payment.refund WHERE id = $1
+`
+
+func (q *Queries) DeleteRefund(ctx context.Context, id int64) error {
+	_, err := q.db.Exec(ctx, deleteRefund, id)
+	return err
+}
+
+const existsPayment = `-- name: ExistsPayment :one
+SELECT EXISTS (
+  SELECT 1
+  FROM payment.base p
+  WHERE (
+    p.id = $1 AND 
+    (p.user_id = $2 OR $2 IS NULL)
+  )
+) AS exists
+`
+
+type ExistsPaymentParams struct {
+	ID     int64
+	UserID pgtype.Int8
+}
+
+func (q *Queries) ExistsPayment(ctx context.Context, arg ExistsPaymentParams) (bool, error) {
+	row := q.db.QueryRow(ctx, existsPayment, arg.ID, arg.UserID)
+	var exists bool
+	err := row.Scan(&exists)
+	return exists, err
+}
+
+const getPayment = `-- name: GetPayment :one
+SELECT p.id, p.user_id, p.method, p.status, p.address, p.total, p.date_created
+FROM payment.base p
+WHERE (
+  p.id = $1 AND 
+  (p.user_id = $2 OR $2 IS NULL)
+)
+`
+
+type GetPaymentParams struct {
+	ID     int64
+	UserID pgtype.Int8
+}
+
+func (q *Queries) GetPayment(ctx context.Context, arg GetPaymentParams) (PaymentBase, error) {
+	row := q.db.QueryRow(ctx, getPayment, arg.ID, arg.UserID)
+	var i PaymentBase
+	err := row.Scan(
+		&i.ID,
+		&i.UserID,
+		&i.Method,
+		&i.Status,
+		&i.Address,
+		&i.Total,
+		&i.DateCreated,
+	)
+	return i, err
+}
+
+const getPaymentProducts = `-- name: GetPaymentProducts :many
+SELECT pop.payment_id, pop.product_serial_id, pop.quantity, pop.price, pop.total_price
+FROM payment.product_on_payment pop
+WHERE pop.payment_id = $1
+`
+
+func (q *Queries) GetPaymentProducts(ctx context.Context, paymentID int64) ([]PaymentProductOnPayment, error) {
+	rows, err := q.db.Query(ctx, getPaymentProducts, paymentID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []PaymentProductOnPayment
+	for rows.Next() {
+		var i PaymentProductOnPayment
+		if err := rows.Scan(
+			&i.PaymentID,
+			&i.ProductSerialID,
+			&i.Quantity,
+			&i.Price,
+			&i.TotalPrice,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const getRefund = `-- name: GetRefund :one
+SELECT 
+  r.id, r.payment_id, r.method, r.status, r.reason, r.address, r.date_created, r.date_updated,
+  COALESCE(array_agg(res.s3_id), '{}')::text[] AS resources
+FROM payment.refund r
+LEFT JOIN product.resource res ON r.id = res.owner_id
+WHERE (
+  r.id = $1 AND (
+    $2 IS NULL OR r.user_id = $2
+  )
+)
+GROUP BY r.id
+`
+
+type GetRefundParams struct {
+	ID     int64
+	UserID interface{}
+}
+
+type GetRefundRow struct {
+	ID          int64
+	PaymentID   int64
+	Method      PaymentRefundMethod
+	Status      PaymentStatus
+	Reason      string
+	Address     pgtype.Text
+	DateCreated pgtype.Timestamptz
+	DateUpdated pgtype.Timestamptz
+	Resources   []string
+}
+
+func (q *Queries) GetRefund(ctx context.Context, arg GetRefundParams) (GetRefundRow, error) {
+	row := q.db.QueryRow(ctx, getRefund, arg.ID, arg.UserID)
+	var i GetRefundRow
+	err := row.Scan(
+		&i.ID,
+		&i.PaymentID,
+		&i.Method,
+		&i.Status,
+		&i.Reason,
+		&i.Address,
+		&i.DateCreated,
+		&i.DateUpdated,
+		&i.Resources,
+	)
+	return i, err
+}
+
+const updateRefund = `-- name: UpdateRefund :exec
+UPDATE payment.refund
+SET 
+    method = COALESCE($2, method),
+    status = COALESCE($3, status),
+    reason = COALESCE($4, reason),
+    address = CASE 
+                 WHEN $5::bool THEN NULL 
+                 ELSE COALESCE($6, address) 
+              END
+WHERE id = $1
+`
+
+type UpdateRefundParams struct {
+	ID          int64
+	Method      NullPaymentRefundMethod
+	Status      NullPaymentStatus
+	Reason      pgtype.Text
+	NullAddress bool
+	Address     pgtype.Text
+}
+
+func (q *Queries) UpdateRefund(ctx context.Context, arg UpdateRefundParams) error {
+	_, err := q.db.Exec(ctx, updateRefund,
+		arg.ID,
+		arg.Method,
+		arg.Status,
+		arg.Reason,
+		arg.NullAddress,
+		arg.Address,
+	)
+	return err
 }

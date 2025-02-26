@@ -139,6 +139,48 @@ func (ns NullPaymentPaymentMethod) Value() (driver.Value, error) {
 	return string(ns.PaymentPaymentMethod), nil
 }
 
+type PaymentRefundMethod string
+
+const (
+	PaymentRefundMethodDROPOFF PaymentRefundMethod = "DROP_OFF"
+	PaymentRefundMethodPICKUP  PaymentRefundMethod = "PICK_UP"
+)
+
+func (e *PaymentRefundMethod) Scan(src interface{}) error {
+	switch s := src.(type) {
+	case []byte:
+		*e = PaymentRefundMethod(s)
+	case string:
+		*e = PaymentRefundMethod(s)
+	default:
+		return fmt.Errorf("unsupported scan type for PaymentRefundMethod: %T", src)
+	}
+	return nil
+}
+
+type NullPaymentRefundMethod struct {
+	PaymentRefundMethod PaymentRefundMethod
+	Valid               bool // Valid is true if PaymentRefundMethod is not NULL
+}
+
+// Scan implements the Scanner interface.
+func (ns *NullPaymentRefundMethod) Scan(value interface{}) error {
+	if value == nil {
+		ns.PaymentRefundMethod, ns.Valid = "", false
+		return nil
+	}
+	ns.Valid = true
+	return ns.PaymentRefundMethod.Scan(value)
+}
+
+// Value implements the driver Valuer interface.
+func (ns NullPaymentRefundMethod) Value() (driver.Value, error) {
+	if !ns.Valid {
+		return nil, nil
+	}
+	return string(ns.PaymentRefundMethod), nil
+}
+
 type PaymentStatus string
 
 const (
@@ -224,13 +266,13 @@ type AccountUser struct {
 }
 
 type PaymentBase struct {
-	ID            int64
-	UserID        int64
-	Address       string
-	PaymentMethod PaymentPaymentMethod
-	Total         int64
-	Status        PaymentStatus
-	DateCreated   pgtype.Timestamptz
+	ID          int64
+	UserID      int64
+	Method      PaymentPaymentMethod
+	Status      PaymentStatus
+	Address     string
+	Total       int64
+	DateCreated pgtype.Timestamptz
 }
 
 type PaymentProductOnPayment struct {
@@ -241,10 +283,22 @@ type PaymentProductOnPayment struct {
 	TotalPrice      int64
 }
 
+type PaymentRefund struct {
+	ID          int64
+	PaymentID   int64
+	Method      PaymentRefundMethod
+	Status      PaymentStatus
+	Reason      string
+	Address     pgtype.Text
+	DateCreated pgtype.Timestamptz
+	DateUpdated pgtype.Timestamptz
+}
+
 type ProductBase struct {
 	ID             int64
 	SerialID       string
 	ProductModelID int64
+	Sold           bool
 	DateCreated    pgtype.Timestamptz
 	DateUpdated    pgtype.Timestamptz
 }
@@ -255,13 +309,6 @@ type ProductBrand struct {
 	Description string
 }
 
-type ProductImage struct {
-	ID             int64
-	BrandID        pgtype.Int8
-	ProductModelID pgtype.Int8
-	Url            string
-}
-
 type ProductModel struct {
 	ID               int64
 	BrandID          int64
@@ -269,6 +316,11 @@ type ProductModel struct {
 	Description      string
 	ListPrice        int64
 	DateManufactured pgtype.Timestamptz
+}
+
+type ProductResource struct {
+	OwnerID int64
+	S3ID    string
 }
 
 type ProductSale struct {
