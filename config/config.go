@@ -18,6 +18,7 @@ type Config struct {
 	HttpServer    HttpServer    `yaml:"httpServer"`
 	Log           Log           `yaml:"log"`
 	Postgres      Postgres      `yaml:"postgres"`
+	S3            S3            `yaml:"s3"`
 	Sentry        Sentry        `yaml:"sentry"`
 	SensitiveKeys SensitiveKeys `yaml:"sensitiveKeys"`
 }
@@ -50,6 +51,14 @@ type Postgres struct {
 	Database        string `yaml:"database"`
 	MaxConnections  int32  `yaml:"maxConnections"`
 	MaxConnIdleTime int32  `yaml:"maxConnIdleTime"`
+}
+
+type S3 struct {
+	Region          string `yaml:"region"`
+	Bucket          string `yaml:"bucket"`
+	AccessKeyID     string `yaml:"accessKeyID"`
+	SecretAccessKey string `yaml:"secret`
+	CloudfrontURL   string `yaml:"cloudfrontURL"`
 }
 
 type Sentry struct {
