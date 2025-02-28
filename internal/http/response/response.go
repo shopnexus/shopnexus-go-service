@@ -20,8 +20,9 @@ type CommonResponse struct {
 }
 
 type Pagination struct {
-	Limit      int     `json:"limit"`
-	Total      int64   `json:"total"`
+	Limit      int32   `json:"limit"` // Number of items per page
+	Page       int32   `json:"page"`  // Current page
+	Total      int64   `json:"total"` // Total number of items
 	NextPage   *int32  `json:"next_page"`
 	NextCursor *string `json:"next_cursor"`
 }
@@ -98,6 +99,8 @@ func FromPagination[T any](w http.ResponseWriter, code int, dto model.PaginateRe
 		},
 		Pagination: Pagination{
 			Total:      dto.Total,
+			Page:       dto.Page,
+			Limit:      dto.Limit,
 			NextPage:   dto.NextPage,
 			NextCursor: dto.NextCursor,
 		},
