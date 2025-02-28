@@ -1,9 +1,9 @@
 -- name: GetBrand :one
 SELECT 
     b.*,
-    COALESCE(array_agg(i.url) FILTER (WHERE i.url IS NOT NULL), '{}')::TEXT[] as resources
+    COALESCE(array_agg(i.s3_id) FILTER (WHERE i.s3_id IS NOT NULL), '{}')::TEXT[] as resources
 FROM product.brand b
-LEFT JOIN product.resource i ON i.brand_id = b.id
+LEFT JOIN product.resource i ON i.owner_id = b.id
 WHERE b.id = $1
 GROUP BY b.id;
 
@@ -23,9 +23,9 @@ FROM filtered_brands;
 WITH filtered_brands AS (
   SELECT
     b.*, 
-    COALESCE(array_agg(i.url) FILTER (WHERE i.url IS NOT NULL), '{}')::TEXT[] as resources
+    COALESCE(array_agg(i.s3_id) FILTER (WHERE i.s3_id IS NOT NULL), '{}')::TEXT[] as resources
   FROM product.brand b
-  INNER JOIN product.resource i ON i.brand_id = b.id
+  INNER JOIN product.resource i ON i.owner_id = b.id
   WHERE (
     (name ILIKE '%' || sqlc.narg('name') || '%' OR sqlc.narg('name') IS NULL) AND
     (description ILIKE '%' || sqlc.narg('description') || '%' OR sqlc.narg('description') IS NULL)
@@ -44,7 +44,7 @@ WITH inserted_brand AS (
     RETURNING *
 ),
 inserted_resources AS (
-    INSERT INTO product.resource (brand_id, url)
+    INSERT INTO product.resource (owner_id, s3_id)
     SELECT id, unnest(sqlc.arg('resources')::text[]) FROM inserted_brand
     RETURNING s3_id
 )
@@ -68,10 +68,10 @@ DELETE FROM product.brand WHERE id = $1;
 -- name: GetProductModel :one
 SELECT 
     pm.*,
-    COALESCE(array_agg(i.url) FILTER (WHERE i.url IS NOT NULL), '{}')::text[] as resources,
+    COALESCE(array_agg(i.s3_id) FILTER (WHERE i.s3_id IS NOT NULL), '{}')::text[] as resources,
     COALESCE(array_agg(t.tag_name) FILTER (WHERE t.tag_name IS NOT NULL), '{}')::text[] as tags
 FROM product.model pm
-LEFT JOIN product.resource i ON i.product_model_id = pm.id
+LEFT JOIN product.resource i ON i.owner_id = pm.id
 LEFT JOIN product.tag_on_product t ON t.product_model_id = pm.id
 WHERE pm.id = $1
 GROUP BY pm.id;
@@ -96,10 +96,10 @@ FROM filtered_models;
 -- name: ListProductModels :many
 SELECT 
     pm.*,
-    COALESCE(array_agg(DISTINCT i.url) FILTER (WHERE i.url IS NOT NULL), '{}')::text[] as resources,
+    COALESCE(array_agg(DISTINCT i.s3_id) FILTER (WHERE i.s3_id IS NOT NULL), '{}')::text[] as resources,
     COALESCE(array_agg(DISTINCT t.tag_name) FILTER (WHERE t.tag_name IS NOT NULL), '{}')::text[] as tags
 FROM product.model pm
-LEFT JOIN product.resource i ON i.product_model_id = pm.id
+LEFT JOIN product.resource i ON i.owner_id = pm.id
 LEFT JOIN product.tag_on_product t ON t.product_model_id = pm.id
 WHERE (
     (pm.brand_id = sqlc.narg('brand_id') OR sqlc.narg('brand_id') IS NULL) AND
@@ -124,7 +124,7 @@ WITH inserted_model AS (
     ) RETURNING *
 ),
 inserted_resources AS (
-    INSERT INTO product.resource (product_model_id, url)
+    INSERT INTO product.resource (owner_id, s3_id)
     SELECT id, unnest(sqlc.arg('resources')::text[]) FROM inserted_model
     RETURNING s3_id
 ),
@@ -135,7 +135,7 @@ inserted_tags AS (
 )
 SELECT 
     m.id,
-    COALESCE(array_agg(res.url), '{}')::text[] as resources,
+    COALESCE(array_agg(res.s3_id), '{}')::text[] as resources,
     COALESCE(array_agg(t.tag_name), '{}')::text[] as tags
 FROM inserted_model m
 LEFT JOIN inserted_resources res ON true
