@@ -116,7 +116,7 @@ WITH inserted_brand AS (
     RETURNING id, name, description
 ),
 inserted_resources AS (
-    INSERT INTO product.resource (brand_id, url)
+    INSERT INTO product.resource (owner_id, s3_id)
     SELECT id, unnest($3::text[]) FROM inserted_brand
     RETURNING s3_id
 )
@@ -186,7 +186,7 @@ WITH inserted_model AS (
     ) RETURNING id, brand_id, name, description, list_price, date_manufactured
 ),
 inserted_resources AS (
-    INSERT INTO product.resource (product_model_id, url)
+    INSERT INTO product.resource (owner_id, s3_id)
     SELECT id, unnest($6::text[]) FROM inserted_model
     RETURNING s3_id
 ),
@@ -197,7 +197,7 @@ inserted_tags AS (
 )
 SELECT 
     m.id,
-    COALESCE(array_agg(res.url), '{}')::text[] as resources,
+    COALESCE(array_agg(res.s3_id), '{}')::text[] as resources,
     COALESCE(array_agg(t.tag_name), '{}')::text[] as tags
 FROM inserted_model m
 LEFT JOIN inserted_resources res ON true
@@ -409,9 +409,9 @@ func (q *Queries) GetAvailableProducts(ctx context.Context, arg GetAvailableProd
 const getBrand = `-- name: GetBrand :one
 SELECT 
     b.id, b.name, b.description,
-    COALESCE(array_agg(i.url) FILTER (WHERE i.url IS NOT NULL), '{}')::TEXT[] as resources
+    COALESCE(array_agg(i.s3_id) FILTER (WHERE i.s3_id IS NOT NULL), '{}')::TEXT[] as resources
 FROM product.brand b
-LEFT JOIN product.resource i ON i.brand_id = b.id
+LEFT JOIN product.resource i ON i.owner_id = b.id
 WHERE b.id = $1
 GROUP BY b.id
 `
@@ -466,10 +466,10 @@ func (q *Queries) GetProduct(ctx context.Context, arg GetProductParams) (Product
 const getProductModel = `-- name: GetProductModel :one
 SELECT 
     pm.id, pm.brand_id, pm.name, pm.description, pm.list_price, pm.date_manufactured,
-    COALESCE(array_agg(i.url) FILTER (WHERE i.url IS NOT NULL), '{}')::text[] as resources,
+    COALESCE(array_agg(i.s3_id) FILTER (WHERE i.s3_id IS NOT NULL), '{}')::text[] as resources,
     COALESCE(array_agg(t.tag_name) FILTER (WHERE t.tag_name IS NOT NULL), '{}')::text[] as tags
 FROM product.model pm
-LEFT JOIN product.resource i ON i.product_model_id = pm.id
+LEFT JOIN product.resource i ON i.owner_id = pm.id
 LEFT JOIN product.tag_on_product t ON t.product_model_id = pm.id
 WHERE pm.id = $1
 GROUP BY pm.id
@@ -506,9 +506,9 @@ const listBrands = `-- name: ListBrands :many
 WITH filtered_brands AS (
   SELECT
     b.id, b.name, b.description, 
-    COALESCE(array_agg(i.url) FILTER (WHERE i.url IS NOT NULL), '{}')::TEXT[] as resources
+    COALESCE(array_agg(i.s3_id) FILTER (WHERE i.s3_id IS NOT NULL), '{}')::TEXT[] as resources
   FROM product.brand b
-  INNER JOIN product.resource i ON i.brand_id = b.id
+  INNER JOIN product.resource i ON i.owner_id = b.id
   WHERE (
     (name ILIKE '%' || $3 || '%' OR $3 IS NULL) AND
     (description ILIKE '%' || $4 || '%' OR $4 IS NULL)
@@ -568,10 +568,10 @@ func (q *Queries) ListBrands(ctx context.Context, arg ListBrandsParams) ([]ListB
 const listProductModels = `-- name: ListProductModels :many
 SELECT 
     pm.id, pm.brand_id, pm.name, pm.description, pm.list_price, pm.date_manufactured,
-    COALESCE(array_agg(DISTINCT i.url) FILTER (WHERE i.url IS NOT NULL), '{}')::text[] as resources,
+    COALESCE(array_agg(DISTINCT i.s3_id) FILTER (WHERE i.s3_id IS NOT NULL), '{}')::text[] as resources,
     COALESCE(array_agg(DISTINCT t.tag_name) FILTER (WHERE t.tag_name IS NOT NULL), '{}')::text[] as tags
 FROM product.model pm
-LEFT JOIN product.resource i ON i.product_model_id = pm.id
+LEFT JOIN product.resource i ON i.owner_id = pm.id
 LEFT JOIN product.tag_on_product t ON t.product_model_id = pm.id
 WHERE (
     (pm.brand_id = $1 OR $1 IS NULL) AND

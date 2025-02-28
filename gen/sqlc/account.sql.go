@@ -45,7 +45,7 @@ func (q *Queries) ClearCart(ctx context.Context, cartID int64) error {
 const createAccountAdmin = `-- name: CreateAccountAdmin :one
 WITH base AS (
   INSERT INTO "account".base (username, password, role)
-  VALUES ($1, $2, 'admin')
+  VALUES ($1, $2, 'ADMIN')
   RETURNING id
 )
 INSERT INTO "account".admin (id)
@@ -69,7 +69,7 @@ func (q *Queries) CreateAccountAdmin(ctx context.Context, arg CreateAccountAdmin
 const createAccountUser = `-- name: CreateAccountUser :one
 WITH base AS (
   INSERT INTO "account".base (username, password, role)
-  VALUES ($1, $2, 'user')
+  VALUES ($1, $2, 'USER')
   RETURNING id
 )
 INSERT INTO "account".user (id, email, phone, gender, full_name)
