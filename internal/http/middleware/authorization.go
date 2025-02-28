@@ -7,7 +7,8 @@ import (
 	"google.golang.org/grpc/metadata"
 )
 
-// GrpcAuthorization middleware automatically
+// GrpcAuthorization middleware automatically forwards the Authorization header to gRPC metadata
+// so that gRPC services can authenticate the request
 func GrpcAuthorization(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		token := r.Header.Get("Authorization")
