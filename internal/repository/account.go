@@ -122,6 +122,7 @@ func (r *Repository) GetAccount(ctx context.Context, find model.Account) (accoun
 		// Search by user info
 		account, err = r.GetAccountUser(ctx, GetAccountUserParams{
 			AccountID: &find.ID,
+			Username:  &find.Username,
 			Email:     &find.Email,
 			Phone:     &find.Phone,
 		})
