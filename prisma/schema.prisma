@@ -19,7 +19,7 @@ datasource db {
 
 model Account {
   id       BigInt @id @default(autoincrement())
-  username String @db.VarChar(50)
+  username String @unique @db.VarChar(50)
   password String @db.VarChar(100)
   role     Role
 
@@ -117,11 +117,11 @@ model ProductModel {
   list_price        BigInt
   date_manufactured DateTime @db.Timestamptz(3)
 
-  tags      TagOnProduct[]
-  brand     Brand          @relation(fields: [brand_id], references: [id], onUpdate: Cascade, onDelete: Cascade)
-  products  Product[]
-  sales     Sale[]
-  carts     ItemOnCart[]
+  tags     TagOnProduct[]
+  brand    Brand          @relation(fields: [brand_id], references: [id], onUpdate: Cascade, onDelete: Cascade)
+  products Product[]
+  sales    Sale[]
+  carts    ItemOnCart[]
 
   @@map("model")
   @@schema("product")
@@ -131,13 +131,13 @@ model Product {
   id               BigInt   @id @default(autoincrement())
   serial_id        String   @unique
   product_model_id BigInt
-  sold            Boolean @default(false) // Update sold if payment success, back to false if refunded successfully
+  sold             Boolean  @default(false) // Update sold if payment success, back to false if refunded successfully
   // shop_id     BigInt // Remove this because current web is single shop (but multi manager accounts)
   date_created     DateTime @default(now()) @db.Timestamptz(3)
   date_updated     DateTime @default(now()) @db.Timestamptz(3)
 
   // shop ShopAccount @relation(fields: [shop_id], references: [id])
-  product_model ProductModel @relation(fields: [product_model_id], references: [id], onUpdate: Cascade, onDelete: Cascade)
+  product_model ProductModel       @relation(fields: [product_model_id], references: [id], onUpdate: Cascade, onDelete: Cascade)
   payments      ProductOnPayment[]
 
   @@index([product_model_id, sold]) // faster GetOneAvailableProduct
@@ -168,9 +168,9 @@ model Sale {
 model TagOnProduct {
   product_model_id BigInt
   tag_name         String
-  
-  product_model    ProductModel @relation(fields: [product_model_id], references: [id], onUpdate: Cascade, onDelete: Cascade)
-  tag              Tag          @relation(fields: [tag_name], references: [tag_name], onUpdate: Cascade, onDelete: Cascade)
+
+  product_model ProductModel @relation(fields: [product_model_id], references: [id], onUpdate: Cascade, onDelete: Cascade)
+  tag           Tag          @relation(fields: [tag_name], references: [tag_name], onUpdate: Cascade, onDelete: Cascade)
 
   @@id([product_model_id, tag_name])
   @@map("tag_on_product")
@@ -233,7 +233,7 @@ model Refund {
   date_created DateTime @default(now()) @db.Timestamptz(3)
   date_updated DateTime @default(now()) @db.Timestamptz(3)
 
-  payment   Payment    @relation(fields: [payment_id], references: [id], onUpdate: Cascade, onDelete: Cascade)
+  payment Payment @relation(fields: [payment_id], references: [id], onUpdate: Cascade, onDelete: Cascade)
 
   @@map("refund")
   @@schema("payment")
@@ -244,7 +244,7 @@ model Refund {
 // TODO: catch remove event and remove them in s3; https://chatgpt.com/c/67bea496-7388-800f-a564-9641dc54c520
 model Resource {
   owner_id BigInt
-  s3_id String
+  s3_id    String
 
   @@id([owner_id, s3_id])
   @@map("resource")

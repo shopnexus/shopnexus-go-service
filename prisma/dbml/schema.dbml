@@ -4,7 +4,7 @@
 
 Table Account {
   id BigInt [pk, increment]
-  username String [not null]
+  username String [unique, not null]
   password String [not null]
   role Role [not null]
 }
@@ -65,6 +65,7 @@ Table Product {
   id BigInt [pk, increment]
   serial_id String [unique, not null]
   product_model_id BigInt [not null]
+  sold Boolean [not null, default: false]
   date_created DateTime [default: `now()`, not null]
   date_updated DateTime [default: `now()`, not null]
 }
@@ -164,7 +165,7 @@ Enum PaymentMethod {
 
 Enum RefundMethod {
   DROP_OFF
-  PICKUP
+  PICK_UP
 }
 
 Ref: UserAccount.id - Account.id [delete: Cascade]
@@ -192,6 +193,8 @@ Ref: TagOnProduct.product_model_id > ProductModel.id [delete: Cascade]
 Ref: TagOnProduct.tag_name > Tag.tag_name [delete: Cascade]
 
 Ref: ProductOnPayment.payment_id > Payment.id [delete: Cascade]
+
+Ref: ProductOnPayment.product_serial_id > Product.serial_id [delete: No Action]
 
 Ref: Payment.user_id > UserAccount.id [delete: Cascade]
 

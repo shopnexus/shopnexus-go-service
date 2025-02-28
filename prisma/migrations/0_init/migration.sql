@@ -192,6 +192,9 @@ CREATE TABLE "product"."resource" (
 );
 
 -- CreateIndex
+CREATE UNIQUE INDEX "base_username_key" ON "account"."base"("username");
+
+-- CreateIndex
 CREATE UNIQUE INDEX "user_email_key" ON "account"."user"("email");
 
 -- CreateIndex
