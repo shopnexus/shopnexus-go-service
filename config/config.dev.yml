@@ -2,18 +2,9 @@
 
 env: "dev" # dev, staging, production
 app:
-  key: "safe-trade-backend"
-  name: "Safe Trade"
-  nameSlug: "safe-trade"
   decimals: 9 # Max decimals for handling float number
   accessTokenDuration: 86400 # 1 day
   refreshTokenDuration: 604800 # 7 days
-
-relaybot:
-  appID: 0
-  appHash: ""
-  phone: "+123"
-  password: ""
 
 httpServer:
   port: 9005
@@ -52,17 +43,16 @@ s3:
 #    password: ""
 #    db: 0
 
-#sentry:
-#  dsn: ""
-#  environment: "DEV"
-#  release: ""
-#  debug: false
+sentry:
+  dsn: "https://c0c8081bd0c5eccb9b679714978c931e@o4508337322131456.ingest.us.sentry.io/4508898134654976"
+  environment: "DEV"
+  release: ""
+  debug: false
 
 scheduler:
   timezone: "Asia/Bangkok"
 
 sensitiveKeys:
-  telegramBotToken: "telegramBotToken"
   jwtSecret: "jwtSecret"
   pepper: "pepper"
   encryptionKey: "encryptionKey"

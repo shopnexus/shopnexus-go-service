@@ -9,6 +9,9 @@ import (
 	grpcServer "shopnexus-go-service/internal/grpc/server"
 	"shopnexus-go-service/internal/http"
 	"shopnexus-go-service/internal/logger"
+	"time"
+
+	"github.com/getsentry/sentry-go"
 )
 
 const defaultConfigFile = "config/config.dev.yml"
@@ -23,23 +26,9 @@ var (
 func main() {
 	setUpConfig()
 	setupLogger()
-
-	go func() {
-		err := grpcServer.NewServer(fmt.Sprintf(":%d", *port))
-		if err != nil {
-			log.Fatal(err)
-		}
-	}()
-
-	httpServer, err := http.NewServer(fmt.Sprintf(":%d", *port))
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	err = httpServer.Start(fmt.Sprintf(":%d", 8080))
-	if err != nil {
-		log.Fatal(err)
-	}
+	setupSentry()
+	setupGrpcServer()
+	setupHttpServer()
 }
 
 func setUpConfig() {
@@ -58,4 +47,45 @@ func setUpConfig() {
 func setupLogger() {
 	log.Default().Printf("Using log level: %s", config.GetConfig().Log.Level)
 	logger.InitLogger("zap")
+}
+
+func setupGrpcServer() {
+	logger.Log.Info("Starting gRPC server...")
+	go func() {
+		err := grpcServer.NewServer(fmt.Sprintf(":%d", *port))
+		if err != nil {
+			log.Fatal(err)
+		}
+	}()
+}
+
+func setupHttpServer() {
+	logger.Log.Info("Starting HTTP server...")
+	httpServer, err := http.NewServer(fmt.Sprintf(":%d", *port))
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	err = httpServer.Start(fmt.Sprintf(":%d", 8080))
+	if err != nil {
+		log.Fatal(err)
+	}
+}
+
+func setupSentry() {
+	logger.Log.Info("Setting up Sentry...")
+	err := sentry.Init(sentry.ClientOptions{
+		Dsn: config.GetConfig().Sentry.Dsn,
+		// Set TracesSampleRate to 1.0 to capture 100%
+		// of transactions for tracing.
+		// We recommend adjusting this value in production,
+		TracesSampleRate: 1.0,
+	})
+	if err != nil {
+		log.Fatalf("sentry.Init: %s", err)
+	}
+	// Flush buffered events before the program terminates.
+	defer sentry.Flush(2 * time.Second)
+
+	sentry.CaptureMessage("It works!")
 }
