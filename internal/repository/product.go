@@ -104,13 +104,14 @@ func (r *Repository) GetProductModel(ctx context.Context, id int64) (model.Produ
 	}
 
 	return model.ProductModel{
-		ID:          productModel.ID,
-		BrandID:     productModel.BrandID,
-		Name:        productModel.Name,
-		Description: productModel.Description,
-		ListPrice:   productModel.ListPrice,
-		Resources:   productModel.Resources,
-		Tags:        productModel.Tags,
+		ID:               productModel.ID,
+		BrandID:          productModel.BrandID,
+		Name:             productModel.Name,
+		Description:      productModel.Description,
+		ListPrice:        productModel.ListPrice,
+		DateManufactured: productModel.DateManufactured.Time.UnixMilli(),
+		Resources:        productModel.Resources,
+		Tags:             productModel.Tags,
 	}, nil
 }
 
@@ -149,7 +150,6 @@ func (r *Repository) ListProductModels(ctx context.Context, params ListProductMo
 		DateManufacturedFrom: *pgxutil.PtrToPgtype(&pgtype.Timestamptz{}, util.PtrMilisToTime(params.DateManufacturedFrom)),
 		DateManufacturedTo:   *pgxutil.PtrToPgtype(&pgtype.Timestamptz{}, util.PtrMilisToTime(params.DateManufacturedTo)),
 	})
-
 	if err != nil {
 		return nil, err
 	}
@@ -157,13 +157,14 @@ func (r *Repository) ListProductModels(ctx context.Context, params ListProductMo
 	result := make([]model.ProductModel, len(productModels))
 	for i, productModel := range productModels {
 		result[i] = model.ProductModel{
-			ID:          productModel.ID,
-			BrandID:     productModel.BrandID,
-			Name:        productModel.Name,
-			Description: productModel.Description,
-			ListPrice:   productModel.ListPrice,
-			Resources:   productModel.Resources,
-			Tags:        productModel.Tags,
+			ID:               productModel.ID,
+			BrandID:          productModel.BrandID,
+			Name:             productModel.Name,
+			Description:      productModel.Description,
+			ListPrice:        productModel.ListPrice,
+			DateManufactured: productModel.DateManufactured.Time.UnixMilli(),
+			Resources:        productModel.Resources,
+			Tags:             productModel.Tags,
 		}
 	}
 
