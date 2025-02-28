@@ -17,7 +17,7 @@ func NewAccountServer(service *service.AccountService) *AccountServer {
 }
 
 func (s *AccountServer) LoginUser(ctx context.Context, req *pb.LoginUserRequest) (*pb.TokenResponse, error) {
-	token, err := s.service.Login(ctx, service.LoginUserParams{
+	token, err := s.service.Login(ctx, service.LoginParams{
 		Role:     model.RoleUser,
 		Username: req.Username,
 		Email:    req.Email,
@@ -32,7 +32,7 @@ func (s *AccountServer) LoginUser(ctx context.Context, req *pb.LoginUserRequest)
 }
 
 func (s *AccountServer) LoginAdmin(ctx context.Context, req *pb.LoginAdminRequest) (*pb.TokenResponse, error) {
-	token, err := s.service.Login(ctx, service.LoginUserParams{
+	token, err := s.service.Login(ctx, service.LoginParams{
 		Role:     model.RoleAdmin,
 		Username: &req.Username,
 		Password: req.Password,

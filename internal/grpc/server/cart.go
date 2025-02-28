@@ -37,7 +37,7 @@ func (s *CartServer) AddCartItem(ctx context.Context, req *pb.AddCartItemRequest
 	return &pb.AddCartItemResponse{Quantity: quantity}, nil
 }
 
-func (s *CartServer) GetCart(ctx context.Context, req *pb.GetCartRequest) (*pb.GetCartResponse, error) {
+func (s *CartServer) GetCart(ctx context.Context, req *emptypb.Empty) (*pb.GetCartResponse, error) {
 	claims, ok := ctx.Value(interceptor.CtxKeyUser).(model.Claims)
 	if !ok {
 		return nil, model.ErrTokenInvalid

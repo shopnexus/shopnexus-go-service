@@ -60,7 +60,7 @@ func convertStatus(protoStatus pb.Status) model.Status {
 	switch protoStatus {
 	case pb.Status_PENDING:
 		return model.StatusPending
-	case pb.Status_SUCESS:
+	case pb.Status_SUCCESS:
 		return model.StatusSuccess
 	case pb.Status_CANCELLED:
 		return model.StatusCancelled

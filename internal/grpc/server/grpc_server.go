@@ -40,8 +40,11 @@ func NewServer(address string) error {
 	repo := repository.NewRepository(db)
 	services := service.NewServices(repo)
 
-	pb.RegisterProductServer(grpcSrv, NewProductServer(services.Product))
 	pb.RegisterAccountServer(grpcSrv, NewAccountServer(services.Account))
+	pb.RegisterCartServer(grpcSrv, NewCartServer(services.Cart))
+	pb.RegisterPaymentServer(grpcSrv, NewPaymentServer(services.Payment))
+	pb.RegisterProductServer(grpcSrv, NewProductServer(services.Product))
+	pb.RegisterRefundServer(grpcSrv, NewRefundServer(services.Refund))
 
 	l, err := net.Listen("tcp", address)
 	if err != nil {

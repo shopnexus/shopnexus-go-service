@@ -66,7 +66,7 @@ func (s *ProductServer) DeleteProductModel(ctx context.Context, req *pb.DeletePr
 }
 
 func (s *ProductServer) GetProduct(ctx context.Context, req *pb.GetProductRequest) (*pb.ProductEntity, error) {
-	data, err := s.service.GetProduct(ctx, service.ProductIdentifier{
+	data, err := s.service.GetProduct(ctx, model.ProductIdentifier{
 		ID:       req.Id,
 		SerialID: req.SerialId,
 	})
@@ -128,7 +128,7 @@ func (s *ProductServer) UpdateProduct(ctx context.Context, req *pb.UpdateProduct
 }
 
 func (s *ProductServer) DeleteProduct(ctx context.Context, req *pb.DeleteProductRequest) (*emptypb.Empty, error) {
-	err := s.service.DeleteProduct(ctx, service.ProductIdentifier{
+	err := s.service.DeleteProduct(ctx, model.ProductIdentifier{
 		ID:       req.Id,
 		SerialID: req.SerialId,
 	})
