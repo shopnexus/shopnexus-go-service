@@ -2,6 +2,7 @@ package httpmiddleware
 
 import (
 	"net/http"
+	"shopnexus-go-service/internal/http/response"
 
 	"google.golang.org/grpc/metadata"
 )
@@ -10,10 +11,10 @@ import (
 func GrpcAuthorization(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		token := r.Header.Get("Authorization")
-		// if token == "" {
-		// 	http.Error(w, "Unauthorized", http.StatusUnauthorized)
-		// 	return
-		// }
+		if token == "" {
+			response.FromMessage(w, http.StatusUnauthorized, "Unauthorized")
+			return
+		}
 
 		// Forward the auth token to gRPC metadata
 		ctx := metadata.AppendToOutgoingContext(r.Context(), "authorization", token)

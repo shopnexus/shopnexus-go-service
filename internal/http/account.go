@@ -50,7 +50,7 @@ func (h *AccountHandler) LoginUser(w http.ResponseWriter, r *http.Request) {
 		Password: req.Password,
 	})
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusUnauthorized)
+		response.FromMessage(w, http.StatusUnauthorized, err.Error())
 		return
 	}
 

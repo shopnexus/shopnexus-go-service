@@ -4,6 +4,7 @@ import (
 	"net/http"
 	"shopnexus-go-service/gen/pb"
 	httpmiddleware "shopnexus-go-service/internal/http/middleware"
+	"shopnexus-go-service/internal/http/response"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
@@ -62,7 +63,7 @@ func (s *Server) setupMiddlewares() {
 	// Add 404 handler with logging
 	s.router.NotFound(func(w http.ResponseWriter, r *http.Request) {
 		println("404 Not Found:", r.URL.Path)
-		http.Error(w, "404 Not Found", http.StatusNotFound)
+		response.FromMessage(w, http.StatusNotFound, "404 Not Found")
 	})
 
 }

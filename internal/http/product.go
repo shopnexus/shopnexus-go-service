@@ -39,7 +39,7 @@ func NewProductHandler(client pb.ProductClient) http.Handler {
 func (h *ProductHandler) GetProductModel(w http.ResponseWriter, r *http.Request) {
 	id, err := strconv.ParseInt(chi.URLParam(r, "id"), 10, 64)
 	if err != nil {
-		http.Error(w, "invalid id", http.StatusBadRequest)
+		response.FromMessage(w, http.StatusBadRequest, "invalid id")
 		return
 	}
 
@@ -47,7 +47,7 @@ func (h *ProductHandler) GetProductModel(w http.ResponseWriter, r *http.Request)
 
 	resp, err := h.client.GetProductModel(ctx, &pb.GetProductModelRequest{Id: id})
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		response.FromMessage(w, http.StatusInternalServerError, err.Error())
 		return
 	}
 
@@ -81,7 +81,7 @@ func (h *ProductHandler) ListProductModels(w http.ResponseWriter, r *http.Reques
 		DateManufacturedTo   *int64  `schema:"date_manufactured_to"`
 	}
 	if err := decode.Decode(&req, r.URL.Query()); err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
+		response.FromMessage(w, http.StatusBadRequest, err.Error())
 		return
 	}
 
@@ -101,7 +101,7 @@ func (h *ProductHandler) ListProductModels(w http.ResponseWriter, r *http.Reques
 		DateManufacturedTo:   req.DateManufacturedTo,
 	})
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		response.FromMessage(w, http.StatusInternalServerError, err.Error())
 		return
 	}
 
@@ -118,7 +118,7 @@ func (h *ProductHandler) ListProductModels(w http.ResponseWriter, r *http.Reques
 func (h *ProductHandler) DeleteProductModel(w http.ResponseWriter, r *http.Request) {
 	id, err := strconv.ParseInt(chi.URLParam(r, "id"), 10, 64)
 	if err != nil {
-		http.Error(w, "invalid id", http.StatusBadRequest)
+		response.FromMessage(w, http.StatusBadRequest, "invalid id")
 		return
 	}
 
@@ -126,7 +126,7 @@ func (h *ProductHandler) DeleteProductModel(w http.ResponseWriter, r *http.Reque
 
 	_, err = h.client.DeleteProductModel(ctx, &pb.DeleteProductModelRequest{Id: id})
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		response.FromMessage(w, http.StatusInternalServerError, err.Error())
 		return
 	}
 
@@ -136,7 +136,7 @@ func (h *ProductHandler) DeleteProductModel(w http.ResponseWriter, r *http.Reque
 func (h *ProductHandler) GetProduct(w http.ResponseWriter, r *http.Request) {
 	id, err := strconv.ParseInt(chi.URLParam(r, "id"), 10, 64)
 	if err != nil {
-		http.Error(w, "invalid id", http.StatusBadRequest)
+		response.FromMessage(w, http.StatusBadRequest, "invalid id")
 		return
 	}
 
@@ -146,7 +146,7 @@ func (h *ProductHandler) GetProduct(w http.ResponseWriter, r *http.Request) {
 		Id: &id,
 	})
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		response.FromMessage(w, http.StatusInternalServerError, err.Error())
 		return
 	}
 
@@ -174,7 +174,7 @@ func (h *ProductHandler) ListProducts(w http.ResponseWriter, r *http.Request) {
 		DateCreatedTo   *int64 `schema:"date_created_to"`
 	}
 	if err := decode.Decode(&req, r.URL.Query()); err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
+		response.FromMessage(w, http.StatusBadRequest, err.Error())
 		return
 	}
 
@@ -190,7 +190,7 @@ func (h *ProductHandler) ListProducts(w http.ResponseWriter, r *http.Request) {
 		DateCreatedTo:   req.DateCreatedTo,
 	})
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		response.FromMessage(w, http.StatusInternalServerError, err.Error())
 		return
 	}
 
@@ -210,7 +210,7 @@ func (h *ProductHandler) CreateProduct(w http.ResponseWriter, r *http.Request) {
 		ProductModelID int64  `json:"product_model_id"`
 	}
 	if err := sonic.ConfigFastest.NewDecoder(r.Body).Decode(&req); err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
+		response.FromMessage(w, http.StatusBadRequest, err.Error())
 		return
 	}
 
@@ -221,7 +221,7 @@ func (h *ProductHandler) CreateProduct(w http.ResponseWriter, r *http.Request) {
 		ProductModelId: req.ProductModelID,
 	})
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		response.FromMessage(w, http.StatusInternalServerError, err.Error())
 		return
 	}
 
@@ -243,7 +243,7 @@ func (h *ProductHandler) CreateProduct(w http.ResponseWriter, r *http.Request) {
 func (h *ProductHandler) UpdateProduct(w http.ResponseWriter, r *http.Request) {
 	id, err := strconv.ParseInt(chi.URLParam(r, "id"), 10, 64)
 	if err != nil {
-		http.Error(w, "invalid id", http.StatusBadRequest)
+		response.FromMessage(w, http.StatusBadRequest, "invalid id")
 		return
 	}
 
@@ -252,7 +252,7 @@ func (h *ProductHandler) UpdateProduct(w http.ResponseWriter, r *http.Request) {
 		ProductModelID *int64  `json:"product_model_id"`
 	}
 	if err := sonic.ConfigFastest.NewDecoder(r.Body).Decode(&req); err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
+		response.FromMessage(w, http.StatusBadRequest, err.Error())
 		return
 	}
 
@@ -264,7 +264,7 @@ func (h *ProductHandler) UpdateProduct(w http.ResponseWriter, r *http.Request) {
 		ProductModelId: req.ProductModelID,
 	})
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		response.FromMessage(w, http.StatusInternalServerError, err.Error())
 		return
 	}
 
@@ -291,7 +291,7 @@ func (h *ProductHandler) DeleteProduct(w http.ResponseWriter, r *http.Request) {
 		SerialId: serialId,
 	})
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		response.FromMessage(w, http.StatusInternalServerError, err.Error())
 		return
 	}
 
