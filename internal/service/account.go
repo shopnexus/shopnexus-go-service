@@ -14,19 +14,18 @@ type AccountService struct {
 	repo *repository.Repository
 }
 
+type AccountServiceInterface interface {
+	CheckPassword(hashedPassword, password string) bool
+	CreateHash(password string) (string, error)
+	FindAccount(ctx context.Context, params FindAccountParams) (model.Account, error)
+	Login(ctx context.Context, params LoginParams) (string, error)
+	Register(ctx context.Context, account model.Account) (string, error)
+}
+
 func NewAccountService(repo *repository.Repository) *AccountService {
 	return &AccountService{
 		repo: repo,
 	}
-}
-
-func (s *AccountService) IsAdmin(ctx context.Context, accountID int64) (bool, error) {
-	accountBase, err := s.repo.GetAccountBase(ctx, accountID)
-	if err != nil {
-		return false, err
-	}
-
-	return accountBase.Role == model.RoleAdmin, nil
 }
 
 func (s *AccountService) CheckPassword(hashedPassword, password string) bool {
@@ -86,9 +85,9 @@ func (s *AccountService) FindAccount(ctx context.Context, params FindAccountPara
 	return account, nil
 }
 
-type LoginUserParams = FindAccountParams
+type LoginParams = FindAccountParams
 
-func (s *AccountService) Login(ctx context.Context, params LoginUserParams) (string, error) {
+func (s *AccountService) Login(ctx context.Context, params LoginParams) (string, error) {
 	if params.Username == nil && params.Email == nil && params.Phone == nil {
 		return "", model.ErrInvalidCreds
 	}

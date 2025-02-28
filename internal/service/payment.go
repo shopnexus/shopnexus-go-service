@@ -28,6 +28,10 @@ type CreatePaymentResult struct {
 	Url     string
 }
 
+type PaymentServiceInterface interface {
+	CreatePayment(ctx context.Context, params CreatePaymentParams) (CreatePaymentResult, error)
+}
+
 func (s *PaymentService) CreatePayment(ctx context.Context, params CreatePaymentParams) (CreatePaymentResult, error) {
 	txRepo, err := s.Repo.Begin(ctx)
 	if err != nil {

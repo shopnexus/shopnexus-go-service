@@ -76,3 +76,8 @@ func (s *RefundService) Create(ctx context.Context, params CreateRefundParams) (
 
 	return refund, nil
 }
+
+type RefundServiceInterface interface {
+	Get(ctx context.Context, params GetRefundParams) (model.Refund, error)
+	Create(ctx context.Context, params CreateRefundParams) (model.Refund, error)
+}

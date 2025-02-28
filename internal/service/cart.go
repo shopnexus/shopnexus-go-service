@@ -97,3 +97,10 @@ func (s *CartService) UpdateCartItem(ctx context.Context, params UpdateCartItemP
 func (s *CartService) ClearCart(ctx context.Context, userID int64) error {
 	return s.Repo.ClearCart(ctx, userID)
 }
+
+type CartServiceInterface interface {
+	GetCart(ctx context.Context, userID int64) (model.Cart, error)
+	AddCartItem(ctx context.Context, params AddCartItemParams) (int64, error)
+	UpdateCartItem(ctx context.Context, params UpdateCartItemParams) (int64, error)
+	ClearCart(ctx context.Context, userID int64) error
+}

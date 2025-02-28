@@ -24,8 +24,15 @@ type S3Service struct {
 	cloudfrontURL string
 }
 
-// NewService creates a new S3 client with the provided credentials
-func NewService(repository *repository.Repository) *S3Service {
+type S3ServiceInterface interface {
+	Upload(ctx context.Context, key string, file multipart.File, private bool) (string, error)
+	Delete(ctx context.Context, key string) error
+	ListObjects(ctx context.Context, prefix string) ([]string, error)
+	GetPresignedURL(ctx context.Context, key string, expireIn time.Duration) (string, error)
+}
+
+// NewS3Service creates a new S3 client with the provided credentials
+func NewS3Service(repository *repository.Repository) *S3Service {
 	cfg := config.GetConfig().S3
 
 	// Create custom credentials provider

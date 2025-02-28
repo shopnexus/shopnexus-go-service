@@ -7,8 +7,7 @@ import (
 )
 
 type ProductService struct {
-	repo    *repository.Repository
-	account *AccountService
+	repo *repository.Repository
 }
 
 func NewProductService(repo *repository.Repository) *ProductService {
@@ -53,12 +52,6 @@ type CreateBrandParams struct {
 }
 
 func (s *ProductService) CreateBrand(ctx context.Context, params CreateBrandParams) (model.Brand, error) {
-	if isAdmin, err := s.account.IsAdmin(ctx, params.UserID); err != nil {
-		return model.Brand{}, err
-	} else if !isAdmin {
-		return model.Brand{}, model.ErrForbidden
-	}
-
 	txRepo, err := s.repo.Begin(ctx)
 	if err != nil {
 		return model.Brand{}, err
@@ -132,12 +125,6 @@ type CreateProductModelParams struct {
 }
 
 func (s *ProductService) CreateProductModel(ctx context.Context, params CreateProductModelParams) (model.ProductModel, error) {
-	if isAdmin, err := s.account.IsAdmin(ctx, params.UserID); err != nil {
-		return model.ProductModel{}, err
-	} else if !isAdmin {
-		return model.ProductModel{}, model.ErrForbidden
-	}
-
 	productModel, err := s.repo.CreateProductModel(ctx, params.ProductModel)
 	if err != nil {
 		return model.ProductModel{}, err
@@ -162,9 +149,7 @@ func (s *ProductService) DeleteProductModel(ctx context.Context, id int64) error
 	return s.repo.DeleteProductModel(ctx, id)
 }
 
-type ProductIdentifier = repository.ProductIdentifier
-
-func (s *ProductService) GetProduct(ctx context.Context, params ProductIdentifier) (model.Product, error) {
+func (s *ProductService) GetProduct(ctx context.Context, params model.ProductIdentifier) (model.Product, error) {
 	return s.repo.GetProduct(ctx, params)
 }
 
@@ -204,7 +189,7 @@ func (s *ProductService) UpdateProduct(ctx context.Context, params UpdateProduct
 	return s.repo.UpdateProduct(ctx, params)
 }
 
-func (s *ProductService) DeleteProduct(ctx context.Context, params ProductIdentifier) error {
+func (s *ProductService) DeleteProduct(ctx context.Context, params model.ProductIdentifier) error {
 	return s.repo.DeleteProduct(ctx, params)
 }
 
@@ -227,4 +212,30 @@ func (s *ProductService) CreateTag(ctx context.Context, tag model.Tag) (model.Ta
 
 func (s *ProductService) DeleteTag(ctx context.Context, name string) error {
 	return s.repo.DeleteTag(ctx, name)
+}
+
+type ProductServiceInterface interface {
+	GetBrand(ctx context.Context, id int64) (model.Brand, error)
+	ListBrands(ctx context.Context, params ListBrandsParams) (model.PaginateResult[model.Brand], error)
+	CreateBrand(ctx context.Context, params CreateBrandParams) (model.Brand, error)
+	UpdateBrand(ctx context.Context, params UpdateBrandParams) error
+	DeleteBrand(ctx context.Context, id int64) error
+
+	GetProductModel(ctx context.Context, id int64) (model.ProductModel, error)
+	ListProductModels(ctx context.Context, params ListProductModelsParams) (model.PaginateResult[model.ProductModel], error)
+	CreateProductModel(ctx context.Context, params CreateProductModelParams) (model.ProductModel, error)
+	UpdateProductModel(ctx context.Context, params UpdateProductModelParams) error
+	DeleteProductModel(ctx context.Context, id int64) error
+
+	GetProduct(ctx context.Context, params model.ProductIdentifier) (model.Product, error)
+	ListProducts(ctx context.Context, params ListProductsParams) (model.PaginateResult[model.Product], error)
+	CreateProduct(ctx context.Context, product model.Product) (model.Product, error)
+	UpdateProduct(ctx context.Context, params UpdateProductParams) error
+	DeleteProduct(ctx context.Context, params model.ProductIdentifier) error
+
+	CreateSale(ctx context.Context, sale model.Sale) (model.Sale, error)
+	DeleteSale(ctx context.Context, id int64) error
+
+	CreateTag(ctx context.Context, tag model.Tag) (model.Tag, error)
+	DeleteTag(ctx context.Context, name string) error
 }
