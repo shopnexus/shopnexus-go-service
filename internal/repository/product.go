@@ -222,26 +222,20 @@ func (r *Repository) DeleteProductModel(ctx context.Context, id int64) error {
 
 // ----------- PRODUCT ------------
 
-// ProductIdentifier is a struct to identify a product, either by ID or SerialID
-type ProductIdentifier struct {
-	ID       *int64
-	SerialID *string
-}
-
 type ProductIdentifierPg struct {
 	ID       pgtype.Int8
 	SerialID pgtype.Text
 }
 
-func (p ProductIdentifier) ToPgtype() ProductIdentifierPg {
+func ToPgtype(p model.ProductIdentifier) ProductIdentifierPg {
 	return ProductIdentifierPg{
 		ID:       *pgxutil.PtrToPgtype(&pgtype.Int8{}, p.ID),
 		SerialID: *pgxutil.PtrToPgtype(&pgtype.Text{}, p.SerialID),
 	}
 }
 
-func (r *Repository) GetProduct(ctx context.Context, id ProductIdentifier) (model.Product, error) {
-	row, err := r.sqlc.GetProduct(ctx, sqlc.GetProductParams(id.ToPgtype()))
+func (r *Repository) GetProduct(ctx context.Context, id model.ProductIdentifier) (model.Product, error) {
+	row, err := r.sqlc.GetProduct(ctx, sqlc.GetProductParams(ToPgtype(id)))
 	if err != nil {
 		return model.Product{}, err
 	}
@@ -308,6 +302,7 @@ func (r *Repository) ListProducts(ctx context.Context, params ListProductsParams
 	result := make([]model.Product, len(products))
 	for i, product := range products {
 		result[i] = model.Product{
+			ID:             product.ID,
 			SerialID:       product.SerialID,
 			ProductModelID: product.ProductModelID,
 			DateCreated:    product.DateCreated.Time.UnixMilli(),
@@ -348,8 +343,8 @@ func (r *Repository) UpdateProduct(ctx context.Context, params UpdateProductPara
 	})
 }
 
-func (r *Repository) DeleteProduct(ctx context.Context, id ProductIdentifier) error {
-	return r.sqlc.DeleteProduct(ctx, sqlc.DeleteProductParams(id.ToPgtype()))
+func (r *Repository) DeleteProduct(ctx context.Context, id model.ProductIdentifier) error {
+	return r.sqlc.DeleteProduct(ctx, sqlc.DeleteProductParams(ToPgtype(id)))
 }
 
 func (r *Repository) CreateSale(ctx context.Context, sale model.Sale) (model.Sale, error) {
