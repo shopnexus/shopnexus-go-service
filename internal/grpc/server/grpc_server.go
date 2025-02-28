@@ -5,7 +5,7 @@ import (
 	"net"
 	"shopnexus-go-service/gen/pb"
 	pgxutil "shopnexus-go-service/internal/db/pgx"
-	"shopnexus-go-service/internal/interceptor"
+	"shopnexus-go-service/internal/grpc/server/interceptor"
 	"shopnexus-go-service/internal/logger"
 	"shopnexus-go-service/internal/model"
 	"shopnexus-go-service/internal/repository"
@@ -57,6 +57,8 @@ func NewServer(address string) error {
 
 func modelToPaginationResponse[T any](data model.PaginateResult[T]) *pb.PaginationResponse {
 	return &pb.PaginationResponse{
+		Page:       data.Page,
+		Limit:      data.Limit,
 		Total:      data.Total,
 		NextPage:   data.NextPage,
 		NextCursor: data.NextCursor,

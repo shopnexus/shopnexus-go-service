@@ -40,8 +40,10 @@ func (s *ProductService) ListBrands(ctx context.Context, params ListBrandsParams
 
 	return model.PaginateResult[model.Brand]{
 		Data:       brands,
+		Limit:      params.Limit,
+		Page:       params.Page,
 		Total:      total,
-		NextPage:   model.NextPage(params.Offset, params.Limit, total),
+		NextPage:   params.NextPage(total),
 		NextCursor: nil,
 	}, nil
 }
@@ -113,8 +115,10 @@ func (s *ProductService) ListProductModels(ctx context.Context, params ListProdu
 
 	return model.PaginateResult[model.ProductModel]{
 		Data:       productModels,
+		Limit:      params.Limit,
+		Page:       params.Page,
 		Total:      total,
-		NextPage:   model.NextPage(params.Offset, params.Limit, total),
+		NextPage:   params.NextPage(total),
 		NextCursor: nil,
 	}, nil
 }
@@ -168,8 +172,10 @@ func (s *ProductService) ListProducts(ctx context.Context, params ListProductsPa
 
 	return model.PaginateResult[model.Product]{
 		Data:       products,
+		Limit:      params.Limit,
+		Page:       params.Page,
 		Total:      total,
-		NextPage:   model.NextPage(params.Offset, params.Limit, total),
+		NextPage:   params.NextPage(total),
 		NextCursor: nil,
 	}, nil
 }

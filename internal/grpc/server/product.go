@@ -30,8 +30,8 @@ func (s *ProductServer) GetProductModel(ctx context.Context, req *pb.GetProductM
 func (s *ProductServer) ListProductModels(ctx context.Context, req *pb.ListProductModelsRequest) (*pb.ListProductModelsResponse, error) {
 	data, err := s.service.ListProductModels(ctx, service.ListProductModelsParams{
 		PaginationParams: model.PaginationParams{
-			Offset: req.GetPagination().GetOffset(),
-			Limit:  req.GetPagination().GetLimit(),
+			Page:  req.GetPagination().GetPage(),
+			Limit: req.GetPagination().GetLimit(),
 		},
 		BrandID:              req.BrandId,
 		Name:                 req.Name,
@@ -80,8 +80,8 @@ func (s *ProductServer) GetProduct(ctx context.Context, req *pb.GetProductReques
 func (s *ProductServer) ListProducts(ctx context.Context, req *pb.ListProductsRequest) (*pb.ListProductsResponse, error) {
 	data, err := s.service.ListProducts(ctx, service.ListProductsParams{
 		PaginationParams: model.PaginationParams{
-			Offset: req.GetPagination().GetOffset(),
-			Limit:  req.GetPagination().GetLimit(),
+			Page:  req.GetPagination().GetPage(),
+			Limit: req.GetPagination().GetLimit(),
 		},
 		ProductModelID:  req.ProductModelId,
 		DateCreatedFrom: req.DateCreatedFrom,

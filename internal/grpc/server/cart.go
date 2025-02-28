@@ -3,7 +3,7 @@ package server
 import (
 	"context"
 	"shopnexus-go-service/gen/pb"
-	"shopnexus-go-service/internal/interceptor"
+	"shopnexus-go-service/internal/grpc/server/interceptor"
 	"shopnexus-go-service/internal/model"
 	"shopnexus-go-service/internal/service"
 

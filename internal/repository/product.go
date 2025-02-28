@@ -40,7 +40,7 @@ func (r *Repository) CountBrands(ctx context.Context, params ListBrandsParams) (
 
 func (r *Repository) ListBrands(ctx context.Context, params ListBrandsParams) ([]model.Brand, error) {
 	brands, err := r.sqlc.ListBrands(ctx, sqlc.ListBrandsParams{
-		Offset:      params.Offset,
+		Offset:      params.Offset(),
 		Limit:       params.Limit,
 		Name:        *pgxutil.PtrToPgtype(&pgtype.Text{}, params.Name),
 		Description: *pgxutil.PtrToPgtype(&pgtype.Text{}, params.Description),
@@ -140,7 +140,7 @@ func (r *Repository) CountProductModels(ctx context.Context, params ListProductM
 
 func (r *Repository) ListProductModels(ctx context.Context, params ListProductModelsParams) ([]model.ProductModel, error) {
 	productModels, err := r.sqlc.ListProductModels(ctx, sqlc.ListProductModelsParams{
-		Offset:               params.Offset,
+		Offset:               params.Offset(),
 		Limit:                params.Limit,
 		BrandID:              *pgxutil.PtrToPgtype(&pgtype.Int8{}, params.BrandID),
 		Name:                 *pgxutil.PtrToPgtype(&pgtype.Text{}, params.Name),
@@ -289,7 +289,7 @@ func (r *Repository) CountProducts(ctx context.Context, params ListProductsParam
 
 func (r *Repository) ListProducts(ctx context.Context, params ListProductsParams) ([]model.Product, error) {
 	products, err := r.sqlc.ListProducts(ctx, sqlc.ListProductsParams{
-		Offset:          params.Offset,
+		Offset:          params.Offset(),
 		Limit:           params.Limit,
 		ProductModelID:  *pgxutil.PtrToPgtype(&pgtype.Int8{}, params.ProductModelID),
 		DateCreatedFrom: *pgxutil.PtrToPgtype(&pgtype.Timestamptz{}, util.PtrMilisToTime(params.DateCreatedFrom)),
