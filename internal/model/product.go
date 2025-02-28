@@ -20,6 +20,12 @@ type ProductModel struct {
 	Tags      []string `json:"tags"`
 }
 
+// ProductIdentifier is a struct to identify a product, either by ID or SerialID
+type ProductIdentifier struct {
+	ID       *int64
+	SerialID *string
+}
+
 type Product struct {
 	ID             int64  `json:"id"`        /* unique */
 	SerialID       string `json:"serial_id"` /* unique */
