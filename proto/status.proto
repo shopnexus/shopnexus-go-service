@@ -7,7 +7,7 @@ option go_package = "shopnexus-go-service/gen/pb";
 enum Status {
   STATUS_UNSPECIFIED = 0;
   PENDING = 1;
-  SUCESS = 2;
+  SUCCESS = 2;
   CANCELLED = 3;
   FAILED = 4;
 }

@@ -13,11 +13,6 @@ message ItemQuantity {
   int64 quantity = 2;
 }
 
-// GET CART
-message GetCartRequest {
-  int64 cart_id = 1;
-}
-
 message GetCartResponse {
   repeated ItemQuantity items = 1;
 }
@@ -39,7 +34,7 @@ message UpdateCartItemRequest {
 }
 
 service Cart {
-  rpc GetCart(GetCartRequest) returns (GetCartResponse) {}
+  rpc GetCart(google.protobuf.Empty) returns (GetCartResponse) {}
   rpc AddCartItem(AddCartItemRequest) returns (AddCartItemResponse) {}
   rpc UpdateCartItem(UpdateCartItemRequest) returns (google.protobuf.Empty) {}
   rpc ClearCart(google.protobuf.Empty) returns (google.protobuf.Empty) {}

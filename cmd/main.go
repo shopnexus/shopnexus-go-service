@@ -6,8 +6,9 @@ import (
 	"log"
 	"os"
 	"shopnexus-go-service/config"
+	grpcServer "shopnexus-go-service/internal/grpc/server"
+	"shopnexus-go-service/internal/http"
 	"shopnexus-go-service/internal/logger"
-	"shopnexus-go-service/internal/server"
 )
 
 const defaultConfigFile = "config/config.dev.yml"
@@ -23,11 +24,22 @@ func main() {
 	setUpConfig()
 	setupLogger()
 
-	err := server.NewServer(fmt.Sprintf(":%d", *port))
+	go func() {
+		err := grpcServer.NewServer(fmt.Sprintf(":%d", *port))
+		if err != nil {
+			log.Fatal(err)
+		}
+	}()
+
+	httpServer, err := http.NewServer(fmt.Sprintf(":%d", *port))
 	if err != nil {
 		log.Fatal(err)
 	}
 
+	err = httpServer.Start(fmt.Sprintf(":%d", 8080))
+	if err != nil {
+		log.Fatal(err)
+	}
 }
 
 func setUpConfig() {
