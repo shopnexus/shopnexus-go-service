@@ -123,8 +123,25 @@ func (s *AccountService) Login(ctx context.Context, params LoginUserParams) (str
 }
 
 func (s *AccountService) Register(ctx context.Context, account model.Account) (string, error) {
-	newAccount, err := s.repo.CreateAccount(ctx, account)
+	txRepo, err := s.repo.Begin(ctx)
 	if err != nil {
+		return "", err
+	}
+
+	newAccount, err := txRepo.CreateAccount(ctx, account)
+	if err != nil {
+		return "", err
+	}
+
+	if newAccount.GetBase().Role == model.RoleUser {
+		// Create cart
+		err = txRepo.CreateCart(ctx, newAccount.GetBase().ID)
+		if err != nil {
+			return "", err
+		}
+	}
+
+	if err = txRepo.Commit(ctx); err != nil {
 		return "", err
 	}
 
