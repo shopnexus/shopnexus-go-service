@@ -29,7 +29,7 @@ func NewCartHandler(client pb.CartClient) http.Handler {
 
 func (h *CartHandler) AddCartItem(w http.ResponseWriter, r *http.Request) {
 	var req struct {
-		ProductModelID int64 `json:"productModelId"`
+		ProductModelID int64 `json:"product_model_id"`
 		Quantity       int64 `json:"quantity"`
 	}
 
@@ -75,7 +75,7 @@ func (h *CartHandler) GetCart(w http.ResponseWriter, r *http.Request) {
 
 func (h *CartHandler) UpdateCartItem(w http.ResponseWriter, r *http.Request) {
 	var req struct {
-		ProductModelID int64 `json:"productModelId"`
+		ProductModelID int64 `json:"product_model_id"`
 		Quantity       int64 `json:"quantity"`
 	}
 

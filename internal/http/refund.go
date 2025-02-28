@@ -24,7 +24,7 @@ func NewRefundHandler(client pb.RefundClient) http.Handler {
 
 func (h *RefundHandler) CreateRefund(w http.ResponseWriter, r *http.Request) {
 	var req struct {
-		PaymentID int64   `json:"paymentId"`
+		PaymentID int64   `json:"payment_id"`
 		Method    string  `json:"method"`
 		Reason    string  `json:"reason"`
 		Address   *string `json:"address"`

@@ -95,7 +95,7 @@ func (h *AccountHandler) RegisterUser(w http.ResponseWriter, r *http.Request) {
 		Email    string `json:"email"`
 		Phone    string `json:"phone"`
 		Gender   string `json:"gender"`
-		FullName string `json:"fullName"`
+		FullName string `json:"full_name"`
 	}
 
 	if err := sonic.ConfigFastest.NewDecoder(r.Body).Decode(&req); err != nil {

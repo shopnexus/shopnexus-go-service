@@ -70,15 +70,15 @@ func (h *ProductHandler) GetProductModel(w http.ResponseWriter, r *http.Request)
 
 func (h *ProductHandler) ListProductModels(w http.ResponseWriter, r *http.Request) {
 	var req struct {
-		Offset               int32   `schema:"offset"`
+		Page                 int32   `schema:"page"`
 		Limit                int32   `schema:"limit"`
-		BrandID              *int64  `schema:"brandId"`
+		BrandID              *int64  `schema:"brand_id"`
 		Name                 *string `schema:"name"`
 		Description          *string `schema:"description"`
-		ListPriceFrom        *int64  `schema:"listPriceFrom"`
-		ListPriceTo          *int64  `schema:"listPriceTo"`
-		DateManufacturedFrom *int64  `schema:"dateManufacturedFrom"`
-		DateManufacturedTo   *int64  `schema:"dateManufacturedTo"`
+		ListPriceFrom        *int64  `schema:"list_price_from"`
+		ListPriceTo          *int64  `schema:"list_price_to"`
+		DateManufacturedFrom *int64  `schema:"date_manufactured_from"`
+		DateManufacturedTo   *int64  `schema:"date_manufactured_to"`
 	}
 	if err := decode.Decode(&req, r.URL.Query()); err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
@@ -89,8 +89,8 @@ func (h *ProductHandler) ListProductModels(w http.ResponseWriter, r *http.Reques
 
 	resp, err := h.client.ListProductModels(ctx, &pb.ListProductModelsRequest{
 		Pagination: &pb.PaginationRequest{
-			Offset: req.Offset,
-			Limit:  req.Limit,
+			Page:  util.Max(req.Page, 1),
+			Limit: util.Max(req.Limit, 1),
 		},
 		BrandId:              req.BrandID,
 		Name:                 req.Name,
@@ -107,6 +107,8 @@ func (h *ProductHandler) ListProductModels(w http.ResponseWriter, r *http.Reques
 
 	response.FromPagination(w, http.StatusOK, model.PaginateResult[*pb.ProductModelEntity]{
 		Data:       util.NonEmptySlice(resp.ProductModels),
+		Page:       resp.Pagination.Page,
+		Limit:      resp.Pagination.Limit,
 		Total:      resp.Pagination.Total,
 		NextPage:   resp.Pagination.NextPage,
 		NextCursor: resp.Pagination.NextCursor,
@@ -150,10 +152,10 @@ func (h *ProductHandler) GetProduct(w http.ResponseWriter, r *http.Request) {
 
 	response.FromDTO(w, http.StatusOK, struct {
 		Id             int64  `json:"id"`
-		SerialId       string `json:"serialId"`
-		ProductModelId int64  `json:"productModelId"`
-		DateCreated    int64  `json:"dateCreated"`
-		DateUpdated    int64  `json:"dateUpdated"`
+		SerialId       string `json:"serial_id"`
+		ProductModelId int64  `json:"product_model_id"`
+		DateCreated    int64  `json:"date_created"`
+		DateUpdated    int64  `json:"date_updated"`
 	}{
 		Id:             resp.Id,
 		SerialId:       resp.SerialId,
@@ -165,11 +167,11 @@ func (h *ProductHandler) GetProduct(w http.ResponseWriter, r *http.Request) {
 
 func (h *ProductHandler) ListProducts(w http.ResponseWriter, r *http.Request) {
 	var req struct {
-		Offset          int32  `schema:"offset"`
+		Page            int32  `schema:"page"`
 		Limit           int32  `schema:"limit"`
-		ProductModelID  *int64 `schema:"productModelId"`
-		DateCreatedFrom *int64 `schema:"dateCreatedFrom"`
-		DateCreatedTo   *int64 `schema:"dateCreatedTo"`
+		ProductModelID  *int64 `schema:"product_model_id"`
+		DateCreatedFrom *int64 `schema:"date_created_from"`
+		DateCreatedTo   *int64 `schema:"date_created_to"`
 	}
 	if err := decode.Decode(&req, r.URL.Query()); err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
@@ -180,8 +182,8 @@ func (h *ProductHandler) ListProducts(w http.ResponseWriter, r *http.Request) {
 
 	resp, err := h.client.ListProducts(ctx, &pb.ListProductsRequest{
 		Pagination: &pb.PaginationRequest{
-			Offset: req.Offset,
-			Limit:  req.Limit,
+			Page:  util.Max(req.Page, 1),
+			Limit: util.Max(req.Limit, 1),
 		},
 		ProductModelId:  req.ProductModelID,
 		DateCreatedFrom: req.DateCreatedFrom,
@@ -194,6 +196,8 @@ func (h *ProductHandler) ListProducts(w http.ResponseWriter, r *http.Request) {
 
 	response.FromPagination(w, http.StatusOK, model.PaginateResult[*pb.ProductEntity]{
 		Data:       util.NonEmptySlice(resp.Products),
+		Page:       resp.Pagination.Page,
+		Limit:      resp.Pagination.Limit,
 		Total:      resp.Pagination.Total,
 		NextPage:   resp.Pagination.NextPage,
 		NextCursor: resp.Pagination.NextCursor,
@@ -202,8 +206,8 @@ func (h *ProductHandler) ListProducts(w http.ResponseWriter, r *http.Request) {
 
 func (h *ProductHandler) CreateProduct(w http.ResponseWriter, r *http.Request) {
 	var req struct {
-		SerialID       string `json:"serialId"`
-		ProductModelID int64  `json:"productModelId"`
+		SerialID       string `json:"serial_id"`
+		ProductModelID int64  `json:"product_model_id"`
 	}
 	if err := sonic.ConfigFastest.NewDecoder(r.Body).Decode(&req); err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
@@ -223,10 +227,10 @@ func (h *ProductHandler) CreateProduct(w http.ResponseWriter, r *http.Request) {
 
 	response.FromDTO(w, http.StatusCreated, struct {
 		Id             int64  `json:"id"`
-		SerialId       string `json:"serialId"`
-		ProductModelId int64  `json:"productModelId"`
-		DateCreated    int64  `json:"dateCreated"`
-		DateUpdated    int64  `json:"dateUpdated"`
+		SerialId       string `json:"serial_id"`
+		ProductModelId int64  `json:"product_model_id"`
+		DateCreated    int64  `json:"date_created"`
+		DateUpdated    int64  `json:"date_updated"`
 	}{
 		Id:             resp.Id,
 		SerialId:       resp.SerialId,
@@ -244,8 +248,8 @@ func (h *ProductHandler) UpdateProduct(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var req struct {
-		SerialID       *string `json:"serialId"`
-		ProductModelID *int64  `json:"productModelId"`
+		SerialID       *string `json:"serial_id"`
+		ProductModelID *int64  `json:"product_model_id"`
 	}
 	if err := sonic.ConfigFastest.NewDecoder(r.Body).Decode(&req); err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)

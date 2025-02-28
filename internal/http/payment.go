@@ -25,7 +25,7 @@ func NewPaymentHandler(client pb.PaymentClient) http.Handler {
 func (h *PaymentHandler) CreatePayment(w http.ResponseWriter, r *http.Request) {
 	var req struct {
 		Address       string `json:"address"`
-		PaymentMethod string `json:"paymentMethod"`
+		PaymentMethod string `json:"payment_method"`
 	}
 
 	if err := sonic.ConfigFastest.NewDecoder(r.Body).Decode(&req); err != nil {
