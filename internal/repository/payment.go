@@ -84,7 +84,7 @@ func (r *Repository) CreatePayment(ctx context.Context, payment model.Payment) (
 	var createArgs []sqlc.CreatePaymentProductsParams
 	for _, product := range payment.Products {
 		createArgs = append(createArgs, sqlc.CreatePaymentProductsParams{
-			PaymentID:       payment.ID,
+			PaymentID:       row.ID,
 			ProductSerialID: product.ItemID,
 			Quantity:        product.Quantity,
 			Price:           product.Price,

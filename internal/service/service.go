@@ -1,11 +1,14 @@
 package service
 
-import "shopnexus-go-service/internal/repository"
+import (
+	"shopnexus-go-service/internal/repository"
+	"shopnexus-go-service/internal/service/payment"
+)
 
 type Service struct {
 	Account *AccountService
 	Cart    *CartService
-	Payment *PaymentService
+	Payment *payment.PaymentService
 	Product *ProductService
 	Refund  *RefundService
 	S3      *S3Service
@@ -14,7 +17,7 @@ type Service struct {
 func NewServices(repo *repository.Repository) *Service {
 	account := NewAccountService(repo)
 	cart := NewCartService(repo)
-	payment := NewPaymentService(repo)
+	payment := payment.NewPaymentService(repo)
 	product := NewProductService(repo)
 	refund := NewRefundService(repo)
 	s3 := NewS3Service(repo)

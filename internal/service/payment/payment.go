@@ -1,4 +1,4 @@
-package service
+package payment
 
 import (
 	"context"
@@ -102,8 +102,15 @@ func (s *PaymentService) CreatePayment(ctx context.Context, params CreatePayment
 		return CreatePaymentResult{}, err
 	}
 
-	// Payment URL generation
-	url := "https://payment.com/" + fmt.Sprint(newPayment.ID)
+	url, err := s.CreateVnpay(ctx, CreateVnpayParams{
+		PaymentID: newPayment.ID,
+		OrderInfo: fmt.Sprintf("Payment for order %d", newPayment.ID),
+		Amount:    10000000,
+		BankCode:  BankCodeVNPAYQR,
+	})
+	if err != nil {
+		return CreatePaymentResult{}, err
+	}
 
 	return CreatePaymentResult{Payment: newPayment, Url: url}, nil
 }

@@ -57,3 +57,7 @@ sensitiveKeys:
   pepper: "pepper"
   encryptionKey: "encryptionKey"
   iterations: 150000
+
+vnpay:
+  tmnCode: "Z3366C41"
+  hashSecret: "4PIRTH5KJZC9UIP47YNJQZBULTI30RMR"

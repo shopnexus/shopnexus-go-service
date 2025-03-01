@@ -5,16 +5,16 @@ import (
 	"shopnexus-go-service/gen/pb"
 	"shopnexus-go-service/internal/grpc/server/interceptor"
 	"shopnexus-go-service/internal/model"
-	"shopnexus-go-service/internal/service"
+	"shopnexus-go-service/internal/service/payment"
 	"strconv"
 )
 
 type PaymentServer struct {
 	pb.UnimplementedPaymentServer
-	paymentService *service.PaymentService
+	paymentService *payment.PaymentService
 }
 
-func NewPaymentServer(paymentService *service.PaymentService) *PaymentServer {
+func NewPaymentServer(paymentService *payment.PaymentService) *PaymentServer {
 	return &PaymentServer{
 		paymentService: paymentService,
 	}
@@ -26,7 +26,7 @@ func (s *PaymentServer) Create(ctx context.Context, req *pb.CreatePaymentRequest
 		return nil, model.ErrTokenInvalid
 	}
 
-	payment, err := s.paymentService.CreatePayment(ctx, service.CreatePaymentParams{
+	payment, err := s.paymentService.CreatePayment(ctx, payment.CreatePaymentParams{
 		UserID:        claims.UserID,
 		Address:       req.Address,
 		PaymentMethod: convertPaymentMethod(req.PaymentMethod),

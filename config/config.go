@@ -21,6 +21,7 @@ type Config struct {
 	S3            S3            `yaml:"s3"`
 	Sentry        Sentry        `yaml:"sentry"`
 	SensitiveKeys SensitiveKeys `yaml:"sensitiveKeys"`
+	Vnpay         Vnpay         `yaml:"vnpay"`
 }
 
 type App struct {
@@ -70,6 +71,11 @@ type Sentry struct {
 
 type SensitiveKeys struct {
 	JWTSecret string `yaml:"jwtSecret" mapstructure:"jwtSecret"`
+}
+
+type Vnpay struct {
+	TmnCode    string `yaml:"tmnCode"`
+	HashSecret string `yaml:"hashSecret"`
 }
 
 func GetConfig() *Config {

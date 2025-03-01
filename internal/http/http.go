@@ -73,6 +73,7 @@ func (s *Server) setupRoutes() {
 		// Public routes
 		r.Group(func(r chi.Router) {
 			r.Mount("/account", NewAccountHandler(s.account))
+			r.Mount("/ipn", NewIPNHandler(s.payment))
 		})
 
 		// Protected routes
