@@ -217,8 +217,24 @@ model Payment {
   user_account UserAccount        @relation(fields: [user_id], references: [id], onUpdate: Cascade, onDelete: Cascade)
   products     ProductOnPayment[]
   refunds      Refund[]
+  vnpay        PaymentVnpay?
 
   @@map("base")
+  @@schema("payment")
+}
+
+model PaymentVnpay {
+  id                  BigInt @id
+  vnp_TxnRef          String
+  vnp_OrderInfo       String
+  vnp_TransactionNo   String
+  vnp_TransactionDate String
+  vnp_CreateDate      String
+  vnp_IpAddr          String
+
+  payment Payment @relation(fields: [id], references: [id], onUpdate: Cascade, onDelete: Cascade)
+
+  @@map("vnpay")
   @@schema("payment")
 }
 

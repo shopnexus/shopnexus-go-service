@@ -1,7 +1,6 @@
 package http
 
 import (
-	"fmt"
 	"net/http"
 	"shopnexus-go-service/gen/pb"
 	"shopnexus-go-service/internal/http/response"
@@ -43,7 +42,7 @@ func (h *IPNHandler) IPN(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	fmt.Println(query)
+	// TODO: verify VnpSecureHash
 
 	response.FromMessage(w, http.StatusOK, "ok")
 }

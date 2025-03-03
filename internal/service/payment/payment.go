@@ -8,13 +8,21 @@ import (
 )
 
 type PaymentService struct {
-	Repo *repository.Repository
+	Repo      *repository.Repository
+	platforms map[Platform]PaymentPlatform
 }
 
 func NewPaymentService(repo *repository.Repository) *PaymentService {
-	return &PaymentService{
-		Repo: repo,
+	s := &PaymentService{
+		Repo:      repo,
+		platforms: map[Platform]PaymentPlatform{},
 	}
+
+	// Init payment platforms
+	vnpay := &VnpayPlatform{}
+	s.platforms[PlatformVNPAY] = vnpay
+
+	return s
 }
 
 type CreatePaymentParams struct {
@@ -98,19 +106,50 @@ func (s *PaymentService) CreatePayment(ctx context.Context, params CreatePayment
 		return CreatePaymentResult{}, err
 	}
 
-	if err = txRepo.Commit(ctx); err != nil {
-		return CreatePaymentResult{}, err
+	// Create payment url
+	var pp PaymentPlatform
+
+	switch params.PaymentMethod {
+	case model.PaymentMethodVnpay:
+		pp, err = s.GetPlatform(PlatformVNPAY)
+		if err != nil {
+			return CreatePaymentResult{}, err
+		}
+	case model.PaymentMethodMomo:
+		// TODO: support momo payment
+		return CreatePaymentResult{}, fmt.Errorf("payment method momo not yet supported")
+		// pp, err = s.GetPlatform(PlatformMOMO)
+		// if err != nil {
+		// 	return CreatePaymentResult{}, err
+		// }
+	case model.PaymentMethodCash:
+		// Do nothing
+		// TODO: add logic for cash payment
+		return CreatePaymentResult{}, fmt.Errorf("payment method cash not yet supported")
+	default:
+		return CreatePaymentResult{}, fmt.Errorf("payment method %s not supported", params.PaymentMethod)
 	}
 
-	url, err := s.CreateVnpay(ctx, CreateVnpayParams{
+	url, err := pp.CreateOrder(ctx, CreateOrderParams{
 		PaymentID: newPayment.ID,
-		OrderInfo: fmt.Sprintf("Payment for order %d", newPayment.ID),
-		Amount:    10000000,
-		BankCode:  BankCodeVNPAYQR,
+		Info:      fmt.Sprintf("Payment for order %d", newPayment.ID),
+		Amount:    newPayment.Total,
 	})
 	if err != nil {
 		return CreatePaymentResult{}, err
 	}
 
+	if err = txRepo.Commit(ctx); err != nil {
+		return CreatePaymentResult{}, err
+	}
+
 	return CreatePaymentResult{Payment: newPayment, Url: url}, nil
+}
+
+func (s *PaymentService) GetPlatform(platform Platform) (PaymentPlatform, error) {
+	pp, ok := s.platforms[platform]
+	if !ok {
+		return nil, fmt.Errorf("platform %s not found", platform)
+	}
+	return pp, nil
 }

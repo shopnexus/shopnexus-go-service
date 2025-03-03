@@ -119,6 +119,16 @@ Table Payment {
   date_created DateTime [default: `now()`, not null]
 }
 
+Table PaymentVnpay {
+  id BigInt [pk]
+  vnp_TxnRef String [not null]
+  vnp_OrderInfo String [not null]
+  vnp_TransactionNo String [not null]
+  vnp_TransactionDate String [not null]
+  vnp_CreateDate String [not null]
+  vnp_IpAddr String [not null]
+}
+
 Table Refund {
   id BigInt [pk, increment]
   payment_id BigInt [not null]
@@ -197,5 +207,7 @@ Ref: ProductOnPayment.payment_id > Payment.id [delete: Cascade]
 Ref: ProductOnPayment.product_serial_id > Product.serial_id [delete: No Action]
 
 Ref: Payment.user_id > UserAccount.id [delete: Cascade]
+
+Ref: PaymentVnpay.id - Payment.id [delete: Cascade]
 
 Ref: Refund.payment_id > Payment.id [delete: Cascade]
