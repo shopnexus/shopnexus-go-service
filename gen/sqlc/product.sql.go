@@ -11,74 +11,6 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
-const countBrands = `-- name: CountBrands :one
-WITH filtered_brands AS (
-  SELECT b.id
-  FROM product.brand b
-  WHERE (
-    (name ILIKE '%' || $1 || '%' OR $1 IS NULL) AND
-    (description ILIKE '%' || $2 || '%' OR $2 IS NULL)
-  )
-)
-SELECT COUNT(id)
-FROM filtered_brands
-`
-
-type CountBrandsParams struct {
-	Name        pgtype.Text
-	Description pgtype.Text
-}
-
-func (q *Queries) CountBrands(ctx context.Context, arg CountBrandsParams) (int64, error) {
-	row := q.db.QueryRow(ctx, countBrands, arg.Name, arg.Description)
-	var count int64
-	err := row.Scan(&count)
-	return count, err
-}
-
-const countProductModels = `-- name: CountProductModels :one
-WITH filtered_models AS (
-    SELECT pm.id
-    FROM product.model pm
-    WHERE (
-        (pm.brand_id = $1 OR $1 IS NULL) AND
-        (pm.name ILIKE '%' || $2 || '%' OR $2 IS NULL) AND
-        (pm.description ILIKE '%' || $3 || '%' OR $3 IS NULL) AND
-        (pm.list_price >= $4 OR $4 IS NULL) AND
-        (pm.list_price <= $5 OR $5 IS NULL) AND
-        (pm.date_manufactured >= $6 OR $6 IS NULL) AND
-        (pm.date_manufactured <= $7 OR $7 IS NULL)
-    )
-)
-SELECT COUNT(id)
-FROM filtered_models
-`
-
-type CountProductModelsParams struct {
-	BrandID              pgtype.Int8
-	Name                 pgtype.Text
-	Description          pgtype.Text
-	ListPriceFrom        pgtype.Int8
-	ListPriceTo          pgtype.Int8
-	DateManufacturedFrom pgtype.Timestamptz
-	DateManufacturedTo   pgtype.Timestamptz
-}
-
-func (q *Queries) CountProductModels(ctx context.Context, arg CountProductModelsParams) (int64, error) {
-	row := q.db.QueryRow(ctx, countProductModels,
-		arg.BrandID,
-		arg.Name,
-		arg.Description,
-		arg.ListPriceFrom,
-		arg.ListPriceTo,
-		arg.DateManufacturedFrom,
-		arg.DateManufacturedTo,
-	)
-	var count int64
-	err := row.Scan(&count)
-	return count, err
-}
-
 const countProducts = `-- name: CountProducts :one
 SELECT COUNT(id)
 FROM product.base
@@ -92,7 +24,7 @@ WHERE (
 
 type CountProductsParams struct {
 	ProductModelID  pgtype.Int8
-	Sold            pgtype.Bool
+	Sold            pgtype.Int8
 	DateCreatedFrom pgtype.Timestamptz
 	DateCreatedTo   pgtype.Timestamptz
 }
@@ -109,43 +41,6 @@ func (q *Queries) CountProducts(ctx context.Context, arg CountProductsParams) (i
 	return count, err
 }
 
-const createBrand = `-- name: CreateBrand :one
-WITH inserted_brand AS (
-    INSERT INTO product.brand (name, description)
-    VALUES ($1, $2)
-    RETURNING id, name, description
-),
-inserted_resources AS (
-    INSERT INTO product.resource (owner_id, s3_id)
-    SELECT id, unnest($3::text[]) FROM inserted_brand
-    RETURNING s3_id
-)
-SELECT 
-    b.id,
-    COALESCE(array_agg(res.s3_id), '{}')::text[] as resources
-FROM inserted_brand b
-LEFT JOIN inserted_resources res ON true
-GROUP BY b.id
-`
-
-type CreateBrandParams struct {
-	Name        string
-	Description string
-	Resources   []string
-}
-
-type CreateBrandRow struct {
-	ID        int64
-	Resources []string
-}
-
-func (q *Queries) CreateBrand(ctx context.Context, arg CreateBrandParams) (CreateBrandRow, error) {
-	row := q.db.QueryRow(ctx, createBrand, arg.Name, arg.Description, arg.Resources)
-	var i CreateBrandRow
-	err := row.Scan(&i.ID, &i.Resources)
-	return i, err
-}
-
 const createProduct = `-- name: CreateProduct :one
 INSERT INTO product.base (
     serial_id,
@@ -154,13 +49,13 @@ INSERT INTO product.base (
 ) VALUES (
     $1, $2, $3
 )
-RETURNING id, serial_id, product_model_id, sold, date_created, date_updated
+RETURNING id, serial_id, product_model_id, quantity, sold, size, color, add_price, is_active, date_created, date_updated
 `
 
 type CreateProductParams struct {
 	SerialID       string
 	ProductModelID int64
-	Sold           bool
+	Sold           int64
 }
 
 func (q *Queries) CreateProduct(ctx context.Context, arg CreateProductParams) (ProductBase, error) {
@@ -170,154 +65,16 @@ func (q *Queries) CreateProduct(ctx context.Context, arg CreateProductParams) (P
 		&i.ID,
 		&i.SerialID,
 		&i.ProductModelID,
+		&i.Quantity,
 		&i.Sold,
+		&i.Size,
+		&i.Color,
+		&i.AddPrice,
+		&i.IsActive,
 		&i.DateCreated,
 		&i.DateUpdated,
 	)
 	return i, err
-}
-
-const createProductModel = `-- name: CreateProductModel :one
-WITH inserted_model AS (
-    INSERT INTO product.model (
-        brand_id, name, description, list_price, date_manufactured
-    ) VALUES (
-        $1, $2, $3, $4, $5
-    ) RETURNING id, brand_id, name, description, list_price, date_manufactured
-),
-inserted_resources AS (
-    INSERT INTO product.resource (owner_id, s3_id)
-    SELECT id, unnest($6::text[]) FROM inserted_model
-    RETURNING s3_id
-),
-inserted_tags AS (
-    INSERT INTO product.tag_on_product (product_model_id, tag_name)
-    SELECT id, unnest($7::text[]) FROM inserted_model
-    RETURNING tag_name
-)
-SELECT 
-    m.id,
-    COALESCE(array_agg(res.s3_id), '{}')::text[] as resources,
-    COALESCE(array_agg(t.tag_name), '{}')::text[] as tags
-FROM inserted_model m
-LEFT JOIN inserted_resources res ON true
-LEFT JOIN inserted_tags t ON true
-GROUP BY m.id
-`
-
-type CreateProductModelParams struct {
-	BrandID          int64
-	Name             string
-	Description      string
-	ListPrice        int64
-	DateManufactured pgtype.Timestamptz
-	Resources        []string
-	Tags             []string
-}
-
-type CreateProductModelRow struct {
-	ID        int64
-	Resources []string
-	Tags      []string
-}
-
-func (q *Queries) CreateProductModel(ctx context.Context, arg CreateProductModelParams) (CreateProductModelRow, error) {
-	row := q.db.QueryRow(ctx, createProductModel,
-		arg.BrandID,
-		arg.Name,
-		arg.Description,
-		arg.ListPrice,
-		arg.DateManufactured,
-		arg.Resources,
-		arg.Tags,
-	)
-	var i CreateProductModelRow
-	err := row.Scan(&i.ID, &i.Resources, &i.Tags)
-	return i, err
-}
-
-const createSale = `-- name: CreateSale :one
-INSERT INTO product.sale (
-    tag_name,
-    product_model_id,
-    date_started,
-    date_ended,
-    quantity,
-    used,
-    is_active,
-    discount_percent,
-    discount_price
-) VALUES (
-    $1, $2, $3, $4, $5, $6, $7, $8, $9
-) RETURNING id, tag_name, product_model_id, date_started, date_ended, quantity, used, is_active, discount_percent, discount_price
-`
-
-type CreateSaleParams struct {
-	TagName         pgtype.Text
-	ProductModelID  pgtype.Int8
-	DateStarted     pgtype.Timestamptz
-	DateEnded       pgtype.Timestamptz
-	Quantity        int64
-	Used            int64
-	IsActive        bool
-	DiscountPercent pgtype.Int8
-	DiscountPrice   pgtype.Int8
-}
-
-func (q *Queries) CreateSale(ctx context.Context, arg CreateSaleParams) (ProductSale, error) {
-	row := q.db.QueryRow(ctx, createSale,
-		arg.TagName,
-		arg.ProductModelID,
-		arg.DateStarted,
-		arg.DateEnded,
-		arg.Quantity,
-		arg.Used,
-		arg.IsActive,
-		arg.DiscountPercent,
-		arg.DiscountPrice,
-	)
-	var i ProductSale
-	err := row.Scan(
-		&i.ID,
-		&i.TagName,
-		&i.ProductModelID,
-		&i.DateStarted,
-		&i.DateEnded,
-		&i.Quantity,
-		&i.Used,
-		&i.IsActive,
-		&i.DiscountPercent,
-		&i.DiscountPrice,
-	)
-	return i, err
-}
-
-const createTag = `-- name: CreateTag :exec
-INSERT INTO product.tag (
-    tag_name,
-    description
-) VALUES (
-    $1, $2
-)
-`
-
-type CreateTagParams struct {
-	TagName     string
-	Description string
-}
-
-func (q *Queries) CreateTag(ctx context.Context, arg CreateTagParams) error {
-	_, err := q.db.Exec(ctx, createTag, arg.TagName, arg.Description)
-	return err
-}
-
-const deleteBrand = `-- name: DeleteBrand :exec
-DELETE FROM product.brand WHERE id = $1
-`
-
-func (q *Queries) DeleteBrand(ctx context.Context, id int64) error {
-	_, err := q.db.Exec(ctx, deleteBrand, id)
-	return err
 }
 
 const deleteProduct = `-- name: DeleteProduct :exec
@@ -337,35 +94,8 @@ func (q *Queries) DeleteProduct(ctx context.Context, arg DeleteProductParams) er
 	return err
 }
 
-const deleteProductModel = `-- name: DeleteProductModel :exec
-DELETE FROM product.model WHERE id = $1
-`
-
-func (q *Queries) DeleteProductModel(ctx context.Context, id int64) error {
-	_, err := q.db.Exec(ctx, deleteProductModel, id)
-	return err
-}
-
-const deleteSale = `-- name: DeleteSale :exec
-DELETE FROM product.sale WHERE id = $1
-`
-
-func (q *Queries) DeleteSale(ctx context.Context, id int64) error {
-	_, err := q.db.Exec(ctx, deleteSale, id)
-	return err
-}
-
-const deleteTag = `-- name: DeleteTag :exec
-DELETE FROM product.tag WHERE tag_name = $1
-`
-
-func (q *Queries) DeleteTag(ctx context.Context, tagName string) error {
-	_, err := q.db.Exec(ctx, deleteTag, tagName)
-	return err
-}
-
 const getAvailableProducts = `-- name: GetAvailableProducts :many
-SELECT id, serial_id, product_model_id, sold, date_created, date_updated
+SELECT id, serial_id, product_model_id, quantity, sold, size, color, add_price, is_active, date_created, date_updated
 FROM product.base
 WHERE (
     product_model_id = $1 AND
@@ -392,7 +122,12 @@ func (q *Queries) GetAvailableProducts(ctx context.Context, arg GetAvailableProd
 			&i.ID,
 			&i.SerialID,
 			&i.ProductModelID,
+			&i.Quantity,
 			&i.Sold,
+			&i.Size,
+			&i.Color,
+			&i.AddPrice,
+			&i.IsActive,
 			&i.DateCreated,
 			&i.DateUpdated,
 		); err != nil {
@@ -406,252 +141,8 @@ func (q *Queries) GetAvailableProducts(ctx context.Context, arg GetAvailableProd
 	return items, nil
 }
 
-const getBrand = `-- name: GetBrand :one
-SELECT 
-    b.id, b.name, b.description,
-    COALESCE(array_agg(i.s3_id) FILTER (WHERE i.s3_id IS NOT NULL), '{}')::TEXT[] as resources
-FROM product.brand b
-LEFT JOIN product.resource i ON i.owner_id = b.id
-WHERE b.id = $1
-GROUP BY b.id
-`
-
-type GetBrandRow struct {
-	ID          int64
-	Name        string
-	Description string
-	Resources   []string
-}
-
-func (q *Queries) GetBrand(ctx context.Context, id int64) (GetBrandRow, error) {
-	row := q.db.QueryRow(ctx, getBrand, id)
-	var i GetBrandRow
-	err := row.Scan(
-		&i.ID,
-		&i.Name,
-		&i.Description,
-		&i.Resources,
-	)
-	return i, err
-}
-
-const getProduct = `-- name: GetProduct :one
-SELECT id, serial_id, product_model_id, sold, date_created, date_updated
-FROM product.base
-WHERE (
-    id = $1 OR 
-    serial_id = $2
-)
-`
-
-type GetProductParams struct {
-	ID       pgtype.Int8
-	SerialID pgtype.Text
-}
-
-func (q *Queries) GetProduct(ctx context.Context, arg GetProductParams) (ProductBase, error) {
-	row := q.db.QueryRow(ctx, getProduct, arg.ID, arg.SerialID)
-	var i ProductBase
-	err := row.Scan(
-		&i.ID,
-		&i.SerialID,
-		&i.ProductModelID,
-		&i.Sold,
-		&i.DateCreated,
-		&i.DateUpdated,
-	)
-	return i, err
-}
-
-const getProductModel = `-- name: GetProductModel :one
-SELECT 
-    pm.id, pm.brand_id, pm.name, pm.description, pm.list_price, pm.date_manufactured,
-    COALESCE(array_agg(i.s3_id) FILTER (WHERE i.s3_id IS NOT NULL), '{}')::text[] as resources,
-    COALESCE(array_agg(t.tag_name) FILTER (WHERE t.tag_name IS NOT NULL), '{}')::text[] as tags
-FROM product.model pm
-LEFT JOIN product.resource i ON i.owner_id = pm.id
-LEFT JOIN product.tag_on_product t ON t.product_model_id = pm.id
-WHERE pm.id = $1
-GROUP BY pm.id
-`
-
-type GetProductModelRow struct {
-	ID               int64
-	BrandID          int64
-	Name             string
-	Description      string
-	ListPrice        int64
-	DateManufactured pgtype.Timestamptz
-	Resources        []string
-	Tags             []string
-}
-
-func (q *Queries) GetProductModel(ctx context.Context, id int64) (GetProductModelRow, error) {
-	row := q.db.QueryRow(ctx, getProductModel, id)
-	var i GetProductModelRow
-	err := row.Scan(
-		&i.ID,
-		&i.BrandID,
-		&i.Name,
-		&i.Description,
-		&i.ListPrice,
-		&i.DateManufactured,
-		&i.Resources,
-		&i.Tags,
-	)
-	return i, err
-}
-
-const listBrands = `-- name: ListBrands :many
-WITH filtered_brands AS (
-  SELECT
-    b.id, b.name, b.description, 
-    COALESCE(array_agg(i.s3_id) FILTER (WHERE i.s3_id IS NOT NULL), '{}')::TEXT[] as resources
-  FROM product.brand b
-  INNER JOIN product.resource i ON i.owner_id = b.id
-  WHERE (
-    (name ILIKE '%' || $3 || '%' OR $3 IS NULL) AND
-    (description ILIKE '%' || $4 || '%' OR $4 IS NULL)
-  )
-  GROUP BY b.id
-)
-SELECT id, name, description, resources
-FROM filtered_brands
-LIMIT $2
-OFFSET $1
-`
-
-type ListBrandsParams struct {
-	Offset      int32
-	Limit       int32
-	Name        pgtype.Text
-	Description pgtype.Text
-}
-
-type ListBrandsRow struct {
-	ID          int64
-	Name        string
-	Description string
-	Resources   []string
-}
-
-func (q *Queries) ListBrands(ctx context.Context, arg ListBrandsParams) ([]ListBrandsRow, error) {
-	rows, err := q.db.Query(ctx, listBrands,
-		arg.Offset,
-		arg.Limit,
-		arg.Name,
-		arg.Description,
-	)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-	var items []ListBrandsRow
-	for rows.Next() {
-		var i ListBrandsRow
-		if err := rows.Scan(
-			&i.ID,
-			&i.Name,
-			&i.Description,
-			&i.Resources,
-		); err != nil {
-			return nil, err
-		}
-		items = append(items, i)
-	}
-	if err := rows.Err(); err != nil {
-		return nil, err
-	}
-	return items, nil
-}
-
-const listProductModels = `-- name: ListProductModels :many
-SELECT 
-    pm.id, pm.brand_id, pm.name, pm.description, pm.list_price, pm.date_manufactured,
-    COALESCE(array_agg(DISTINCT i.s3_id) FILTER (WHERE i.s3_id IS NOT NULL), '{}')::text[] as resources,
-    COALESCE(array_agg(DISTINCT t.tag_name) FILTER (WHERE t.tag_name IS NOT NULL), '{}')::text[] as tags
-FROM product.model pm
-LEFT JOIN product.resource i ON i.owner_id = pm.id
-LEFT JOIN product.tag_on_product t ON t.product_model_id = pm.id
-WHERE (
-    (pm.brand_id = $1 OR $1 IS NULL) AND
-    (pm.name ILIKE '%' || $2 || '%' OR $2 IS NULL) AND
-    (pm.description ILIKE '%' || $3 || '%' OR $3 IS NULL) AND
-    (pm.list_price >= $4 OR $4 IS NULL) AND
-    (pm.list_price <= $5 OR $5 IS NULL) AND
-    (pm.date_manufactured >= $6 OR $6 IS NULL) AND
-    (pm.date_manufactured <= $7 OR $7 IS NULL)
-)
-GROUP BY pm.id
-ORDER BY pm.id DESC
-LIMIT $9
-OFFSET $8
-`
-
-type ListProductModelsParams struct {
-	BrandID              pgtype.Int8
-	Name                 pgtype.Text
-	Description          pgtype.Text
-	ListPriceFrom        pgtype.Int8
-	ListPriceTo          pgtype.Int8
-	DateManufacturedFrom pgtype.Timestamptz
-	DateManufacturedTo   pgtype.Timestamptz
-	Offset               int32
-	Limit                int32
-}
-
-type ListProductModelsRow struct {
-	ID               int64
-	BrandID          int64
-	Name             string
-	Description      string
-	ListPrice        int64
-	DateManufactured pgtype.Timestamptz
-	Resources        []string
-	Tags             []string
-}
-
-func (q *Queries) ListProductModels(ctx context.Context, arg ListProductModelsParams) ([]ListProductModelsRow, error) {
-	rows, err := q.db.Query(ctx, listProductModels,
-		arg.BrandID,
-		arg.Name,
-		arg.Description,
-		arg.ListPriceFrom,
-		arg.ListPriceTo,
-		arg.DateManufacturedFrom,
-		arg.DateManufacturedTo,
-		arg.Offset,
-		arg.Limit,
-	)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-	var items []ListProductModelsRow
-	for rows.Next() {
-		var i ListProductModelsRow
-		if err := rows.Scan(
-			&i.ID,
-			&i.BrandID,
-			&i.Name,
-			&i.Description,
-			&i.ListPrice,
-			&i.DateManufactured,
-			&i.Resources,
-			&i.Tags,
-		); err != nil {
-			return nil, err
-		}
-		items = append(items, i)
-	}
-	if err := rows.Err(); err != nil {
-		return nil, err
-	}
-	return items, nil
-}
-
 const listProducts = `-- name: ListProducts :many
-SELECT id, serial_id, product_model_id, sold, date_created, date_updated
+SELECT id, serial_id, product_model_id, quantity, sold, size, color, add_price, is_active, date_created, date_updated
 FROM product.base
 WHERE (
     (product_model_id = $1 OR $1 IS NULL) AND
@@ -666,7 +157,7 @@ OFFSET $5
 
 type ListProductsParams struct {
 	ProductModelID  pgtype.Int8
-	Sold            pgtype.Bool
+	Sold            pgtype.Int8
 	DateCreatedFrom pgtype.Timestamptz
 	DateCreatedTo   pgtype.Timestamptz
 	Offset          int32
@@ -693,7 +184,12 @@ func (q *Queries) ListProducts(ctx context.Context, arg ListProductsParams) ([]P
 			&i.ID,
 			&i.SerialID,
 			&i.ProductModelID,
+			&i.Quantity,
 			&i.Sold,
+			&i.Size,
+			&i.Color,
+			&i.AddPrice,
+			&i.IsActive,
 			&i.DateCreated,
 			&i.DateUpdated,
 		); err != nil {
@@ -705,25 +201,6 @@ func (q *Queries) ListProducts(ctx context.Context, arg ListProductsParams) ([]P
 		return nil, err
 	}
 	return items, nil
-}
-
-const updateBrand = `-- name: UpdateBrand :exec
-UPDATE product.brand
-SET
-    name = COALESCE($2, name),
-    description = COALESCE($3, description)
-WHERE id = $1
-`
-
-type UpdateBrandParams struct {
-	ID          int64
-	Name        pgtype.Text
-	Description pgtype.Text
-}
-
-func (q *Queries) UpdateBrand(ctx context.Context, arg UpdateBrandParams) error {
-	_, err := q.db.Exec(ctx, updateBrand, arg.ID, arg.Name, arg.Description)
-	return err
 }
 
 const updateProduct = `-- name: UpdateProduct :exec
@@ -740,7 +217,7 @@ type UpdateProductParams struct {
 	ID             int64
 	SerialID       pgtype.Text
 	ProductModelID pgtype.Int8
-	Sold           pgtype.Bool
+	Sold           pgtype.Int8
 }
 
 func (q *Queries) UpdateProduct(ctx context.Context, arg UpdateProductParams) error {
@@ -750,54 +227,5 @@ func (q *Queries) UpdateProduct(ctx context.Context, arg UpdateProductParams) er
 		arg.ProductModelID,
 		arg.Sold,
 	)
-	return err
-}
-
-const updateProductModel = `-- name: UpdateProductModel :exec
-UPDATE product.model
-SET 
-    brand_id = COALESCE($2, brand_id),
-    name = COALESCE($3, name),
-    description = COALESCE($4, description),
-    list_price = COALESCE($5, list_price),
-    date_manufactured = COALESCE($6, date_manufactured)
-WHERE id = $1
-`
-
-type UpdateProductModelParams struct {
-	ID               int64
-	BrandID          pgtype.Int8
-	Name             pgtype.Text
-	Description      pgtype.Text
-	ListPrice        pgtype.Int8
-	DateManufactured pgtype.Timestamptz
-}
-
-func (q *Queries) UpdateProductModel(ctx context.Context, arg UpdateProductModelParams) error {
-	_, err := q.db.Exec(ctx, updateProductModel,
-		arg.ID,
-		arg.BrandID,
-		arg.Name,
-		arg.Description,
-		arg.ListPrice,
-		arg.DateManufactured,
-	)
-	return err
-}
-
-const updateTag = `-- name: UpdateTag :exec
-UPDATE product.tag
-SET 
-    description = COALESCE($2, description)
-WHERE tag_name = $1
-`
-
-type UpdateTagParams struct {
-	TagName     string
-	Description pgtype.Text
-}
-
-func (q *Queries) UpdateTag(ctx context.Context, arg UpdateTagParams) error {
-	_, err := q.db.Exec(ctx, updateTag, arg.TagName, arg.Description)
 	return err
 }

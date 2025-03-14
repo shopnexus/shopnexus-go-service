@@ -43,31 +43,3 @@ type AccountUser struct {
 type AccountAdmin struct {
 	AccountBase
 }
-
-type ItemQuantity[T any] interface {
-	GetID() T
-	GetQuantity() int64
-}
-
-type ItemQuantityBase[T any] struct {
-	ItemID   T     `json:"item_id"`
-	Quantity int64 `json:"quantity"`
-}
-
-func (i ItemQuantityBase[T]) GetID() T {
-	return i.ItemID
-}
-
-func (i ItemQuantityBase[T]) GetQuantity() int64 {
-	return i.Quantity
-}
-
-type ItemOnCart struct {
-	ItemQuantityBase[int64]
-	CartID int64 `json:"cart_id"`
-}
-
-type Cart struct {
-	ID            int64                 `json:"id"` /* unique */
-	ProductModels []ItemQuantity[int64] `json:"product_models"`
-}

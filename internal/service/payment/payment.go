@@ -37,7 +37,15 @@ type CreatePaymentResult struct {
 }
 
 type PaymentServiceInterface interface {
+	GetPayment(ctx context.Context, id int64) (model.Payment, error)
+	ListPayments(ctx context.Context, params ListPaymentsParams) (model.PaginateResult[model.Payment], error)
 	CreatePayment(ctx context.Context, params CreatePaymentParams) (CreatePaymentResult, error)
+	UpdatePayment(ctx context.Context, params UpdatePaymentParams) error
+	CancelPayment(ctx context.Context, params CancelPaymentParams) error
+}
+
+func (s *PaymentService) GetPayment(ctx context.Context, id int64) (model.Payment, error) {
+	return s.Repo.GetPayment(ctx, id)
 }
 
 func (s *PaymentService) CreatePayment(ctx context.Context, params CreatePaymentParams) (CreatePaymentResult, error) {
