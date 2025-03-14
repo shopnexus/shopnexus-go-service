@@ -30,11 +30,68 @@ func (r *Repository) GetRefund(ctx context.Context, params GetRefundParams) (mod
 		Method:      model.RefundMethod(row.Method),
 		Status:      model.Status(row.Status),
 		Reason:      row.Reason,
-		Address:     pgxutil.PgtypeToPtr[string](row.Address),
+		Address:     row.Address,
 		Resources:   row.Resources,
 		DateCreated: row.DateCreated.Time.UnixMilli(),
 		DateUpdated: row.DateUpdated.Time.UnixMilli(),
 	}, nil
+}
+
+type ListRefundsParams struct {
+	model.PaginationParams
+	PaymentID       *int64
+	Method          *model.PaymentMethod
+	Status          *model.Status
+	Reason          *string
+	Address         *string
+	DateCreatedFrom *time.Time
+	DateCreatedTo   *time.Time
+}
+
+func (r *Repository) CountRefunds(ctx context.Context, params ListRefundsParams) (int64, error) {
+	return r.sqlc.CountRefunds(ctx, sqlc.CountRefundsParams{
+		PaymentID:       *pgxutil.PtrToPgtype(&pgtype.Int8{}, params.PaymentID),
+		Method:          *pgxutil.PtrBrandedToPgType(&sqlc.NullPaymentRefundMethod{}, params.Method),
+		Status:          *pgxutil.PtrBrandedToPgType(&sqlc.NullPaymentStatus{}, params.Status),
+		Reason:          *pgxutil.PtrToPgtype(&pgtype.Text{}, params.Reason),
+		Address:         *pgxutil.PtrToPgtype(&pgtype.Text{}, params.Address),
+		DateCreatedFrom: *pgxutil.PtrToPgtype(&pgtype.Timestamptz{}, params.DateCreatedFrom),
+		DateCreatedTo:   *pgxutil.PtrToPgtype(&pgtype.Timestamptz{}, params.DateCreatedTo),
+	})
+}
+
+func (r *Repository) ListRefunds(ctx context.Context, params ListRefundsParams) ([]model.Refund, error) {
+	rows, err := r.sqlc.ListRefunds(ctx, sqlc.ListRefundsParams{
+		Offset:          params.Offset(),
+		Limit:           params.Limit,
+		PaymentID:       *pgxutil.PtrToPgtype(&pgtype.Int8{}, params.PaymentID),
+		Method:          *pgxutil.PtrBrandedToPgType(&sqlc.NullPaymentRefundMethod{}, params.Method),
+		Status:          *pgxutil.PtrBrandedToPgType(&sqlc.NullPaymentStatus{}, params.Status),
+		Reason:          *pgxutil.PtrToPgtype(&pgtype.Text{}, params.Reason),
+		Address:         *pgxutil.PtrToPgtype(&pgtype.Text{}, params.Address),
+		DateCreatedFrom: *pgxutil.PtrToPgtype(&pgtype.Timestamptz{}, params.DateCreatedFrom),
+		DateCreatedTo:   *pgxutil.PtrToPgtype(&pgtype.Timestamptz{}, params.DateCreatedTo),
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	var refunds []model.Refund
+	for _, row := range rows {
+		refunds = append(refunds, model.Refund{
+			ID:          row.ID,
+			PaymentID:   row.PaymentID,
+			Method:      model.RefundMethod(row.Method),
+			Status:      model.Status(row.Status),
+			Reason:      row.Reason,
+			Address:     row.Address,
+			Resources:   row.Resources,
+			DateCreated: row.DateCreated.Time.UnixMilli(),
+			DateUpdated: row.DateUpdated.Time.UnixMilli(),
+		})
+	}
+
+	return refunds, nil
 }
 
 func (r *Repository) CreateRefund(ctx context.Context, refund model.Refund) (model.Refund, error) {
@@ -43,7 +100,7 @@ func (r *Repository) CreateRefund(ctx context.Context, refund model.Refund) (mod
 		Method:    sqlc.PaymentRefundMethod(refund.Method),
 		Status:    sqlc.PaymentStatus(refund.Status),
 		Reason:    refund.Reason,
-		Address:   *pgxutil.PtrToPgtype(&pgtype.Text{}, refund.Address),
+		Address:   refund.Address,
 		Resources: refund.Resources,
 	})
 	if err != nil {
@@ -64,22 +121,20 @@ func (r *Repository) CreateRefund(ctx context.Context, refund model.Refund) (mod
 }
 
 type UpdateRefundParams struct {
-	ID          int64
-	Method      *model.RefundMethod
-	Status      *model.Status
-	Reason      *string
-	Address     *string
-	NullAddress bool
+	ID      int64
+	Method  *model.RefundMethod
+	Status  *model.Status
+	Reason  *string
+	Address *string
 }
 
 func (r *Repository) UpdateRefund(ctx context.Context, params UpdateRefundParams) error {
 	err := r.sqlc.UpdateRefund(ctx, sqlc.UpdateRefundParams{
-		ID:          params.ID,
-		Method:      *pgxutil.PtrBrandedToPgType(&sqlc.NullPaymentRefundMethod{}, params.Method),
-		Status:      *pgxutil.PtrBrandedToPgType(&sqlc.NullPaymentStatus{}, params.Status),
-		Reason:      *pgxutil.PtrToPgtype(&pgtype.Text{}, params.Reason),
-		Address:     *pgxutil.PtrToPgtype(&pgtype.Text{}, params.Address),
-		NullAddress: params.NullAddress,
+		ID:      params.ID,
+		Method:  *pgxutil.PtrBrandedToPgType(&sqlc.NullPaymentRefundMethod{}, params.Method),
+		Status:  *pgxutil.PtrBrandedToPgType(&sqlc.NullPaymentStatus{}, params.Status),
+		Reason:  *pgxutil.PtrToPgtype(&pgtype.Text{}, params.Reason),
+		Address: *pgxutil.PtrToPgtype(&pgtype.Text{}, params.Address),
 	})
 
 	return err

@@ -306,7 +306,7 @@ model Refund {
   method       RefundMethod
   status       Status
   reason       String
-  address      String?      // PICK_UP address, if method is DROP_OFF, address is null
+  address      String      // PICK_UP address, if method is DROP_OFF, address is empty
   date_created DateTime     @default(now()) @db.Timestamptz(3)
   date_updated DateTime     @default(now()) @db.Timestamptz(3)
 

@@ -7,6 +7,7 @@ import (
 	"net/http"
 	pgxutil "shopnexus-go-service/internal/db/pgx"
 	"shopnexus-go-service/internal/grpc/account"
+	"shopnexus-go-service/internal/grpc/interceptor"
 	"shopnexus-go-service/internal/repository"
 	"shopnexus-go-service/internal/service"
 	"time"
@@ -27,7 +28,12 @@ func NewServer(address string) error {
 	services := service.NewServices(repo)
 
 	mux := http.NewServeMux()
-	path, handler := accountv1connect.NewAccountServiceHandler(account.NewAccountServer(services.Account))
+
+	// Setup account service
+	path, handler := accountv1connect.NewAccountServiceHandler(
+		account.NewAccountServer(services.Account),
+		connect.WithInterceptors(interceptor.NewAuthInterceptor()),
+	)
 	mux.Handle(path, handler)
 
 	// Setup reflection for postman service discovery

@@ -88,16 +88,3 @@ WHERE id = $1;
 
 -- name: DeletePayment :exec
 DELETE FROM payment.base WHERE id = $1;
-
--- name: GetRefund :one
-SELECT 
-  r.*,
-  COALESCE(array_agg(res.s3_id), '{}')::text[] AS resources
-FROM payment.refund r
-LEFT JOIN product.resource res ON r.id = res.owner_id
-WHERE (
-  r.id = $1 AND (
-    sqlc.narg('user_id') IS NULL OR r.user_id = sqlc.narg('user_id')
-  )
-)
-GROUP BY r.id;

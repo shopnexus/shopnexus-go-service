@@ -5,7 +5,10 @@ import (
 	"fmt"
 	"shopnexus-go-service/internal/model"
 	repository "shopnexus-go-service/internal/repository"
+	"shopnexus-go-service/internal/util"
 )
+
+var _ PaymentServiceInterface = (*PaymentService)(nil)
 
 type PaymentService struct {
 	Repo      *repository.Repository
@@ -25,6 +28,57 @@ func NewPaymentService(repo *repository.Repository) *PaymentService {
 	return s
 }
 
+type PaymentServiceInterface interface {
+	// Payment
+	GetPayment(ctx context.Context, params GetPaymentParams) (model.Payment, error)
+	ListPayments(ctx context.Context, params ListPaymentsParams) (model.PaginateResult[model.Payment], error)
+	CreatePayment(ctx context.Context, params CreatePaymentParams) (CreatePaymentResult, error)
+	UpdatePayment(ctx context.Context, params UpdatePaymentParams) error
+	CancelPayment(ctx context.Context, params CancelPaymentParams) error
+
+	// Refund
+	GetRefund(ctx context.Context, params GetRefundParams) (model.Refund, error)
+	ListRefunds(ctx context.Context, params ListRefundsParams) (model.PaginateResult[model.Refund], error)
+	CreateRefund(ctx context.Context, params CreateRefundParams) (model.Refund, error)
+	UpdateRefund(ctx context.Context, params UpdateRefundParams) error
+	CancelRefund(ctx context.Context, params CancelRefundParams) error
+}
+
+type GetPaymentParams = struct {
+	UserID    int64
+	PaymentID int64
+}
+
+func (s *PaymentService) GetPayment(ctx context.Context, params GetPaymentParams) (model.Payment, error) {
+	return s.Repo.GetPayment(ctx, repository.GetPaymentParams{
+		ID:     params.PaymentID,
+		UserID: &params.UserID,
+	})
+}
+
+type ListPaymentsParams = repository.ListPaymentsParams
+
+func (s *PaymentService) ListPayments(ctx context.Context, params ListPaymentsParams) (result model.PaginateResult[model.Payment], err error) {
+	total, err := s.Repo.CountPayments(ctx, params)
+	if err != nil {
+		return result, err
+	}
+
+	payments, err := s.Repo.ListPayments(ctx, params)
+	if err != nil {
+		return result, err
+	}
+
+	return model.PaginateResult[model.Payment]{
+		Data:       payments,
+		Limit:      params.Limit,
+		Page:       params.Page,
+		Total:      total,
+		NextPage:   params.NextPage(total),
+		NextCursor: nil,
+	}, nil
+}
+
 type CreatePaymentParams struct {
 	UserID        int64
 	Address       string
@@ -36,18 +90,6 @@ type CreatePaymentResult struct {
 	Url     string
 }
 
-type PaymentServiceInterface interface {
-	GetPayment(ctx context.Context, id int64) (model.Payment, error)
-	ListPayments(ctx context.Context, params ListPaymentsParams) (model.PaginateResult[model.Payment], error)
-	CreatePayment(ctx context.Context, params CreatePaymentParams) (CreatePaymentResult, error)
-	UpdatePayment(ctx context.Context, params UpdatePaymentParams) error
-	CancelPayment(ctx context.Context, params CancelPaymentParams) error
-}
-
-func (s *PaymentService) GetPayment(ctx context.Context, id int64) (model.Payment, error) {
-	return s.Repo.GetPayment(ctx, id)
-}
-
 func (s *PaymentService) CreatePayment(ctx context.Context, params CreatePaymentParams) (CreatePaymentResult, error) {
 	txRepo, err := s.Repo.Begin(ctx)
 	if err != nil {
@@ -55,6 +97,7 @@ func (s *PaymentService) CreatePayment(ctx context.Context, params CreatePayment
 	}
 	defer txRepo.Rollback(ctx)
 
+	// Get user cart
 	cart, err := txRepo.GetCart(ctx, params.UserID)
 	if err != nil {
 		return CreatePaymentResult{}, err
@@ -69,6 +112,8 @@ func (s *PaymentService) CreatePayment(ctx context.Context, params CreatePayment
 		totalPayment      int64
 	)
 
+	// Calculate total payment
+	// Iterate through each product model in the cart
 	for _, productModelItem := range cart.ProductModels {
 		// Get product model details
 		productModel, err := txRepo.GetProductModel(ctx, productModelItem.GetID())
@@ -76,7 +121,7 @@ func (s *PaymentService) CreatePayment(ctx context.Context, params CreatePayment
 			return CreatePaymentResult{}, err
 		}
 
-		// Get available products from that product model
+		// Get any available products from that product model
 		pickProducts, err := txRepo.GetAvailableProducts(
 			ctx,
 			productModelItem.GetID(),
@@ -102,6 +147,7 @@ func (s *PaymentService) CreatePayment(ctx context.Context, params CreatePayment
 		}
 	}
 
+	// Create payment
 	newPayment, err := txRepo.CreatePayment(ctx, model.Payment{
 		UserID:        params.UserID,
 		Address:       params.Address,
@@ -119,7 +165,7 @@ func (s *PaymentService) CreatePayment(ctx context.Context, params CreatePayment
 
 	switch params.PaymentMethod {
 	case model.PaymentMethodVnpay:
-		pp, err = s.GetPlatform(PlatformVNPAY)
+		pp, err = s.getPlatform(PlatformVNPAY)
 		if err != nil {
 			return CreatePaymentResult{}, err
 		}
@@ -154,10 +200,118 @@ func (s *PaymentService) CreatePayment(ctx context.Context, params CreatePayment
 	return CreatePaymentResult{Payment: newPayment, Url: url}, nil
 }
 
-func (s *PaymentService) GetPlatform(platform Platform) (PaymentPlatform, error) {
+func (s *PaymentService) getPlatform(platform Platform) (PaymentPlatform, error) {
 	pp, ok := s.platforms[platform]
 	if !ok {
 		return nil, fmt.Errorf("platform %s not found", platform)
 	}
 	return pp, nil
+}
+
+type UpdatePaymentParams struct {
+	ID     int64
+	Status model.Status
+}
+
+func (s *PaymentService) UpdatePayment(ctx context.Context, params UpdatePaymentParams) error {
+	txRepo, err := s.Repo.Begin(ctx)
+	if err != nil {
+		return err
+	}
+	defer txRepo.Rollback(ctx)
+
+	err = txRepo.UpdatePayment(ctx, repository.UpdatePaymentParams{
+		ID:     params.ID,
+		Status: &params.Status,
+	})
+	if err != nil {
+		return err
+	}
+
+	if err = txRepo.Commit(ctx); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+type CancelPaymentParams = struct {
+	UserID    int64
+	PaymentID int64
+}
+
+func (s *PaymentService) CancelPayment(ctx context.Context, params CancelPaymentParams) error {
+	txRepo, err := s.Repo.Begin(ctx)
+	if err != nil {
+		return err
+	}
+	defer txRepo.Rollback(ctx)
+
+	payment, err := txRepo.GetPayment(ctx, repository.GetPaymentParams{
+		ID:     params.PaymentID,
+		UserID: &params.UserID,
+	})
+	if err != nil {
+		return err
+	}
+
+	// No need to check ownership as we already check it in GetPayment
+	// if payment.UserID != *params.UserID {
+	// 	return fmt.Errorf("payment %d not belong to user %d", params.PaymentID, params.UserID)
+	// }
+
+	if payment.Status != model.StatusPending {
+		return fmt.Errorf("payment %d cannot be cancelled", params.PaymentID)
+	}
+
+	if err = txRepo.UpdatePayment(ctx, repository.UpdatePaymentParams{
+		ID:     params.PaymentID,
+		Status: util.ToPtr(model.StatusCancelled),
+	}); err != nil {
+		return err
+	}
+
+	if err = txRepo.Commit(ctx); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+type CancelRefundParams = struct {
+	UserID   int64
+	RefundID int64
+}
+
+func (s *PaymentService) CancelRefund(ctx context.Context, params CancelRefundParams) error {
+	txRepo, err := s.Repo.Begin(ctx)
+	if err != nil {
+		return err
+	}
+	defer txRepo.Rollback(ctx)
+
+	refund, err := txRepo.GetRefund(ctx, repository.GetRefundParams{
+		ID:     params.RefundID,
+		UserID: &params.UserID,
+	})
+	if err != nil {
+		return err
+	}
+
+	if refund.Status != model.StatusPending {
+		return fmt.Errorf("refund %d cannot be cancelled", params.RefundID)
+	}
+
+	if err = txRepo.UpdateRefund(ctx, repository.UpdateRefundParams{
+		ID:     params.RefundID,
+		Status: util.ToPtr(model.StatusCancelled),
+	}); err != nil {
+		return err
+	}
+
+	if err = txRepo.Commit(ctx); err != nil {
+		return err
+	}
+
+	return nil
 }

@@ -259,7 +259,7 @@ type PaymentRefund struct {
 	Method      PaymentRefundMethod
 	Status      PaymentStatus
 	Reason      string
-	Address     pgtype.Text
+	Address     string
 	DateCreated pgtype.Timestamptz
 	DateUpdated pgtype.Timestamptz
 }

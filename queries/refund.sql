@@ -1,3 +1,48 @@
+-- name: GetRefund :one
+SELECT 
+  r.*,
+  COALESCE(array_agg(res.s3_id), '{}')::text[] AS resources
+FROM payment.refund r
+LEFT JOIN product.resource res ON r.id = res.owner_id
+WHERE (
+  r.id = $1 AND (
+    sqlc.narg('user_id') IS NULL OR r.user_id = sqlc.narg('user_id')
+  )
+)
+GROUP BY r.id;
+
+-- name: CountRefunds :one
+SELECT COUNT(id)
+FROM payment.refund r
+WHERE (
+    (payment_id = sqlc.narg('payment_id') OR sqlc.narg('payment_id') IS NULL) AND
+    (method = sqlc.narg('method') OR sqlc.narg('method') IS NULL) AND
+    (status = sqlc.narg('status') OR sqlc.narg('status') IS NULL) AND
+    (reason ILIKE '%' || sqlc.narg('reason') || '%' OR sqlc.narg('reason') IS NULL) AND
+    (address ILIKE '%' || sqlc.narg('address') || '%' OR sqlc.narg('address') IS NULL) AND
+    (date_created >= sqlc.narg('date_created_from') OR sqlc.narg('date_created_from') IS NULL) AND
+    (date_created <= sqlc.narg('date_created_to') OR sqlc.narg('date_created_to') IS NULL)
+);
+
+-- name: ListRefunds :many
+SELECT 
+    r.*,
+    COALESCE(array_agg(res.s3_id), '{}')::text[] as resources
+FROM payment.refund r
+LEFT JOIN product.resource res ON res.owner_id = r.id
+WHERE (
+    (payment_id = sqlc.narg('payment_id') OR sqlc.narg('payment_id') IS NULL) AND
+    (method = sqlc.narg('method') OR sqlc.narg('method') IS NULL) AND
+    (status = sqlc.narg('status') OR sqlc.narg('status') IS NULL) AND
+    (reason ILIKE '%' || sqlc.narg('reason') || '%' OR sqlc.narg('reason') IS NULL) AND
+    (address ILIKE '%' || sqlc.narg('address') || '%' OR sqlc.narg('address') IS NULL) AND
+    (date_created >= sqlc.narg('date_created_from') OR sqlc.narg('date_created_from') IS NULL) AND
+    (date_created <= sqlc.narg('date_created_to') OR sqlc.narg('date_created_to') IS NULL)
+)
+ORDER BY r.date_created DESC
+LIMIT sqlc.arg('limit')
+OFFSET sqlc.arg('offset');
+
 -- name: CreateRefund :one
 WITH inserted_refund AS (
     INSERT INTO payment.refund (
@@ -28,11 +73,10 @@ SET
     method = COALESCE(sqlc.narg('method'), method),
     status = COALESCE(sqlc.narg('status'), status),
     reason = COALESCE(sqlc.narg('reason'), reason),
-    address = CASE 
-                 WHEN sqlc.arg('null_address')::bool THEN NULL 
-                 ELSE COALESCE(sqlc.narg('address'), address) 
-              END
+    address = COALESCE(sqlc.narg('address'), address)
 WHERE id = $1;
 
 -- name: DeleteRefund :exec
+
+
 DELETE FROM payment.refund WHERE id = $1;

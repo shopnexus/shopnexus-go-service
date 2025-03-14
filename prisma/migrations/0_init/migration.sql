@@ -226,7 +226,7 @@ CREATE TABLE "payment"."refund" (
     "method" "payment"."refund_method" NOT NULL,
     "status" "payment"."status" NOT NULL,
     "reason" TEXT NOT NULL,
-    "address" TEXT,
+    "address" TEXT NOT NULL,
     "date_created" TIMESTAMPTZ(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "date_updated" TIMESTAMPTZ(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
 

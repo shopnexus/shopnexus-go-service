@@ -22,6 +22,8 @@ func (r *Repository) ExistsPayment(ctx context.Context, params GetPaymentParams)
 	})
 }
 
+// GetPayment retrieves a payment by its ID, and optionally the user ID.
+// If the user ID is provided, the payment must belong to the user.
 func (r *Repository) GetPayment(ctx context.Context, params GetPaymentParams) (model.Payment, error) {
 	row, err := r.sqlc.GetPayment(ctx, sqlc.GetPaymentParams{
 		ID:     params.ID,

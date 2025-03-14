@@ -197,54 +197,6 @@ func (q *Queries) GetPaymentProducts(ctx context.Context, paymentID int64) ([]Pa
 	return items, nil
 }
 
-const getRefund = `-- name: GetRefund :one
-SELECT 
-  r.id, r.payment_id, r.method, r.status, r.reason, r.address, r.date_created, r.date_updated,
-  COALESCE(array_agg(res.s3_id), '{}')::text[] AS resources
-FROM payment.refund r
-LEFT JOIN product.resource res ON r.id = res.owner_id
-WHERE (
-  r.id = $1 AND (
-    $2 IS NULL OR r.user_id = $2
-  )
-)
-GROUP BY r.id
-`
-
-type GetRefundParams struct {
-	ID     int64
-	UserID interface{}
-}
-
-type GetRefundRow struct {
-	ID          int64
-	PaymentID   int64
-	Method      PaymentRefundMethod
-	Status      PaymentStatus
-	Reason      string
-	Address     pgtype.Text
-	DateCreated pgtype.Timestamptz
-	DateUpdated pgtype.Timestamptz
-	Resources   []string
-}
-
-func (q *Queries) GetRefund(ctx context.Context, arg GetRefundParams) (GetRefundRow, error) {
-	row := q.db.QueryRow(ctx, getRefund, arg.ID, arg.UserID)
-	var i GetRefundRow
-	err := row.Scan(
-		&i.ID,
-		&i.PaymentID,
-		&i.Method,
-		&i.Status,
-		&i.Reason,
-		&i.Address,
-		&i.DateCreated,
-		&i.DateUpdated,
-		&i.Resources,
-	)
-	return i, err
-}
-
 const listPayments = `-- name: ListPayments :many
 SELECT p.id, p.user_id, p.method, p.status, p.address, p.total, p.date_created
 FROM payment.base p
