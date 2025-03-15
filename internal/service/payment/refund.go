@@ -8,13 +8,13 @@ import (
 )
 
 type GetRefundParams struct {
-	UserID    int64
-	PaymentID int64
+	UserID   int64
+	RefundID int64
 }
 
 func (s *PaymentService) GetRefund(ctx context.Context, params GetRefundParams) (model.Refund, error) {
 	refund, err := s.Repo.GetRefund(ctx, repository.GetRefundParams{
-		ID:     params.PaymentID,
+		ID:     params.RefundID,
 		UserID: &params.UserID,
 	})
 	if err != nil {
@@ -93,6 +93,7 @@ func (s *PaymentService) CreateRefund(ctx context.Context, params CreateRefundPa
 
 type UpdateRefundParams struct {
 	ID      int64
+	UserID  int64
 	Method  *model.RefundMethod
 	Status  *model.Status
 	Reason  *string

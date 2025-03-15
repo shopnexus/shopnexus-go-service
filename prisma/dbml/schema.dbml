@@ -171,7 +171,7 @@ Table Refund {
   method RefundMethod [not null]
   status Status [not null]
   reason String [not null]
-  address String
+  address String [not null]
   date_created DateTime [default: `now()`, not null]
   date_updated DateTime [default: `now()`, not null]
 }

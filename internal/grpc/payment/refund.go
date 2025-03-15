@@ -2,9 +2,11 @@ package payment
 
 import (
 	"context"
-	"shopnexus-go-service/internal/grpc/server/interceptor"
+	"shopnexus-go-service/internal/grpc/common"
+	"shopnexus-go-service/internal/grpc/interceptor"
 	"shopnexus-go-service/internal/model"
-	"strconv"
+	"shopnexus-go-service/internal/service/payment"
+	"shopnexus-go-service/internal/util"
 
 	"connectrpc.com/connect"
 	paymentv1 "github.com/shopnexus/shopnexus-protobuf-gen-go/pb/payment/v1"
@@ -12,17 +14,15 @@ import (
 
 // GetRefund implements the GetRefund method from PaymentServiceHandler
 func (s *PaymentServer) GetRefund(ctx context.Context, req *connect.Request[paymentv1.GetRefundRequest]) (*connect.Response[paymentv1.GetRefundResponse], error) {
-	claims, ok := ctx.Value(interceptor.CtxKeyUser).(model.Claims)
+	claims, ok := ctx.Value(interceptor.CtxServerUser).(model.Claims)
 	if !ok {
 		return nil, model.ErrTokenInvalid
 	}
 
-	refundID, err := strconv.ParseInt(req.Msg.RefundId, 10, 64)
-	if err != nil {
-		return nil, err
-	}
-
-	refund, err := s.service.GetRefund(ctx, refundID, claims.UserID)
+	refund, err := s.service.GetRefund(ctx, payment.GetRefundParams{
+		UserID:   claims.UserID,
+		RefundID: req.Msg.Id,
+	})
 	if err != nil {
 		return nil, err
 	}
@@ -34,41 +34,61 @@ func (s *PaymentServer) GetRefund(ctx context.Context, req *connect.Request[paym
 
 // ListRefunds implements the ListRefunds method from PaymentServiceHandler
 func (s *PaymentServer) ListRefunds(ctx context.Context, req *connect.Request[paymentv1.ListRefundsRequest]) (*connect.Response[paymentv1.ListRefundsResponse], error) {
-	claims, ok := ctx.Value(interceptor.CtxKeyUser).(model.Claims)
+	claims, ok := ctx.Value(interceptor.CtxServerUser).(model.Claims)
 	if !ok {
 		return nil, model.ErrTokenInvalid
 	}
 
-	refunds, err := s.service.ListRefunds(ctx, claims.UserID)
+	var (
+		method *model.RefundMethod
+		status *model.Status
+	)
+	if req.Msg.Method != nil {
+		method = util.ToPtr(convertRefundMethod(*req.Msg.Method))
+	}
+	if req.Msg.Status != nil {
+		status = util.ToPtr(convertStatus(*req.Msg.Status))
+	}
+
+	refunds, err := s.service.ListRefunds(ctx, payment.ListRefundsParams{
+		PaginationParams: model.PaginationParams{
+			Page:  req.Msg.Pagination.Page,
+			Limit: req.Msg.Pagination.Limit,
+		},
+		UserID:          &claims.UserID,
+		PaymentID:       req.Msg.PaymentId,
+		Method:          method,
+		Status:          status,
+		Reason:          req.Msg.Reason,
+		Address:         req.Msg.Address,
+		DateCreatedFrom: req.Msg.DateCreatedFrom,
+		DateCreatedTo:   req.Msg.DateCreatedTo,
+	})
 	if err != nil {
 		return nil, err
 	}
 
-	protoRefunds := make([]*paymentv1.Refund, 0, len(refunds))
-	for _, r := range refunds {
+	protoRefunds := make([]*paymentv1.Refund, 0, len(refunds.Data))
+	for _, r := range refunds.Data {
 		protoRefunds = append(protoRefunds, convertRefundToProto(r))
 	}
 
 	return connect.NewResponse(&paymentv1.ListRefundsResponse{
-		Refunds: protoRefunds,
+		Pagination: common.ToProtoPaginationResponse(refunds),
+		Refunds:    protoRefunds,
 	}), nil
 }
 
 // CreateRefund implements the CreateRefund method from PaymentServiceHandler
 func (s *PaymentServer) CreateRefund(ctx context.Context, req *connect.Request[paymentv1.CreateRefundRequest]) (*connect.Response[paymentv1.CreateRefundResponse], error) {
-	claims, ok := ctx.Value(interceptor.CtxKeyUser).(model.Claims)
+	claims, ok := ctx.Value(interceptor.CtxServerUser).(model.Claims)
 	if !ok {
 		return nil, model.ErrTokenInvalid
 	}
 
-	paymentID, err := strconv.ParseInt(req.Msg.PaymentId, 10, 64)
-	if err != nil {
-		return nil, err
-	}
-
 	refund, err := s.service.CreateRefund(ctx, payment.CreateRefundParams{
 		UserID:    claims.UserID,
-		PaymentID: paymentID,
+		PaymentID: req.Msg.PaymentId,
 		Method:    convertRefundMethod(req.Msg.Method),
 		Reason:    req.Msg.Reason,
 		Address:   req.Msg.Address,
@@ -79,49 +99,56 @@ func (s *PaymentServer) CreateRefund(ctx context.Context, req *connect.Request[p
 	}
 
 	return connect.NewResponse(&paymentv1.CreateRefundResponse{
-		RefundId: strconv.FormatInt(refund.ID, 10),
+		Id: refund.ID,
 	}), nil
 }
 
 // UpdateRefund implements the UpdateRefund method from PaymentServiceHandler
 func (s *PaymentServer) UpdateRefund(ctx context.Context, req *connect.Request[paymentv1.UpdateRefundRequest]) (*connect.Response[paymentv1.UpdateRefundResponse], error) {
-	claims, ok := ctx.Value(interceptor.CtxKeyUser).(model.Claims)
+	claims, ok := ctx.Value(interceptor.CtxServerUser).(model.Claims)
 	if !ok {
 		return nil, model.ErrTokenInvalid
 	}
 
-	refundID, err := strconv.ParseInt(req.Msg.RefundId, 10, 64)
-	if err != nil {
-		return nil, err
+	var (
+		method *model.RefundMethod
+		status *model.Status
+	)
+	if req.Msg.Method != nil {
+		method = util.ToPtr(convertRefundMethod(*req.Msg.Method))
+	}
+	if req.Msg.Status != nil {
+		status = util.ToPtr(convertStatus(*req.Msg.Status))
 	}
 
-	refund, err := s.service.UpdateRefund(ctx, payment.UpdateRefundParams{
-		ID:     refundID,
-		UserID: claims.UserID,
-		Status: convertStatus(req.Msg.Status),
+	err := s.service.UpdateRefund(ctx, payment.UpdateRefundParams{
+		ID:      req.Msg.Id,
+		UserID:  claims.UserID,
+		Method:  method,
+		Status:  status,
+		Reason:  req.Msg.Reason,
+		Address: req.Msg.Address,
 	})
 	if err != nil {
 		return nil, err
 	}
 
 	return connect.NewResponse(&paymentv1.UpdateRefundResponse{
-		Refund: convertRefundToProto(refund),
+		Id: req.Msg.Id,
 	}), nil
 }
 
 // CancelRefund implements the CancelRefund method from PaymentServiceHandler
 func (s *PaymentServer) CancelRefund(ctx context.Context, req *connect.Request[paymentv1.CancelRefundRequest]) (*connect.Response[paymentv1.CancelRefundResponse], error) {
-	claims, ok := ctx.Value(interceptor.CtxKeyUser).(model.Claims)
+	claims, ok := ctx.Value(interceptor.CtxServerUser).(model.Claims)
 	if !ok {
 		return nil, model.ErrTokenInvalid
 	}
 
-	refundID, err := strconv.ParseInt(req.Msg.RefundId, 10, 64)
-	if err != nil {
-		return nil, err
-	}
-
-	err = s.service.CancelRefund(ctx, refundID, claims.UserID)
+	err := s.service.CancelRefund(ctx, payment.CancelRefundParams{
+		UserID:   claims.UserID,
+		RefundID: req.Msg.Id,
+	})
 	if err != nil {
 		return nil, err
 	}

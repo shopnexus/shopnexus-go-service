@@ -1,3 +1,14 @@
+-- name: ExistsRefund :one
+SELECT EXISTS (
+  SELECT 1
+  FROM payment.refund r
+  INNER JOIN payment.base p ON r.payment_id = p.id
+  WHERE (
+    r.id = $1 AND 
+    (p.user_id = sqlc.narg('user_id') OR sqlc.narg('user_id') IS NULL)
+  )
+) AS exists;
+
 -- name: GetRefund :one
 SELECT 
   r.*,
@@ -14,14 +25,16 @@ GROUP BY r.id;
 -- name: CountRefunds :one
 SELECT COUNT(id)
 FROM payment.refund r
+INNER JOIN payment.base p ON r.payment_id = p.id
 WHERE (
-    (payment_id = sqlc.narg('payment_id') OR sqlc.narg('payment_id') IS NULL) AND
-    (method = sqlc.narg('method') OR sqlc.narg('method') IS NULL) AND
-    (status = sqlc.narg('status') OR sqlc.narg('status') IS NULL) AND
-    (reason ILIKE '%' || sqlc.narg('reason') || '%' OR sqlc.narg('reason') IS NULL) AND
-    (address ILIKE '%' || sqlc.narg('address') || '%' OR sqlc.narg('address') IS NULL) AND
-    (date_created >= sqlc.narg('date_created_from') OR sqlc.narg('date_created_from') IS NULL) AND
-    (date_created <= sqlc.narg('date_created_to') OR sqlc.narg('date_created_to') IS NULL)
+    (p.user_id = sqlc.narg('user_id') OR sqlc.narg('user_id') IS NULL) AND
+    (r.payment_id = sqlc.narg('payment_id') OR sqlc.narg('payment_id') IS NULL) AND
+    (r.method = sqlc.narg('method') OR sqlc.narg('method') IS NULL) AND
+    (r.status = sqlc.narg('status') OR sqlc.narg('status') IS NULL) AND
+    (r.reason ILIKE '%' || sqlc.narg('reason') || '%' OR sqlc.narg('reason') IS NULL) AND
+    (r.address ILIKE '%' || sqlc.narg('address') || '%' OR sqlc.narg('address') IS NULL) AND
+    (r.date_created >= sqlc.narg('date_created_from') OR sqlc.narg('date_created_from') IS NULL) AND
+    (r.date_created <= sqlc.narg('date_created_to') OR sqlc.narg('date_created_to') IS NULL)
 );
 
 -- name: ListRefunds :many
@@ -30,14 +43,16 @@ SELECT
     COALESCE(array_agg(res.s3_id), '{}')::text[] as resources
 FROM payment.refund r
 LEFT JOIN product.resource res ON res.owner_id = r.id
+INNER JOIN payment.base p ON r.payment_id = p.id
 WHERE (
-    (payment_id = sqlc.narg('payment_id') OR sqlc.narg('payment_id') IS NULL) AND
-    (method = sqlc.narg('method') OR sqlc.narg('method') IS NULL) AND
-    (status = sqlc.narg('status') OR sqlc.narg('status') IS NULL) AND
-    (reason ILIKE '%' || sqlc.narg('reason') || '%' OR sqlc.narg('reason') IS NULL) AND
-    (address ILIKE '%' || sqlc.narg('address') || '%' OR sqlc.narg('address') IS NULL) AND
-    (date_created >= sqlc.narg('date_created_from') OR sqlc.narg('date_created_from') IS NULL) AND
-    (date_created <= sqlc.narg('date_created_to') OR sqlc.narg('date_created_to') IS NULL)
+    (p.user_id = sqlc.narg('user_id') OR sqlc.narg('user_id') IS NULL) AND
+    (r.payment_id = sqlc.narg('payment_id') OR sqlc.narg('payment_id') IS NULL) AND
+    (r.method = sqlc.narg('method') OR sqlc.narg('method') IS NULL) AND
+    (r.status = sqlc.narg('status') OR sqlc.narg('status') IS NULL) AND
+    (r.reason ILIKE '%' || sqlc.narg('reason') || '%' OR sqlc.narg('reason') IS NULL) AND
+    (r.address ILIKE '%' || sqlc.narg('address') || '%' OR sqlc.narg('address') IS NULL) AND
+    (r.date_created >= sqlc.narg('date_created_from') OR sqlc.narg('date_created_from') IS NULL) AND
+    (r.date_created <= sqlc.narg('date_created_to') OR sqlc.narg('date_created_to') IS NULL)
 )
 ORDER BY r.date_created DESC
 LIMIT sqlc.arg('limit')

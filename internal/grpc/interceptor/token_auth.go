@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"shopnexus-go-service/internal/util"
+	"strings"
 
 	"connectrpc.com/connect"
 )
@@ -15,8 +16,8 @@ type (
 
 const (
 	tokenHeader                = "authorization"
-	ctxServerUser ctxServerKey = "server-user"
-	ctxToken      ctxClientKey = "client-user"
+	CtxServerUser ctxServerKey = "server-user" // Storing model.Claims in context
+	CtxToken      ctxClientKey = "client-user" // Storing token in context
 )
 
 // NewAuthInterceptor returns a new auth interceptor.
@@ -29,16 +30,21 @@ func NewAuthInterceptor(methods ...string) connect.UnaryInterceptorFunc {
 			req connect.AnyRequest,
 		) (connect.AnyResponse, error) {
 			if len(methods) > 0 {
+				found := false
 				for _, method := range methods {
 					if req.Spec().Procedure == method {
+						found = true
 						break
 					}
+				}
+				if !found {
+					return next(ctx, req)
 				}
 			}
 
 			if req.Spec().IsClient {
 				// Send a token with client requests.
-				token, ok := ctx.Value(ctxToken).(string)
+				token, ok := ctx.Value(CtxToken).(string)
 				if !ok {
 					return nil, connect.NewError(
 						connect.CodeUnauthenticated,
@@ -56,7 +62,7 @@ func NewAuthInterceptor(methods ...string) connect.UnaryInterceptorFunc {
 				}
 
 				// Check token in headers.
-				token := req.Header().Get(tokenHeader)
+				token := strings.TrimPrefix(req.Header().Get(tokenHeader), "Bearer ")
 				userClaim, err := util.ValidateAccessToken(token)
 				if err != nil {
 					return nil, connect.NewError(
@@ -65,7 +71,7 @@ func NewAuthInterceptor(methods ...string) connect.UnaryInterceptorFunc {
 					)
 				}
 
-				ctx = context.WithValue(ctx, ctxServerUser, userClaim)
+				ctx = context.WithValue(ctx, CtxServerUser, userClaim)
 			}
 			return next(ctx, req)
 		})

@@ -39,14 +39,14 @@ func (r *Repository) GetPayment(ctx context.Context, params GetPaymentParams) (m
 	}
 
 	return model.Payment{
-		ID:            row.ID,
-		UserID:        row.UserID,
-		Address:       row.Address,
-		PaymentMethod: model.PaymentMethod(row.Method),
-		Total:         row.Total,
-		Status:        model.Status(row.Status),
-		DateCreated:   row.DateCreated.Time.UnixMilli(),
-		Products:      products,
+		ID:          row.ID,
+		UserID:      row.UserID,
+		Address:     row.Address,
+		Method:      model.PaymentMethod(row.Method),
+		Total:       row.Total,
+		Status:      model.Status(row.Status),
+		DateCreated: row.DateCreated.Time.UnixMilli(),
+		Products:    products,
 	}, nil
 }
 
@@ -121,14 +121,14 @@ func (r *Repository) ListPayments(ctx context.Context, params ListPaymentsParams
 		}
 
 		payments = append(payments, model.Payment{
-			ID:            row.ID,
-			UserID:        row.UserID,
-			Address:       row.Address,
-			PaymentMethod: model.PaymentMethod(row.Method),
-			Total:         row.Total,
-			Status:        model.Status(row.Status),
-			DateCreated:   row.DateCreated.Time.UnixMilli(),
-			Products:      products,
+			ID:          row.ID,
+			UserID:      row.UserID,
+			Address:     row.Address,
+			Method:      model.PaymentMethod(row.Method),
+			Total:       row.Total,
+			Status:      model.Status(row.Status),
+			DateCreated: row.DateCreated.Time.UnixMilli(),
+			Products:    products,
 		})
 	}
 
@@ -138,7 +138,7 @@ func (r *Repository) ListPayments(ctx context.Context, params ListPaymentsParams
 func (r *Repository) CreatePayment(ctx context.Context, payment model.Payment) (model.Payment, error) {
 	row, err := r.sqlc.CreatePayment(ctx, sqlc.CreatePaymentParams{
 		UserID:  payment.UserID,
-		Method:  sqlc.PaymentPaymentMethod(payment.PaymentMethod),
+		Method:  sqlc.PaymentPaymentMethod(payment.Method),
 		Status:  sqlc.PaymentStatus(payment.Status),
 		Address: payment.Address,
 		Total:   payment.Total,
@@ -164,14 +164,14 @@ func (r *Repository) CreatePayment(ctx context.Context, payment model.Payment) (
 	}
 
 	return model.Payment{
-		ID:            row.ID,
-		UserID:        row.UserID,
-		Address:       row.Address,
-		PaymentMethod: model.PaymentMethod(row.Method),
-		Total:         row.Total,
-		Status:        model.Status(row.Status),
-		DateCreated:   row.DateCreated.Time.UnixMilli(),
-		Products:      payment.Products,
+		ID:          row.ID,
+		UserID:      row.UserID,
+		Address:     row.Address,
+		Method:      model.PaymentMethod(row.Method),
+		Total:       row.Total,
+		Status:      model.Status(row.Status),
+		DateCreated: row.DateCreated.Time.UnixMilli(),
+		Products:    payment.Products,
 	}, nil
 }
 

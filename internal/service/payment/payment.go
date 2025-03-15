@@ -149,12 +149,12 @@ func (s *PaymentService) CreatePayment(ctx context.Context, params CreatePayment
 
 	// Create payment
 	newPayment, err := txRepo.CreatePayment(ctx, model.Payment{
-		UserID:        params.UserID,
-		Address:       params.Address,
-		PaymentMethod: params.PaymentMethod,
-		Total:         totalPayment,
-		Status:        model.StatusPending,
-		Products:      productOnPayments,
+		UserID:   params.UserID,
+		Address:  params.Address,
+		Method:   params.PaymentMethod,
+		Total:    totalPayment,
+		Status:   model.StatusPending,
+		Products: productOnPayments,
 	})
 	if err != nil {
 		return CreatePaymentResult{}, err
@@ -209,8 +209,10 @@ func (s *PaymentService) getPlatform(platform Platform) (PaymentPlatform, error)
 }
 
 type UpdatePaymentParams struct {
-	ID     int64
-	Status model.Status
+	ID      int64
+	UserID  int64
+	Method  *model.PaymentMethod
+	Address *string
 }
 
 func (s *PaymentService) UpdatePayment(ctx context.Context, params UpdatePaymentParams) error {
@@ -220,11 +222,37 @@ func (s *PaymentService) UpdatePayment(ctx context.Context, params UpdatePayment
 	}
 	defer txRepo.Rollback(ctx)
 
-	err = txRepo.UpdatePayment(ctx, repository.UpdatePaymentParams{
+	exists, err := txRepo.ExistsPayment(ctx, repository.GetPaymentParams{
 		ID:     params.ID,
-		Status: &params.Status,
+		UserID: &params.UserID,
 	})
 	if err != nil {
+		return err
+	}
+
+	if !exists {
+		return fmt.Errorf("payment %d not found", params.ID)
+	}
+
+	payment, err := txRepo.GetPayment(ctx, repository.GetPaymentParams{
+		ID:     params.ID,
+		UserID: &params.UserID,
+	})
+	if err != nil {
+		return err
+	}
+
+	// If payment method is cash, address is required
+	if (params.Method == nil && payment.Method == model.PaymentMethodCash || params.Method != nil && *params.Method == model.PaymentMethodCash) &&
+		(params.Address == nil && payment.Address == "" || params.Address != nil && *params.Address == "") {
+		return fmt.Errorf("address is required for payment method %s", *params.Method)
+	}
+
+	if err = txRepo.UpdatePayment(ctx, repository.UpdatePaymentParams{
+		ID:      params.ID,
+		Method:  params.Method,
+		Address: params.Address,
+	}); err != nil {
 		return err
 	}
 

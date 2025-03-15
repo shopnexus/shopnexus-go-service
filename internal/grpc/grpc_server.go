@@ -8,6 +8,8 @@ import (
 	pgxutil "shopnexus-go-service/internal/db/pgx"
 	"shopnexus-go-service/internal/grpc/account"
 	"shopnexus-go-service/internal/grpc/interceptor"
+	"shopnexus-go-service/internal/grpc/payment"
+	"shopnexus-go-service/internal/grpc/product"
 	"shopnexus-go-service/internal/repository"
 	"shopnexus-go-service/internal/service"
 	"time"
@@ -30,11 +32,29 @@ func NewServer(address string) error {
 	mux := http.NewServeMux()
 
 	// Setup account service
-	path, handler := accountv1connect.NewAccountServiceHandler(
+	accountPath, accountHandler := accountv1connect.NewAccountServiceHandler(
 		account.NewAccountServer(services.Account),
+		connect.WithInterceptors(interceptor.NewAuthInterceptor(
+			accountv1connect.AccountServiceGetCartProcedure,
+			accountv1connect.AccountServiceAddCartItemProcedure,
+			accountv1connect.AccountServiceUpdateCartItemProcedure,
+		)),
+	)
+	mux.Handle(accountPath, accountHandler)
+
+	// Setup payment service
+	paymentPath, paymentHandler := paymentv1connect.NewPaymentServiceHandler(
+		payment.NewPaymentServer(services.Payment),
 		connect.WithInterceptors(interceptor.NewAuthInterceptor()),
 	)
-	mux.Handle(path, handler)
+	mux.Handle(paymentPath, paymentHandler)
+
+	// Setup product service
+	productPath, productHandler := productv1connect.NewProductServiceHandler(
+		product.NewProductServer(services.Product),
+		connect.WithInterceptors(interceptor.NewAuthInterceptor()),
+	)
+	mux.Handle(productPath, productHandler)
 
 	// Setup reflection for postman service discovery
 	reflector := grpcreflect.NewStaticReflector(

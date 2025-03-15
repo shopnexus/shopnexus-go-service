@@ -15,7 +15,7 @@ func PermissionAuth(
 	handler grpc.UnaryHandler,
 ) (any, error) {
 	//! Must be called after TokenAuth
-	user, ok := ctx.Value(CtxKeyUser).(model.Claims)
+	user, ok := ctx.Value(CtxServerUser).(model.Claims)
 	if !ok {
 		return nil, model.ErrTokenInvalid
 	}

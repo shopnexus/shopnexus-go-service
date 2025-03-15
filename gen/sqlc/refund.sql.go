@@ -14,18 +14,21 @@ import (
 const countRefunds = `-- name: CountRefunds :one
 SELECT COUNT(id)
 FROM payment.refund r
+INNER JOIN payment.base p ON r.payment_id = p.id
 WHERE (
-    (payment_id = $1 OR $1 IS NULL) AND
-    (method = $2 OR $2 IS NULL) AND
-    (status = $3 OR $3 IS NULL) AND
-    (reason ILIKE '%' || $4 || '%' OR $4 IS NULL) AND
-    (address ILIKE '%' || $5 || '%' OR $5 IS NULL) AND
-    (date_created >= $6 OR $6 IS NULL) AND
-    (date_created <= $7 OR $7 IS NULL)
+    (p.user_id = $1 OR $1 IS NULL) AND
+    (r.payment_id = $2 OR $2 IS NULL) AND
+    (r.method = $3 OR $3 IS NULL) AND
+    (r.status = $4 OR $4 IS NULL) AND
+    (r.reason ILIKE '%' || $5 || '%' OR $5 IS NULL) AND
+    (r.address ILIKE '%' || $6 || '%' OR $6 IS NULL) AND
+    (r.date_created >= $7 OR $7 IS NULL) AND
+    (r.date_created <= $8 OR $8 IS NULL)
 )
 `
 
 type CountRefundsParams struct {
+	UserID          pgtype.Int8
 	PaymentID       pgtype.Int8
 	Method          NullPaymentRefundMethod
 	Status          NullPaymentStatus
@@ -37,6 +40,7 @@ type CountRefundsParams struct {
 
 func (q *Queries) CountRefunds(ctx context.Context, arg CountRefundsParams) (int64, error) {
 	row := q.db.QueryRow(ctx, countRefunds,
+		arg.UserID,
 		arg.PaymentID,
 		arg.Method,
 		arg.Status,
@@ -114,6 +118,30 @@ func (q *Queries) DeleteRefund(ctx context.Context, id int64) error {
 	return err
 }
 
+const existsRefund = `-- name: ExistsRefund :one
+SELECT EXISTS (
+  SELECT 1
+  FROM payment.refund r
+  INNER JOIN payment.base p ON r.payment_id = p.id
+  WHERE (
+    r.id = $1 AND 
+    (p.user_id = $2 OR $2 IS NULL)
+  )
+) AS exists
+`
+
+type ExistsRefundParams struct {
+	ID     int64
+	UserID pgtype.Int8
+}
+
+func (q *Queries) ExistsRefund(ctx context.Context, arg ExistsRefundParams) (bool, error) {
+	row := q.db.QueryRow(ctx, existsRefund, arg.ID, arg.UserID)
+	var exists bool
+	err := row.Scan(&exists)
+	return exists, err
+}
+
 const getRefund = `-- name: GetRefund :one
 SELECT 
   r.id, r.payment_id, r.method, r.status, r.reason, r.address, r.date_created, r.date_updated,
@@ -168,21 +196,24 @@ SELECT
     COALESCE(array_agg(res.s3_id), '{}')::text[] as resources
 FROM payment.refund r
 LEFT JOIN product.resource res ON res.owner_id = r.id
+INNER JOIN payment.base p ON r.payment_id = p.id
 WHERE (
-    (payment_id = $1 OR $1 IS NULL) AND
-    (method = $2 OR $2 IS NULL) AND
-    (status = $3 OR $3 IS NULL) AND
-    (reason ILIKE '%' || $4 || '%' OR $4 IS NULL) AND
-    (address ILIKE '%' || $5 || '%' OR $5 IS NULL) AND
-    (date_created >= $6 OR $6 IS NULL) AND
-    (date_created <= $7 OR $7 IS NULL)
+    (p.user_id = $1 OR $1 IS NULL) AND
+    (r.payment_id = $2 OR $2 IS NULL) AND
+    (r.method = $3 OR $3 IS NULL) AND
+    (r.status = $4 OR $4 IS NULL) AND
+    (r.reason ILIKE '%' || $5 || '%' OR $5 IS NULL) AND
+    (r.address ILIKE '%' || $6 || '%' OR $6 IS NULL) AND
+    (r.date_created >= $7 OR $7 IS NULL) AND
+    (r.date_created <= $8 OR $8 IS NULL)
 )
 ORDER BY r.date_created DESC
-LIMIT $9
-OFFSET $8
+LIMIT $10
+OFFSET $9
 `
 
 type ListRefundsParams struct {
+	UserID          pgtype.Int8
 	PaymentID       pgtype.Int8
 	Method          NullPaymentRefundMethod
 	Status          NullPaymentStatus
@@ -208,6 +239,7 @@ type ListRefundsRow struct {
 
 func (q *Queries) ListRefunds(ctx context.Context, arg ListRefundsParams) ([]ListRefundsRow, error) {
 	rows, err := q.db.Query(ctx, listRefunds,
+		arg.UserID,
 		arg.PaymentID,
 		arg.Method,
 		arg.Status,

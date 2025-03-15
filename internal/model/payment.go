@@ -27,13 +27,13 @@ type ProductOnPayment struct {
 }
 
 type Payment struct {
-	ID            int64         `json:"id"` /* unique */
-	UserID        int64         `json:"user_id"`
-	Address       string        `json:"address"`
-	PaymentMethod PaymentMethod `json:"payment_method"`
-	Total         int64         `json:"total"`
-	Status        Status        `json:"status"`
-	DateCreated   int64         `json:"date_created"`
+	ID          int64         `json:"id"` /* unique */
+	UserID      int64         `json:"user_id"`
+	Method      PaymentMethod `json:"payment_method"`
+	Address     string        `json:"address"`
+	Total       int64         `json:"total"`
+	Status      Status        `json:"status"`
+	DateCreated int64         `json:"date_created"`
 
 	Products []ProductOnPayment `json:"products"`
 }
