@@ -179,7 +179,7 @@
 						],
 						"body": {
 							"mode": "raw",
-							"raw": "{\n    \"product_model_id\": 1,\n    \"quantity\": 2\n}"
+							"raw": "{\n    \"items\": [\n        {\n            \"item_id\": 18,\n            \"quantity\": 2\n        }\n    ]\n}"
 						},
 						"url": {
 							"raw": "{{API_URL}}/account.v1.AccountService/AddCartItem",
@@ -207,7 +207,7 @@
 						],
 						"body": {
 							"mode": "raw",
-							"raw": "{\n    \"product_model_id\": 1,\n    \"quantity\": 3\n}"
+							"raw": "{\n    \"items\": [\n        {\n            \"item_id\": 18,\n            \"quantity\": 2\n        }\n    ]\n}"
 						},
 						"url": {
 							"raw": "{{API_URL}}/account.v1.AccountService/UpdateCartItem",
@@ -738,7 +738,7 @@
 							}
 						],
 						"url": {
-							"raw": "{{API_URL}}/product.v1.ProductService/ListTags?encoding=json&message={\"pagination\":{\"limit\":2,\"page\":1}}",
+							"raw": "{{API_URL}}/product.v1.ProductService/ListTags?encoding=json&message={\"pagination\":{\"limit\":10,\"page\":1}}",
 							"host": [
 								"{{API_URL}}"
 							],
@@ -753,7 +753,7 @@
 								},
 								{
 									"key": "message",
-									"value": "{\"pagination\":{\"limit\":2,\"page\":1}}"
+									"value": "{\"pagination\":{\"limit\":10,\"page\":1}}"
 								}
 							]
 						}
@@ -926,7 +926,7 @@
 							}
 						],
 						"url": {
-							"raw": "{{API_URL}}/payment.v1.PaymentService/ListPayments?encoding=json&message={\"pagination\": {\"limit\": 5, \"page\":1}",
+							"raw": "{{API_URL}}/payment.v1.PaymentService/ListPayments?encoding=json&message={\"pagination\": {\"limit\": 5, \"page\":1}}",
 							"host": [
 								"{{API_URL}}"
 							],
@@ -941,7 +941,7 @@
 								},
 								{
 									"key": "message",
-									"value": "{\"pagination\": {\"limit\": 5, \"page\":1}"
+									"value": "{\"pagination\": {\"limit\": 5, \"page\":1}}"
 								}
 							]
 						}
@@ -961,7 +961,7 @@
 						],
 						"body": {
 							"mode": "raw",
-							"raw": "{\n    \"requestId\": 1, \n    \"method\": \"PAYMENT_METHOD_VNPAY\",\n    \"address\": \"123 Main St, City, Country\"\n}"
+							"raw": "{\n    \"request_id\": 1, \n    \"method\": \"PAYMENT_METHOD_VNPAY\",\n    \"address\": \"123 Main St, City, Country\"\n}"
 						},
 						"url": {
 							"raw": "{{API_URL}}/payment.v1.PaymentService/CreatePayment",
