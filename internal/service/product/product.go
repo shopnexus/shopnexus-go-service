@@ -1,4 +1,4 @@
-package service
+package product
 
 import (
 	"context"
@@ -197,27 +197,6 @@ func (s *ProductService) UpdateProduct(ctx context.Context, params UpdateProduct
 
 func (s *ProductService) DeleteProduct(ctx context.Context, params model.ProductIdentifier) error {
 	return s.repo.DeleteProduct(ctx, params)
-}
-
-func (s *ProductService) CreateSale(ctx context.Context, sale model.Sale) (model.Sale, error) {
-	return s.repo.CreateSale(ctx, sale)
-}
-
-func (s *ProductService) DeleteSale(ctx context.Context, id int64) error {
-	return s.repo.DeleteSale(ctx, id)
-}
-
-func (s *ProductService) CreateTag(ctx context.Context, tag model.Tag) (model.Tag, error) {
-	err := s.repo.CreateTag(ctx, tag)
-	if err != nil {
-		return model.Tag{}, err
-	}
-
-	return tag, nil
-}
-
-func (s *ProductService) DeleteTag(ctx context.Context, name string) error {
-	return s.repo.DeleteTag(ctx, name)
 }
 
 type ProductServiceInterface interface {

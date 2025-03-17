@@ -1,4 +1,4 @@
-package service
+package account
 
 import (
 	"context"
@@ -6,18 +6,8 @@ import (
 	repository "shopnexus-go-service/internal/repository"
 )
 
-type CartService struct {
-	Repo *repository.Repository
-}
-
-func NewCartService(repo *repository.Repository) *CartService {
-	return &CartService{
-		Repo: repo,
-	}
-}
-
-func (s *CartService) GetCart(ctx context.Context, userID int64) (model.Cart, error) {
-	cart, err := s.Repo.GetCart(ctx, userID)
+func (s *AccountService) GetCart(ctx context.Context, userID int64) (model.Cart, error) {
+	cart, err := s.repo.GetCart(ctx, userID)
 	if err != nil {
 		return model.Cart{}, err
 	}
@@ -31,12 +21,23 @@ type AddCartItemParams struct {
 	Quantity       int64
 }
 
-func (s *CartService) AddCartItem(ctx context.Context, params AddCartItemParams) (int64, error) {
-	txRepo, err := s.Repo.Begin(ctx)
+func (s *AccountService) AddCartItem(ctx context.Context, params AddCartItemParams) (int64, error) {
+	txRepo, err := s.repo.Begin(ctx)
 	if err != nil {
 		return 0, err
 	}
 	defer txRepo.Rollback(ctx)
+
+	// Check if cart exists for the user, create one if it doesn't
+	exists, err := txRepo.ExistsCart(ctx, params.UserID)
+	if err != nil {
+		return 0, err
+	}
+	if !exists {
+		if err = txRepo.CreateCart(ctx, params.UserID); err != nil {
+			return 0, err
+		}
+	}
 
 	newQty, err := txRepo.AddCartItem(ctx, repository.AddCartItemParams{
 		CartID:         params.UserID,
@@ -60,8 +61,8 @@ type UpdateCartItemParams struct {
 	Quantity       int64
 }
 
-func (s *CartService) UpdateCartItem(ctx context.Context, params UpdateCartItemParams) (int64, error) {
-	txRepo, err := s.Repo.Begin(ctx)
+func (s *AccountService) UpdateCartItem(ctx context.Context, params UpdateCartItemParams) (int64, error) {
+	txRepo, err := s.repo.Begin(ctx)
 	if err != nil {
 		return 0, err
 	}
@@ -77,10 +78,7 @@ func (s *CartService) UpdateCartItem(ctx context.Context, params UpdateCartItemP
 	}
 
 	if newQty <= 0 {
-		if err = txRepo.RemoveCartItem(ctx, repository.RemoveCartItemParams{
-			CartID:         params.UserID,
-			ProductModelID: params.ProductModelID,
-		}); err != nil {
+		if err = txRepo.RemoveCartItem(ctx, params.UserID, params.ProductModelID); err != nil {
 			return 0, err
 		}
 
@@ -94,13 +92,6 @@ func (s *CartService) UpdateCartItem(ctx context.Context, params UpdateCartItemP
 	return newQty, nil
 }
 
-func (s *CartService) ClearCart(ctx context.Context, userID int64) error {
-	return s.Repo.ClearCart(ctx, userID)
-}
-
-type CartServiceInterface interface {
-	GetCart(ctx context.Context, userID int64) (model.Cart, error)
-	AddCartItem(ctx context.Context, params AddCartItemParams) (int64, error)
-	UpdateCartItem(ctx context.Context, params UpdateCartItemParams) (int64, error)
-	ClearCart(ctx context.Context, userID int64) error
+func (s *AccountService) ClearCart(ctx context.Context, userID int64) error {
+	return s.repo.ClearCart(ctx, userID)
 }

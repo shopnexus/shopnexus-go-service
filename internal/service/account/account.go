@@ -1,4 +1,4 @@
-package service
+package account
 
 import (
 	"context"
@@ -15,11 +15,18 @@ type AccountService struct {
 }
 
 type AccountServiceInterface interface {
+	// Account
 	CheckPassword(hashedPassword, password string) bool
 	CreateHash(password string) (string, error)
 	FindAccount(ctx context.Context, params FindAccountParams) (model.Account, error)
 	Login(ctx context.Context, params LoginParams) (string, error)
 	Register(ctx context.Context, account model.Account) (string, error)
+
+	// Cart
+	GetCart(ctx context.Context, userID int64) (model.Cart, error)
+	AddCartItem(ctx context.Context, params AddCartItemParams) (int64, error)
+	UpdateCartItem(ctx context.Context, params UpdateCartItemParams) (int64, error)
+	ClearCart(ctx context.Context, userID int64) error
 }
 
 func NewAccountService(repo *repository.Repository) *AccountService {
@@ -145,4 +152,25 @@ func (s *AccountService) Register(ctx context.Context, account model.Account) (s
 	}
 
 	return util.GenerateAccessToken(newAccount)
+}
+
+type GetPermissionsParams struct {
+	AccountID int64
+	Role      model.Role
+}
+
+func (s *AccountService) GetPermissions(ctx context.Context, params GetPermissionsParams) ([]model.Permission, error) {
+	switch params.Role {
+	case model.RoleAdmin:
+		return model.GetAllPermissions(), nil
+	case model.RoleStaff:
+		return s.repo.GetPermissions(ctx, repository.GetPermissionsParams{
+			AccountID: params.AccountID,
+			Role:      params.Role,
+		})
+	case model.RoleUser:
+		return nil, fmt.Errorf("no permissions")
+	default:
+		return nil, fmt.Errorf("unknown role: %s", params.Role)
+	}
 }

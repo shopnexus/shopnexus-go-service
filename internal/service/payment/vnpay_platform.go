@@ -11,22 +11,10 @@ import (
 	"time"
 )
 
-type BankCode string
-
-const (
-	BankCodeVNPAYQR BankCode = "VNPAYQR"
-	BankCodeVNBANK  BankCode = "VNBANK"
-	BankCodeINTCARD BankCode = "INTCARD"
-)
-
-type CreateVnpayParams struct {
-	PaymentID int64
-	OrderInfo string
-	Amount    int64
-	BankCode  BankCode
+type VnpayPlatform struct {
 }
 
-func (s *PaymentService) CreateVnpay(ctx context.Context, params CreateVnpayParams) (string, error) {
+func (s *VnpayPlatform) CreateOrder(ctx context.Context, params CreateOrderParams) (url string, err error) {
 	// httpClient := &http.Client{}
 	req, err := http.NewRequest("GET", "https://sandbox.vnpayment.vn/paymentv2/vpcpay.html", nil)
 	if err != nil {
@@ -43,7 +31,7 @@ func (s *PaymentService) CreateVnpay(ctx context.Context, params CreateVnpayPara
 	q.Add("vnp_CurrCode", "VND")
 	q.Add("vnp_IpAddr", "192.168.1.1")
 	q.Add("vnp_Locale", "vn")
-	q.Add("vnp_OrderInfo", params.OrderInfo)
+	q.Add("vnp_OrderInfo", params.Info)
 	q.Add("vnp_OrderType", "billpayment")
 	q.Add("vnp_ReturnUrl", "http://localhost:8080/payment/vnpay/callback")
 	q.Add("vnp_ExpireDate", formatTime(time.Now().Add(30*time.Minute)))
