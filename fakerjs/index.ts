@@ -1,7 +1,6 @@
 import { faker } from "@faker-js/faker"
 import {
 	PrismaClient,
-	Role,
 	Gender,
 	Brand,
 	Account,
@@ -12,7 +11,18 @@ import {
 	RefundMethod,
 	Prisma,
 } from "@prisma/client"
-const prisma = new PrismaClient()
+
+type TxPrisma = Omit<
+	PrismaClient,
+	"$connect" | "$disconnect" | "$on" | "$transaction" | "$use" | "$extends"
+>
+
+// Role
+const Role = {
+	ADMIN: "ADMIN",
+	STAFF: "STAFF",
+	USER: "USER",
+}
 
 // Helper function to generate random enum values
 const randomEnum = <T>(enumObject: { [key: string]: T }): T => {
@@ -20,8 +30,25 @@ const randomEnum = <T>(enumObject: { [key: string]: T }): T => {
 	return values[Math.floor(Math.random() * values.length)]
 }
 
-// Generate Account with UserAccount or AdminAccount
-async function createAccounts(count: number) {
+async function createRoles(prisma: TxPrisma) {
+	await prisma.role.createMany({
+		data: [
+			{
+				name: Role.ADMIN,
+			},
+			{
+				name: Role.STAFF,
+			},
+			{
+				name: Role.USER,
+			},
+		],
+		skipDuplicates: true,
+	})
+}
+
+async function createAccounts(prisma: TxPrisma, count: number) {
+	// Generate Account with UserAccount or AdminAccount
 	const accountsData: any[] = []
 
 	for (let i = 0; i < count; i++) {
@@ -91,13 +118,13 @@ async function createAccounts(count: number) {
 }
 
 // Generate Brands
-async function createBrands(count: number) {
+async function createBrands(prisma: TxPrisma, count: number) {
 	const brandsData = Array.from({ length: count }, () => ({
 		name: faker.company.name(),
 		description: faker.company.catchPhrase(),
 	}))
 
-	const result = await prisma.brand.createMany({
+	await prisma.brand.createMany({
 		data: brandsData,
 		skipDuplicates: true,
 	})
@@ -105,13 +132,13 @@ async function createBrands(count: number) {
 }
 
 // Generate Tags
-async function createTags(count: number) {
+async function createTags(prisma: TxPrisma, count: number) {
 	const tagsData = Array.from({ length: count }, () => ({
-		tag_name: faker.commerce.department(),
+		tag: faker.commerce.department(),
 		description: faker.commerce.productDescription(),
 	}))
 
-	const result = await prisma.tag.createMany({
+	await prisma.tag.createMany({
 		data: tagsData,
 		skipDuplicates: true,
 	})
@@ -120,6 +147,7 @@ async function createTags(count: number) {
 
 // Generate ProductModels
 async function createProductModels(
+	prisma: TxPrisma,
 	brands: Brand[],
 	tags: any[],
 	count: number
@@ -164,13 +192,13 @@ async function createProductModels(
 		for (const tag of selectedTags) {
 			tagOnProductData.push({
 				product_model_id: productModel.id,
-				tag_name: tag.tag_name,
+				tag: tag.tag,
 			})
 		}
 	}
 
 	if (tagOnProductData.length > 0) {
-		await prisma.tagOnProduct.createMany({
+		await prisma.tagOnProductModel.createMany({
 			data: tagOnProductData,
 			skipDuplicates: true,
 		})
@@ -180,12 +208,23 @@ async function createProductModels(
 }
 
 // Generate Products
-async function createProducts(productModels: ProductModel[], count: number) {
+async function createProducts(
+	prisma: TxPrisma,
+	productModels: ProductModel[],
+	count: number
+) {
 	const productsData = Array.from({ length: count }, () => ({
 		serial_id: faker.string.alphanumeric(10).toUpperCase(),
 		product_model_id:
 			productModels[Math.floor(Math.random() * productModels.length)].id,
-		sold: Math.random() < 0.3,
+		quantity: BigInt(Math.floor(Math.random() * 100) + 10),
+		sold: BigInt(Math.floor(Math.random() * 5)),
+		size: BigInt(Math.floor(Math.random() * 5) + 1),
+		color: faker.color.human(),
+		add_price: BigInt(Math.floor(Math.random() * 50000)),
+		is_active: Math.random() < 0.9, // 90% chance of being active
+		date_created: faker.date.recent(),
+		date_updated: faker.date.recent(),
 	}))
 
 	const result = await prisma.product.createMany({
@@ -196,7 +235,11 @@ async function createProducts(productModels: ProductModel[], count: number) {
 }
 
 // Generate Addresses
-async function createAddresses(userAccounts: any[], count: number) {
+async function createAddresses(
+	prisma: TxPrisma,
+	userAccounts: any[],
+	count: number
+) {
 	const addressesData = Array.from({ length: count }, () => {
 		const userAccount =
 			userAccounts[Math.floor(Math.random() * userAccounts.length)]
@@ -206,7 +249,6 @@ async function createAddresses(userAccounts: any[], count: number) {
 			city: faker.location.city(),
 			province: faker.location.state(),
 			country: faker.location.country(),
-			postal_code: faker.location.zipCode(),
 		}
 	})
 
@@ -219,7 +261,11 @@ async function createAddresses(userAccounts: any[], count: number) {
 }
 
 // Generate Carts and Items
-async function createCarts(userAccounts: any[], productModels: ProductModel[]) {
+async function createCarts(
+	prisma: TxPrisma,
+	userAccounts: any[],
+	productModels: ProductModel[]
+) {
 	const cartsData: any[] = []
 	const itemOnCartData: any[] = []
 
@@ -257,6 +303,7 @@ async function createCarts(userAccounts: any[], productModels: ProductModel[]) {
 
 // Generate Sales
 async function createSales(
+	prisma: TxPrisma,
 	productModels: ProductModel[],
 	tags: any[],
 	count: number
@@ -269,9 +316,7 @@ async function createSales(
 		const endDate = faker.date.future({ refDate: startDate })
 
 		salesData.push({
-			tag_name: isByTag
-				? tags[Math.floor(Math.random() * tags.length)].tag_name
-				: null,
+			tag: isByTag ? tags[Math.floor(Math.random() * tags.length)].tag : null,
 			product_model_id: isByTag
 				? null
 				: productModels[Math.floor(Math.random() * productModels.length)].id,
@@ -299,6 +344,7 @@ async function createSales(
 
 // Generate Payments and ProductOnPayment
 async function createPayments(
+	prisma: TxPrisma,
 	userAccounts: any[],
 	products: Product[],
 	count: number
@@ -314,8 +360,8 @@ async function createPayments(
 			userAccounts[Math.floor(Math.random() * userAccounts.length)]
 		const productCount = Math.floor(Math.random() * 3) + 1
 		const selectedProducts = faker.helpers.arrayElements(
-			products.filter((p) => !p.sold),
-			Math.min(productCount, products.filter((p) => !p.sold).length)
+			products.filter((p) => p.sold < p.quantity),
+			Math.min(productCount, products.filter((p) => p.sold < p.quantity).length)
 		)
 
 		if (selectedProducts.length === 0) continue
@@ -347,23 +393,27 @@ async function createPayments(
 	for (const payment of createdPayments) {
 		const productCount = Math.floor(Math.random() * 3) + 1
 		const selectedProducts = faker.helpers.arrayElements(
-			products.filter((p) => !p.sold),
-			Math.min(productCount, products.filter((p) => !p.sold).length)
+			products.filter((p) => p.sold < p.quantity),
+			Math.min(productCount, products.filter((p) => p.sold < p.quantity).length)
 		)
 
 		for (const product of selectedProducts) {
+			const quantity = BigInt(Math.floor(Math.random() * 3) + 1)
 			const price = BigInt(Math.floor(Math.random() * 500000) + 50000)
 			productOnPaymentData.push({
 				payment_id: payment.id,
 				product_serial_id: product.serial_id,
-				quantity: BigInt(1),
+				quantity: quantity,
 				price: price,
-				total_price: price,
+				total_price: price * quantity,
 			})
 
 			// Track products to update if payment is successful
 			if (payment.status === "SUCCESS") {
-				productsToUpdate.push(product.id)
+				productsToUpdate.push({
+					id: product.id,
+					quantity: quantity,
+				})
 			}
 		}
 	}
@@ -378,17 +428,19 @@ async function createPayments(
 
 	// Update sold status for products with successful payments
 	if (productsToUpdate.length > 0) {
-		await prisma.product.updateMany({
-			where: { id: { in: productsToUpdate } },
-			data: { sold: true },
-		})
+		for (const product of productsToUpdate) {
+			await prisma.product.update({
+				where: { id: product.id },
+				data: { sold: { increment: product.quantity } },
+			})
+		}
 	}
 
 	return createdPayments
 }
 
 // Generate Refunds
-async function createRefunds(payments: any[], count: number) {
+async function createRefunds(prisma: TxPrisma, payments: any[], count: number) {
 	const refundsData: any[] = []
 	const productsToUpdate: any[] = []
 	const refundMethods = Object.values(RefundMethod)
@@ -408,8 +460,7 @@ async function createRefunds(payments: any[], count: number) {
 			method: refundMethod,
 			status: status,
 			reason: faker.lorem.sentence(),
-			address:
-				refundMethod === "PICK_UP" ? faker.location.streetAddress() : null,
+			address: refundMethod === "PICK_UP" ? faker.location.streetAddress() : "",
 		})
 
 		// Track products to update if refund is successful
@@ -435,10 +486,18 @@ async function createRefunds(payments: any[], count: number) {
 
 	// Update product sold status for successful refunds
 	if (productsToUpdate.length > 0) {
-		await prisma.product.updateMany({
-			where: { id: { in: productsToUpdate } },
-			data: { sold: false },
-		})
+		for (const productId of productsToUpdate) {
+			const productOnPayment = await prisma.productOnPayment.findFirst({
+				where: { product: { id: productId } },
+			})
+
+			if (productOnPayment) {
+				await prisma.product.update({
+					where: { id: productId },
+					data: { sold: { decrement: productOnPayment.quantity } },
+				})
+			}
+		}
 	}
 
 	return await prisma.refund.findMany({ take: count })
@@ -446,25 +505,29 @@ async function createRefunds(payments: any[], count: number) {
 
 // Main seeding function
 async function main() {
+	const prisma = new PrismaClient()
 	try {
 		console.log("Starting to seed database...")
 
-		// Create base data
-		const accounts = await createAccounts(10)
-		const userAccounts = accounts.filter((a) => a.role === "USER")
-		const brands = await createBrands(5)
-		const tags = await createTags(8)
-		const productModels = await createProductModels(brands, tags, 20)
-		const products = await createProducts(productModels, 50)
+		await prisma.$transaction(async (tx) => {
+			// Create base data
+			await createRoles(tx)
+			const accounts = await createAccounts(tx, 10)
+			const userAccounts = accounts.filter((a) => a.role === "USER")
+			const brands = await createBrands(tx, 5)
+			const tags = await createTags(tx, 8)
+			const productModels = await createProductModels(tx, brands, tags, 20)
+			const products = await createProducts(tx, productModels, 50)
 
-		// Create related data
-		const addresses = await createAddresses(userAccounts, 15)
-		const carts = await createCarts(userAccounts, productModels)
-		const sales = await createSales(productModels, tags, 10)
-		const payments = await createPayments(userAccounts, products, 15)
-		const refunds = await createRefunds(payments, 5)
+			// Create related data
+			const addresses = await createAddresses(tx, userAccounts, 15)
+			const carts = await createCarts(tx, userAccounts, productModels)
+			const sales = await createSales(tx, productModels, tags, 10)
+			const payments = await createPayments(tx, userAccounts, products, 15)
+			const refunds = await createRefunds(tx, payments, 5)
 
-		console.log("Seeding completed successfully!")
+			console.log("Seeding completed successfully!")
+		})
 	} catch (error) {
 		console.error("Error seeding database:", error)
 	} finally {
