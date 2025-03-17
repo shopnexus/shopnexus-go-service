@@ -1,0 +1,96 @@
+package repository
+
+import (
+	"context"
+	"shopnexus-go-service/gen/sqlc"
+	pgxutil "shopnexus-go-service/internal/db/pgx"
+	"shopnexus-go-service/internal/model"
+
+	"github.com/jackc/pgx/v5/pgtype"
+)
+
+func (r *Repository) GetBrand(ctx context.Context, id int64) (model.Brand, error) {
+	brand, err := r.sqlc.GetBrand(ctx, id)
+	if err != nil {
+		return model.Brand{}, err
+	}
+
+	return model.Brand{
+		ID:          brand.ID,
+		Name:        brand.Name,
+		Description: brand.Description,
+		Resources:   brand.Resources,
+	}, nil
+}
+
+type ListBrandsParams struct {
+	model.PaginationParams
+	Name        *string
+	Description *string
+}
+
+func (r *Repository) CountBrands(ctx context.Context, params ListBrandsParams) (int64, error) {
+	return r.sqlc.CountBrands(ctx, sqlc.CountBrandsParams{
+		Name:        *pgxutil.PtrToPgtype(&pgtype.Text{}, params.Name),
+		Description: *pgxutil.PtrToPgtype(&pgtype.Text{}, params.Description),
+	})
+}
+
+func (r *Repository) ListBrands(ctx context.Context, params ListBrandsParams) ([]model.Brand, error) {
+	brands, err := r.sqlc.ListBrands(ctx, sqlc.ListBrandsParams{
+		Offset:      params.Offset(),
+		Limit:       params.Limit,
+		Name:        *pgxutil.PtrToPgtype(&pgtype.Text{}, params.Name),
+		Description: *pgxutil.PtrToPgtype(&pgtype.Text{}, params.Description),
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	result := make([]model.Brand, len(brands))
+	for i, brand := range brands {
+		result[i] = model.Brand{
+			ID:          brand.ID,
+			Name:        brand.Name,
+			Description: brand.Description,
+			Resources:   brand.Resources,
+		}
+	}
+	return result, nil
+}
+
+func (r *Repository) CreateBrand(ctx context.Context, brand model.Brand) (model.Brand, error) {
+	row, err := r.sqlc.CreateBrand(ctx, sqlc.CreateBrandParams{
+		Name:        brand.Name,
+		Description: brand.Description,
+		Resources:   brand.Resources,
+	})
+	if err != nil {
+		return model.Brand{}, err
+	}
+
+	return model.Brand{
+		ID:          row.ID,
+		Name:        brand.Name,
+		Description: brand.Description,
+		Resources:   row.Resources,
+	}, nil
+}
+
+type UpdateBrandParams struct {
+	ID          int64
+	Name        *string
+	Description *string
+}
+
+func (r *Repository) UpdateBrand(ctx context.Context, params UpdateBrandParams) error {
+	return r.sqlc.UpdateBrand(ctx, sqlc.UpdateBrandParams{
+		ID:          params.ID,
+		Name:        *pgxutil.PtrToPgtype(&pgtype.Text{}, &params.Name),
+		Description: *pgxutil.PtrToPgtype(&pgtype.Text{}, &params.Description),
+	})
+}
+
+func (r *Repository) DeleteBrand(ctx context.Context, id int64) error {
+	return r.sqlc.DeleteBrand(ctx, id)
+}

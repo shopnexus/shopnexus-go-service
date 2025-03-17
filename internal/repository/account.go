@@ -192,78 +192,32 @@ func (r *Repository) CreateAccount(ctx context.Context, account model.Account) (
 	}
 }
 
-func (r *Repository) GetCart(ctx context.Context, cartID int64) (model.Cart, error) {
-	cartRow, err := r.sqlc.GetCart(ctx, cartID)
+type GetPermissionsParams struct {
+	AccountID int64
+	Role      model.Role
+}
+
+func (r *Repository) GetPermissions(ctx context.Context, params GetPermissionsParams) ([]model.Permission, error) {
+	permissionBits, err := r.sqlc.GetRolePermissions(ctx, string(params.Role))
 	if err != nil {
-		return model.Cart{}, err
+		return nil, err
 	}
 
-	itemRows, err := r.sqlc.GetCartItems(ctx, cartID)
-	if err != nil {
-		return model.Cart{}, err
+	if !permissionBits.Valid {
+		return nil, fmt.Errorf("role %s does not have any permissions", params.Role)
 	}
 
-	items := make([]model.ItemQuantity[int64], len(itemRows))
-	for i, row := range itemRows {
-		items[i] = model.ItemOnCart{
-			ItemQuantityBase: model.ItemQuantityBase[int64]{
-				ItemID:   row.ProductModelID,
-				Quantity: row.Quantity,
-			},
-			CartID: row.CartID,
+	// Convert bit array to permissions slice
+	var permissions []model.Permission
+
+	for i := permissionBits.Len - 1; i >= 0; i-- {
+		byteIndex := i / 8                                            // Find which byte contains the bit
+		bitIndex := 7 - (i % 8)                                       // Find the position within the byte
+		bitValue := (permissionBits.Bytes[byteIndex] >> bitIndex) & 1 // Extract bit value
+		if bitValue == 1 {
+			permissions = append(permissions, model.Permission(permissionBits.Len-i))
 		}
 	}
 
-	return model.Cart{
-		ID:            cartRow,
-		ProductModels: items,
-	}, nil
-}
-
-func (r *Repository) CreateCart(ctx context.Context, userID int64) error {
-	return r.sqlc.CreateCart(ctx, userID)
-}
-
-type AddCartItemParams struct {
-	CartID         int64
-	ProductModelID int64
-	Quantity       int64
-}
-
-func (r *Repository) AddCartItem(ctx context.Context, params AddCartItemParams) (int64, error) {
-	return r.sqlc.AddCartItem(ctx, sqlc.AddCartItemParams{
-		CartID:         params.CartID,
-		ProductModelID: params.ProductModelID,
-		Quantity:       params.Quantity,
-	})
-}
-
-type UpdateCartItemParams struct {
-	CartID         int64
-	ProductModelID int64
-	Quantity       int64
-}
-
-func (r *Repository) UpdateCartItem(ctx context.Context, params UpdateCartItemParams) (int64, error) {
-	return r.sqlc.UpdateCartItem(ctx, sqlc.UpdateCartItemParams{
-		CartID:         params.CartID,
-		ProductModelID: params.ProductModelID,
-		Quantity:       params.Quantity,
-	})
-}
-
-type RemoveCartItemParams struct {
-	CartID         int64
-	ProductModelID int64
-}
-
-func (r *Repository) RemoveCartItem(ctx context.Context, params RemoveCartItemParams) error {
-	return r.sqlc.RemoveCartItem(ctx, sqlc.RemoveCartItemParams{
-		CartID:         params.CartID,
-		ProductModelID: params.ProductModelID,
-	})
-}
-
-func (r *Repository) ClearCart(ctx context.Context, cartID int64) error {
-	return r.sqlc.ClearCart(ctx, cartID)
+	return permissions, nil
 }
