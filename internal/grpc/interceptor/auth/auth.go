@@ -56,10 +56,11 @@ func NewAuthInterceptor(methods ...string) connect.UnaryInterceptorFunc {
 			} else {
 				// Check token in handlers.
 				if req.Header().Get(tokenHeader) == "" {
-					return nil, connect.NewError(
-						connect.CodeUnauthenticated,
-						errors.New("no token provided"),
-					)
+					return next(ctx, req)
+					// return nil, connect.NewError(
+					// 	connect.CodeUnauthenticated,
+					// 	errors.New("no token provided"),
+					// )
 				}
 
 				// Check token in headers.
