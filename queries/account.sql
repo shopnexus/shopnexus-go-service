@@ -11,6 +11,15 @@ WHERE (
   b.username = sqlc.narg('username')
 );
 
+-- name: GetAccountStaff :one
+SELECT s.*, b.*
+FROM "account".staff s
+INNER JOIN "account".base b ON s.id = b.id
+WHERE (
+  s.id = sqlc.narg('id') OR
+  b.username = sqlc.narg('username')
+);
+
 -- name: GetAccountUser :one
 SELECT u.*, b.*
 FROM "account".user u
@@ -44,35 +53,7 @@ SELECT id
 FROM base
 RETURNING id;
 
--- name: AddCartItem :one
-INSERT INTO "account".item_on_cart (cart_id, product_model_id, quantity)
-VALUES ($1, $2, $3)
-ON CONFLICT (cart_id, product_model_id)
-DO UPDATE SET quantity = "account".item_on_cart.quantity + $3
-RETURNING quantity;
-
--- name: UpdateCartItem :one
-UPDATE "account".item_on_cart
-SET quantity = $3
-WHERE cart_id = $1 AND product_model_id = $2
-RETURNING quantity;
-
--- name: RemoveCartItem :exec
-DELETE FROM "account".item_on_cart
-WHERE cart_id = $1 AND product_model_id = $2;
-
--- name: GetCartItems :many
-SELECT * FROM "account".item_on_cart
-WHERE cart_id = $1;
-
--- name: GetCart :one
-SELECT * FROM "account".cart
-WHERE id = $1;
-
--- name: CreateCart :exec
-INSERT INTO "account".cart (id)
-VALUES ($1);
-
--- name: ClearCart :exec
-DELETE FROM "account".item_on_cart
-WHERE cart_id = $1;
+-- name: GetRolePermissions :one
+SELECT permission FROM "account".permission_on_role
+INNER JOIN "account".role ON permission_on_role.role = role.name
+WHERE role.name = $1;

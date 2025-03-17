@@ -16,18 +16,36 @@ WHERE (
   (p.user_id = sqlc.narg('user_id') OR sqlc.narg('user_id') IS NULL)
 );
 
--- name: GetRefund :one
-SELECT 
-  r.*,
-  COALESCE(array_agg(res.s3_id), '{}')::text[] AS resources
-FROM payment.refund r
-LEFT JOIN product.resource res ON r.id = res.owner_id
+-- name: CountPayments :one
+SELECT COUNT(p.id)
+FROM payment.base p
 WHERE (
-  r.id = $1 AND (
-    sqlc.narg('user_id') IS NULL OR r.user_id = sqlc.narg('user_id')
-  )
+  (p.user_id = sqlc.narg('user_id') OR sqlc.narg('user_id') IS NULL) AND
+  (p.method = sqlc.narg('method') OR sqlc.narg('method') IS NULL) AND
+  (p.status = sqlc.narg('status') OR sqlc.narg('status') IS NULL) AND
+  (p.address ILIKE '%' || sqlc.narg('address') || '%' OR sqlc.narg('address') IS NULL) AND
+  (p.total >= sqlc.narg('total_from') OR sqlc.narg('total_from') IS NULL) AND
+  (p.total <= sqlc.narg('total_to') OR sqlc.narg('total_to') IS NULL) AND
+  (p.date_created >= sqlc.narg('date_created_from') OR sqlc.narg('date_created_from') IS NULL) AND
+  (p.date_created <= sqlc.narg('date_created_to') OR sqlc.narg('date_created_to') IS NULL)
+);
+
+-- name: ListPayments :many
+SELECT p.*
+FROM payment.base p
+WHERE (
+  (p.user_id = sqlc.narg('user_id') OR sqlc.narg('user_id') IS NULL) AND
+  (p.method = sqlc.narg('method') OR sqlc.narg('method') IS NULL) AND
+  (p.status = sqlc.narg('status') OR sqlc.narg('status') IS NULL) AND
+  (p.address ILIKE '%' || sqlc.narg('address') || '%' OR sqlc.narg('address') IS NULL) AND
+  (p.total >= sqlc.narg('total_from') OR sqlc.narg('total_from') IS NULL) AND
+  (p.total <= sqlc.narg('total_to') OR sqlc.narg('total_to') IS NULL) AND
+  (p.date_created >= sqlc.narg('date_created_from') OR sqlc.narg('date_created_from') IS NULL) AND
+  (p.date_created <= sqlc.narg('date_created_to') OR sqlc.narg('date_created_to') IS NULL)
 )
-GROUP BY r.id;
+ORDER BY p.date_created DESC
+LIMIT sqlc.arg('limit')
+OFFSET sqlc.arg('offset');
 
 -- name: GetPaymentProducts :many
 SELECT pop.*
@@ -59,41 +77,14 @@ VALUES (
     $1, $2, $3, $4, $5
 );
 
--- name: CreateRefund :one
-WITH inserted_refund AS (
-    INSERT INTO payment.refund (
-        payment_id,
-        method,
-        status,
-        reason,
-        address
-    )
-    VALUES (
-        $1, $2, $3, $4, $5
-    )
-    RETURNING *
-),
-inserted_resources AS (
-    INSERT INTO product.resource (owner_id, s3_id)
-    SELECT id, unnest(sqlc.arg('resources')::text[]) FROM inserted_refund
-    RETURNING s3_id
-)
-SELECT r.id, COALESCE(array_agg(res.s3_id), '{}')::text[] as resources
-FROM inserted_refund r
-LEFT JOIN inserted_resources res ON true
-GROUP BY r.id;
-
--- name: UpdateRefund :exec
-UPDATE payment.refund
+-- name: UpdatePayment :exec
+UPDATE payment.base
 SET 
     method = COALESCE(sqlc.narg('method'), method),
     status = COALESCE(sqlc.narg('status'), status),
-    reason = COALESCE(sqlc.narg('reason'), reason),
-    address = CASE 
-                 WHEN sqlc.arg('null_address')::bool THEN NULL 
-                 ELSE COALESCE(sqlc.narg('address'), address) 
-              END
+    address = COALESCE(sqlc.narg('address'), address),
+    total = COALESCE(sqlc.narg('total'), total)
 WHERE id = $1;
 
--- name: DeleteRefund :exec
-DELETE FROM payment.refund WHERE id = $1;
+-- name: DeletePayment :exec
+DELETE FROM payment.base WHERE id = $1;
