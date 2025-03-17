@@ -25,7 +25,8 @@ func PgtypeToPtr[T any](v driver.Valuer) *T {
 
 // PtrToPgtype convert a pointer value to a pgtype, panics if an error occurs
 //
-// Branded types should be converted to string before calling this function (e.g. string(myType))
+// Branded types should be converted to string before calling this function (e.g. string(myType)).
+// Timestamptz should be converted to time.Time before calling this function
 func PtrToPgtype[T sql.Scanner, G any](base T, v *G) T {
 	if v == nil {
 		return base
@@ -42,6 +43,7 @@ func PtrToPgtype[T sql.Scanner, G any](base T, v *G) T {
 // ValueToPgtype convert a value to a pgtype, panics if an error occurs
 //
 // Branded types should be converted to string before calling this function (e.g. string(myType))
+// Timestamptz should be converted to time.Time before calling this function
 func ValueToPgtype[T sql.Scanner, G any](base T, v G) T {
 	// If branded type is not converted to string before calling this function, it will error since pgx cannot Scan our type
 	err := base.Scan(v)
