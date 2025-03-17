@@ -2,6 +2,7 @@ package util
 
 import (
 	"errors"
+	"fmt"
 	"shopnexus-go-service/config"
 	"shopnexus-go-service/internal/model"
 	"strconv"
@@ -34,18 +35,28 @@ func GenerateAccessToken(account model.Account) (string, error) {
 		return "", err
 	}
 
+	// test if token is valid
+	_, err = ValidateAccessToken(signedToken)
+	if err != nil {
+		return "", fmt.Errorf("failed to validate token: %w", err)
+	}
+
 	return signedToken, nil
 }
 
 func ValidateAccessToken(tokenStr string) (claims model.Claims, err error) {
 	secret := config.GetConfig().SensitiveKeys.JWTSecret
 
-	token, err := jwt.ParseWithClaims(tokenStr, &claims, func(token *jwt.Token) (interface{}, error) {
+	token, err := jwt.ParseWithClaims(tokenStr, &claims, func(token *jwt.Token) (any, error) {
 		return []byte(secret), nil
 	})
 
-	if err != nil || !token.Valid {
-		return claims, errors.New("unverified token or token is expired")
+	if err != nil {
+		return claims, err
+	}
+
+	if !token.Valid {
+		return claims, errors.New("invalid token or token expired")
 	}
 
 	return claims, nil
