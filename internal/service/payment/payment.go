@@ -193,6 +193,9 @@ func (s *PaymentService) CreatePayment(ctx context.Context, params CreatePayment
 		return CreatePaymentResult{}, err
 	}
 
+	// TODO: write to product.sold + product.quantity
+	// Rollback if purchase failed
+
 	if err = txRepo.Commit(ctx); err != nil {
 		return CreatePaymentResult{}, err
 	}
