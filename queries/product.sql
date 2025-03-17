@@ -3,7 +3,7 @@ SELECT *
 FROM product.base
 WHERE (
     product_model_id = $1 AND
-    sold = false
+    sold + sqlc.arg('amount') <= quantity
 )
 LIMIT sqlc.arg('amount');
 
