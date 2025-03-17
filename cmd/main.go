@@ -6,8 +6,7 @@ import (
 	"log"
 	"os"
 	"shopnexus-go-service/config"
-	grpcServer "shopnexus-go-service/internal/grpc/server"
-	"shopnexus-go-service/internal/http"
+	grpc "shopnexus-go-service/internal/grpc"
 	"shopnexus-go-service/internal/logger"
 	"time"
 
@@ -28,7 +27,6 @@ func main() {
 	setupLogger()
 	setupSentry()
 	setupGrpcServer()
-	setupHttpServer()
 }
 
 func setUpConfig() {
@@ -50,26 +48,13 @@ func setupLogger() {
 }
 
 func setupGrpcServer() {
-	logger.Log.Info("Starting gRPC server...")
-	go func() {
-		err := grpcServer.NewServer(fmt.Sprintf(":%d", *port))
-		if err != nil {
-			log.Fatal(err)
-		}
-	}()
-}
-
-func setupHttpServer() {
-	logger.Log.Info("Starting HTTP server...")
-	httpServer, err := http.NewServer(fmt.Sprintf(":%d", *port))
+	logger.Log.Info("Starting gRPC server at port " + fmt.Sprintf("%d", *port))
+	server, err := grpc.NewServer(fmt.Sprintf(":%d", *port))
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	err = httpServer.Start(fmt.Sprintf(":%d", 8080))
-	if err != nil {
-		log.Fatal(err)
-	}
+	server.Start(*port)
 }
 
 func setupSentry() {
