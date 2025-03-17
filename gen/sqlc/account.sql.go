@@ -11,37 +11,6 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
-const addCartItem = `-- name: AddCartItem :one
-INSERT INTO "account".item_on_cart (cart_id, product_model_id, quantity)
-VALUES ($1, $2, $3)
-ON CONFLICT (cart_id, product_model_id)
-DO UPDATE SET quantity = "account".item_on_cart.quantity + $3
-RETURNING quantity
-`
-
-type AddCartItemParams struct {
-	CartID         int64
-	ProductModelID int64
-	Quantity       int64
-}
-
-func (q *Queries) AddCartItem(ctx context.Context, arg AddCartItemParams) (int64, error) {
-	row := q.db.QueryRow(ctx, addCartItem, arg.CartID, arg.ProductModelID, arg.Quantity)
-	var quantity int64
-	err := row.Scan(&quantity)
-	return quantity, err
-}
-
-const clearCart = `-- name: ClearCart :exec
-DELETE FROM "account".item_on_cart
-WHERE cart_id = $1
-`
-
-func (q *Queries) ClearCart(ctx context.Context, cartID int64) error {
-	_, err := q.db.Exec(ctx, clearCart, cartID)
-	return err
-}
-
 const createAccountAdmin = `-- name: CreateAccountAdmin :one
 WITH base AS (
   INSERT INTO "account".base (username, password, role)
@@ -101,16 +70,6 @@ func (q *Queries) CreateAccountUser(ctx context.Context, arg CreateAccountUserPa
 	return id, err
 }
 
-const createCart = `-- name: CreateCart :exec
-INSERT INTO "account".cart (id)
-VALUES ($1)
-`
-
-func (q *Queries) CreateCart(ctx context.Context, id int64) error {
-	_, err := q.db.Exec(ctx, createCart, id)
-	return err
-}
-
 const getAccountAdmin = `-- name: GetAccountAdmin :one
 SELECT a.id, b.id, b.username, b.password, b.role
 FROM "account".admin a
@@ -131,7 +90,7 @@ type GetAccountAdminRow struct {
 	ID_2     int64
 	Username string
 	Password string
-	Role     AccountRole
+	Role     string
 }
 
 func (q *Queries) GetAccountAdmin(ctx context.Context, arg GetAccountAdminParams) (GetAccountAdminRow, error) {
@@ -157,6 +116,44 @@ func (q *Queries) GetAccountBase(ctx context.Context, id int64) (AccountBase, er
 	var i AccountBase
 	err := row.Scan(
 		&i.ID,
+		&i.Username,
+		&i.Password,
+		&i.Role,
+	)
+	return i, err
+}
+
+const getAccountStaff = `-- name: GetAccountStaff :one
+SELECT s.id, s.custom_permission, b.id, b.username, b.password, b.role
+FROM "account".staff s
+INNER JOIN "account".base b ON s.id = b.id
+WHERE (
+  s.id = $1 OR
+  b.username = $2
+)
+`
+
+type GetAccountStaffParams struct {
+	ID       pgtype.Int8
+	Username pgtype.Text
+}
+
+type GetAccountStaffRow struct {
+	ID               int64
+	CustomPermission pgtype.Bits
+	ID_2             int64
+	Username         string
+	Password         string
+	Role             string
+}
+
+func (q *Queries) GetAccountStaff(ctx context.Context, arg GetAccountStaffParams) (GetAccountStaffRow, error) {
+	row := q.db.QueryRow(ctx, getAccountStaff, arg.ID, arg.Username)
+	var i GetAccountStaffRow
+	err := row.Scan(
+		&i.ID,
+		&i.CustomPermission,
+		&i.ID_2,
 		&i.Username,
 		&i.Password,
 		&i.Role,
@@ -193,7 +190,7 @@ type GetAccountUserRow struct {
 	ID_2             int64
 	Username         string
 	Password         string
-	Role             AccountRole
+	Role             string
 }
 
 func (q *Queries) GetAccountUser(ctx context.Context, arg GetAccountUserParams) (GetAccountUserRow, error) {
@@ -219,73 +216,15 @@ func (q *Queries) GetAccountUser(ctx context.Context, arg GetAccountUserParams) 
 	return i, err
 }
 
-const getCart = `-- name: GetCart :one
-SELECT id FROM "account".cart
-WHERE id = $1
+const getRolePermissions = `-- name: GetRolePermissions :one
+SELECT permission FROM "account".permission_on_role
+INNER JOIN "account".role ON permission_on_role.role = role.name
+WHERE role.name = $1
 `
 
-func (q *Queries) GetCart(ctx context.Context, id int64) (int64, error) {
-	row := q.db.QueryRow(ctx, getCart, id)
-	err := row.Scan(&id)
-	return id, err
-}
-
-const getCartItems = `-- name: GetCartItems :many
-SELECT cart_id, product_model_id, quantity FROM "account".item_on_cart
-WHERE cart_id = $1
-`
-
-func (q *Queries) GetCartItems(ctx context.Context, cartID int64) ([]AccountItemOnCart, error) {
-	rows, err := q.db.Query(ctx, getCartItems, cartID)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-	var items []AccountItemOnCart
-	for rows.Next() {
-		var i AccountItemOnCart
-		if err := rows.Scan(&i.CartID, &i.ProductModelID, &i.Quantity); err != nil {
-			return nil, err
-		}
-		items = append(items, i)
-	}
-	if err := rows.Err(); err != nil {
-		return nil, err
-	}
-	return items, nil
-}
-
-const removeCartItem = `-- name: RemoveCartItem :exec
-DELETE FROM "account".item_on_cart
-WHERE cart_id = $1 AND product_model_id = $2
-`
-
-type RemoveCartItemParams struct {
-	CartID         int64
-	ProductModelID int64
-}
-
-func (q *Queries) RemoveCartItem(ctx context.Context, arg RemoveCartItemParams) error {
-	_, err := q.db.Exec(ctx, removeCartItem, arg.CartID, arg.ProductModelID)
-	return err
-}
-
-const updateCartItem = `-- name: UpdateCartItem :one
-UPDATE "account".item_on_cart
-SET quantity = $3
-WHERE cart_id = $1 AND product_model_id = $2
-RETURNING quantity
-`
-
-type UpdateCartItemParams struct {
-	CartID         int64
-	ProductModelID int64
-	Quantity       int64
-}
-
-func (q *Queries) UpdateCartItem(ctx context.Context, arg UpdateCartItemParams) (int64, error) {
-	row := q.db.QueryRow(ctx, updateCartItem, arg.CartID, arg.ProductModelID, arg.Quantity)
-	var quantity int64
-	err := row.Scan(&quantity)
-	return quantity, err
+func (q *Queries) GetRolePermissions(ctx context.Context, name string) (pgtype.Bits, error) {
+	row := q.db.QueryRow(ctx, getRolePermissions, name)
+	var permission pgtype.Bits
+	err := row.Scan(&permission)
+	return permission, err
 }

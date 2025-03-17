@@ -54,54 +54,12 @@ func (ns NullAccountGender) Value() (driver.Value, error) {
 	return string(ns.AccountGender), nil
 }
 
-type AccountRole string
-
-const (
-	AccountRoleADMIN AccountRole = "ADMIN"
-	AccountRoleUSER  AccountRole = "USER"
-)
-
-func (e *AccountRole) Scan(src interface{}) error {
-	switch s := src.(type) {
-	case []byte:
-		*e = AccountRole(s)
-	case string:
-		*e = AccountRole(s)
-	default:
-		return fmt.Errorf("unsupported scan type for AccountRole: %T", src)
-	}
-	return nil
-}
-
-type NullAccountRole struct {
-	AccountRole AccountRole
-	Valid       bool // Valid is true if AccountRole is not NULL
-}
-
-// Scan implements the Scanner interface.
-func (ns *NullAccountRole) Scan(value interface{}) error {
-	if value == nil {
-		ns.AccountRole, ns.Valid = "", false
-		return nil
-	}
-	ns.Valid = true
-	return ns.AccountRole.Scan(value)
-}
-
-// Value implements the driver Valuer interface.
-func (ns NullAccountRole) Value() (driver.Value, error) {
-	if !ns.Valid {
-		return nil, nil
-	}
-	return string(ns.AccountRole), nil
-}
-
 type PaymentPaymentMethod string
 
 const (
 	PaymentPaymentMethodCASH  PaymentPaymentMethod = "CASH"
-	PaymentPaymentMethodMOMO  PaymentPaymentMethod = "MOMO"
 	PaymentPaymentMethodVNPAY PaymentPaymentMethod = "VNPAY"
+	PaymentPaymentMethodMOMO  PaymentPaymentMethod = "MOMO"
 )
 
 func (e *PaymentPaymentMethod) Scan(src interface{}) error {
@@ -142,8 +100,8 @@ func (ns NullPaymentPaymentMethod) Value() (driver.Value, error) {
 type PaymentRefundMethod string
 
 const (
-	PaymentRefundMethodDROPOFF PaymentRefundMethod = "DROP_OFF"
 	PaymentRefundMethodPICKUP  PaymentRefundMethod = "PICK_UP"
+	PaymentRefundMethodDROPOFF PaymentRefundMethod = "DROP_OFF"
 )
 
 func (e *PaymentRefundMethod) Scan(src interface{}) error {
@@ -226,13 +184,12 @@ func (ns NullPaymentStatus) Value() (driver.Value, error) {
 }
 
 type AccountAddress struct {
-	ID         int64
-	UserID     int64
-	Address    string
-	City       string
-	Province   string
-	Country    string
-	PostalCode string
+	ID       int64
+	UserID   int64
+	Address  string
+	City     string
+	Province string
+	Country  string
 }
 
 type AccountAdmin struct {
@@ -243,7 +200,7 @@ type AccountBase struct {
 	ID       int64
 	Username string
 	Password string
-	Role     AccountRole
+	Role     string
 }
 
 type AccountCart struct {
@@ -254,6 +211,20 @@ type AccountItemOnCart struct {
 	CartID         int64
 	ProductModelID int64
 	Quantity       int64
+}
+
+type AccountPermissionOnRole struct {
+	Role       string
+	Permission pgtype.Bits
+}
+
+type AccountRole struct {
+	Name string
+}
+
+type AccountStaff struct {
+	ID               int64
+	CustomPermission pgtype.Bits
 }
 
 type AccountUser struct {
@@ -289,16 +260,31 @@ type PaymentRefund struct {
 	Method      PaymentRefundMethod
 	Status      PaymentStatus
 	Reason      string
-	Address     pgtype.Text
+	Address     string
 	DateCreated pgtype.Timestamptz
 	DateUpdated pgtype.Timestamptz
+}
+
+type PaymentVnpay struct {
+	ID                 int64
+	VnpTxnRef          string
+	VnpOrderInfo       string
+	VnpTransactionNo   string
+	VnpTransactionDate string
+	VnpCreateDate      string
+	VnpIpAddr          string
 }
 
 type ProductBase struct {
 	ID             int64
 	SerialID       string
 	ProductModelID int64
-	Sold           bool
+	Quantity       int64
+	Sold           int64
+	Size           int64
+	Color          string
+	AddPrice       int64
+	IsActive       bool
 	DateCreated    pgtype.Timestamptz
 	DateUpdated    pgtype.Timestamptz
 }
@@ -307,6 +293,16 @@ type ProductBrand struct {
 	ID          int64
 	Name        string
 	Description string
+}
+
+type ProductComment struct {
+	ID       int64
+	UserID   int64
+	DestID   int64
+	Body     string
+	Upvote   int64
+	Downvote int64
+	Score    int32
 }
 
 type ProductModel struct {
@@ -325,23 +321,24 @@ type ProductResource struct {
 
 type ProductSale struct {
 	ID              int64
-	TagName         pgtype.Text
+	Tag             pgtype.Text
 	ProductModelID  pgtype.Int8
+	BrandID         pgtype.Int8
 	DateStarted     pgtype.Timestamptz
 	DateEnded       pgtype.Timestamptz
 	Quantity        int64
 	Used            int64
 	IsActive        bool
-	DiscountPercent pgtype.Int8
+	DiscountPercent pgtype.Int4
 	DiscountPrice   pgtype.Int8
 }
 
 type ProductTag struct {
-	TagName     string
+	Tag         string
 	Description string
 }
 
-type ProductTagOnProduct struct {
+type ProductTagOnProductModel struct {
 	ProductModelID int64
-	TagName        string
+	Tag            string
 }
