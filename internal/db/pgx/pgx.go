@@ -49,29 +49,29 @@ func InitPgConnectionPool(postgresConfig config.Postgres) error {
 	return nil
 }
 
-func GetPgxPool() *pgxpool.Pool {
+func GetPgxPool() (*pgxpool.Pool, error) {
 	if pgxPool == nil {
-		logger.Log.Info("Initializing pgxPool again")
 		err := InitPgConnectionPool(config.GetConfig().Postgres)
 		if err != nil {
-			logger.Log.Error("Failed to initialize pgxPool", zap.Error(err))
+			return nil, err
 		}
-		logger.Log.Info("pgxPool initialized")
 	}
 
-	return pgxPool
+	return pgxPool, nil
 }
 
-func GetPgxConn() *pgxpool.Conn {
-	pgxPool := GetPgxPool()
-
-	conn, err := pgxPool.Acquire(context.Background())
+func GetPgxConn(ctx context.Context) (*pgxpool.Conn, error) {
+	pgxPool, err := GetPgxPool()
 	if err != nil {
-		logger.Log.Error("Failed to acquire pgxPool connection", zap.Error(err))
-		return nil
+		return nil, err
 	}
 
-	return conn
+	conn, err := pgxPool.Acquire(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	return conn, nil
 }
 
 func InitSchema(ctx context.Context, postgresConfig config.Postgres, schema string) (err error) {
