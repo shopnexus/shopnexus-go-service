@@ -1,66 +1,66 @@
 {
 	"info": {
-		"_postman_id": "85ce9b8e-6bf1-44b3-afc9-3fb8c0a05f65",
+		"_postman_id": "a5718a7b-4f95-4f2b-b2f0-ef3867aa9b0b",
 		"name": "shopnexus",
 		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
 		"_exporter_id": "34158645",
-		"_collection_link": "https://lively-crater-239797.postman.co/workspace/safe-trade~2d8fbe46-3fde-4ebc-9732-3789a9f6341f/collection/34158645-85ce9b8e-6bf1-44b3-afc9-3fb8c0a05f65?action=share&source=collection_link&creator=34158645"
+		"_collection_link": "https://lively-crater-239797.postman.co/workspace/safe-trade~2d8fbe46-3fde-4ebc-9732-3789a9f6341f/collection/34158645-a5718a7b-4f95-4f2b-b2f0-ef3867aa9b0b?action=share&source=collection_link&creator=34158645"
 	},
 	"item": [
 		{
 			"name": "Account",
 			"item": [
 				{
-					"name": "Login Admin",
+					"name": "Login User",
 					"request": {
 						"method": "POST",
-						"header": [],
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json",
+								"type": "text"
+							}
+						],
 						"body": {
 							"mode": "raw",
-							"raw": "{\r\n    \"username\": \"admin\",\r\n    \"password\": \"admin\"\r\n}",
-							"options": {
-								"raw": {
-									"language": "json"
-								}
-							}
+							"raw": "{\n    \"username\": \"user1\",\n    \"password\": \"password123\"\n}"
 						},
 						"url": {
-							"raw": "{{API_URL}}/account/login/admin",
+							"raw": "{{API_URL}}/account.v1.AccountService/LoginUser",
 							"host": [
 								"{{API_URL}}"
 							],
 							"path": [
-								"account",
-								"login",
-								"admin"
+								"account.v1.AccountService",
+								"LoginUser"
 							]
 						}
 					},
 					"response": []
 				},
 				{
-					"name": "Login User",
+					"name": "Login Admin",
 					"request": {
 						"method": "POST",
-						"header": [],
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json",
+								"type": "text"
+							}
+						],
 						"body": {
 							"mode": "raw",
-							"raw": "{\r\n    \"username\": \"user1\",\r\n    \"password\": \"password123\"\r\n}",
-							"options": {
-								"raw": {
-									"language": "json"
-								}
-							}
+							"raw": "{\n    \"username\": \"admin\",\n    \"password\": \"admin\"\n}"
 						},
 						"url": {
-							"raw": "{{API_URL}}/account/login/user",
+							"raw": "{{API_URL}}/account.v1.AccountService/LoginAdmin",
 							"host": [
 								"{{API_URL}}"
 							],
 							"path": [
-								"account",
-								"login",
-								"user"
+								"account.v1.AccountService",
+								"LoginAdmin"
 							]
 						}
 					},
@@ -68,27 +68,32 @@
 				},
 				{
 					"name": "Register Admin",
+					"protocolProfileBehavior": {
+						"disabledSystemHeaders": {
+							"content-type": true
+						}
+					},
 					"request": {
 						"method": "POST",
-						"header": [],
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json",
+								"type": "text"
+							}
+						],
 						"body": {
 							"mode": "raw",
-							"raw": "{\r\n    \"username\": \"admin\",\r\n    \"password\": \"admin\"\r\n}",
-							"options": {
-								"raw": {
-									"language": "json"
-								}
-							}
+							"raw": "{\n    \"username\": \"admin\",\n    \"password\": \"admin\"\n}"
 						},
 						"url": {
-							"raw": "{{API_URL}}/account/register/admin",
+							"raw": "{{API_URL}}/account.v1.AccountService/RegisterAdmin",
 							"host": [
 								"{{API_URL}}"
 							],
 							"path": [
-								"account",
-								"register",
-								"admin"
+								"account.v1.AccountService",
+								"RegisterAdmin"
 							]
 						}
 					},
@@ -98,247 +103,25 @@
 					"name": "Register User",
 					"request": {
 						"method": "POST",
-						"header": [],
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json",
+								"type": "text"
+							}
+						],
 						"body": {
 							"mode": "raw",
-							"raw": "{\r\n    \"username\": \"user1\",\r\n    \"password\": \"password123\",\r\n    \"email\": \"user1@example.com\",\r\n    \"phone\": \"+84123456789\",\r\n    \"gender\": \"MALE\",\r\n    \"full_name\": \"John Doe\"\r\n}",
-							"options": {
-								"raw": {
-									"language": "json"
-								}
-							}
+							"raw": "{\n    \"username\": \"user1\",\n    \"password\": \"password123\",\n    \"email\": \"user1@example.com\",\n    \"phone\": \"+84123456789\",\n    \"gender\": \"MALE\",\n    \"full_name\": \"John Doe\"\n}"
 						},
 						"url": {
-							"raw": "{{API_URL}}/account/register/user",
+							"raw": "{{API_URL}}/account.v1.AccountService/RegisterUser",
 							"host": [
 								"{{API_URL}}"
 							],
 							"path": [
-								"account",
-								"register",
-								"user"
-							]
-						}
-					},
-					"response": []
-				}
-			]
-		},
-		{
-			"name": "Products",
-			"item": [
-				{
-					"name": "List Product Models",
-					"request": {
-						"method": "GET",
-						"header": [],
-						"url": {
-							"raw": "{{API_URL}}/products/models?limit=10&page=1",
-							"host": [
-								"{{API_URL}}"
-							],
-							"path": [
-								"products",
-								"models"
-							],
-							"query": [
-								{
-									"key": "limit",
-									"value": "10"
-								},
-								{
-									"key": "page",
-									"value": "1"
-								},
-								{
-									"key": "brand_id",
-									"value": "",
-									"disabled": true
-								},
-								{
-									"key": "name",
-									"value": "",
-									"disabled": true
-								},
-								{
-									"key": "list_price_from",
-									"value": "454001",
-									"disabled": true
-								},
-								{
-									"key": "list_price_to",
-									"value": "45400",
-									"disabled": true
-								}
-							]
-						}
-					},
-					"response": []
-				},
-				{
-					"name": "Get Product Model",
-					"request": {
-						"method": "GET",
-						"header": [],
-						"url": {
-							"raw": "{{API_URL}}/products/models/1",
-							"host": [
-								"{{API_URL}}"
-							],
-							"path": [
-								"products",
-								"models",
-								"1"
-							]
-						}
-					},
-					"response": []
-				},
-				{
-					"name": "Delete Product Model",
-					"request": {
-						"method": "DELETE",
-						"header": [],
-						"url": {
-							"raw": "{{API_URL}}/products/models/1",
-							"host": [
-								"{{API_URL}}"
-							],
-							"path": [
-								"products",
-								"models",
-								"1"
-							]
-						}
-					},
-					"response": []
-				},
-				{
-					"name": "List Products",
-					"request": {
-						"method": "GET",
-						"header": [],
-						"url": {
-							"raw": "{{API_URL}}/products?limit=2&page=1",
-							"host": [
-								"{{API_URL}}"
-							],
-							"path": [
-								"products"
-							],
-							"query": [
-								{
-									"key": "limit",
-									"value": "2"
-								},
-								{
-									"key": "page",
-									"value": "1"
-								},
-								{
-									"key": "product_model_id",
-									"value": "",
-									"disabled": true
-								},
-								{
-									"key": "date_created_from",
-									"value": "",
-									"disabled": true
-								},
-								{
-									"key": "date_created_to",
-									"value": "",
-									"disabled": true
-								}
-							]
-						}
-					},
-					"response": []
-				},
-				{
-					"name": "Get Product",
-					"request": {
-						"method": "GET",
-						"header": [],
-						"url": {
-							"raw": "{{API_URL}}/products/1",
-							"host": [
-								"{{API_URL}}"
-							],
-							"path": [
-								"products",
-								"1"
-							]
-						}
-					},
-					"response": []
-				},
-				{
-					"name": "Create Product",
-					"request": {
-						"method": "POST",
-						"header": [],
-						"body": {
-							"mode": "raw",
-							"raw": "{\r\n    \"serial_id\": \"PROD-12345\",\r\n    \"product_model_id\": 1\r\n}",
-							"options": {
-								"raw": {
-									"language": "json"
-								}
-							}
-						},
-						"url": {
-							"raw": "{{API_URL}}/products",
-							"host": [
-								"{{API_URL}}"
-							],
-							"path": [
-								"products"
-							]
-						}
-					},
-					"response": []
-				},
-				{
-					"name": "Update Product",
-					"request": {
-						"method": "PUT",
-						"header": [],
-						"body": {
-							"mode": "raw",
-							"raw": "{\r\n    \"serial_id\": \"PROD-12345-UPDATED\",\r\n    \"product_model_id\": 1\r\n}",
-							"options": {
-								"raw": {
-									"language": "json"
-								}
-							}
-						},
-						"url": {
-							"raw": "{{API_URL}}/products/1",
-							"host": [
-								"{{API_URL}}"
-							],
-							"path": [
-								"products",
-								"1"
-							]
-						}
-					},
-					"response": []
-				},
-				{
-					"name": "Delete Product",
-					"request": {
-						"method": "DELETE",
-						"header": [],
-						"url": {
-							"raw": "{{API_URL}}/products/1",
-							"host": [
-								"{{API_URL}}"
-							],
-							"path": [
-								"products",
-								"1"
+								"account.v1.AccountService",
+								"RegisterUser"
 							]
 						}
 					},
@@ -353,14 +136,31 @@
 					"name": "Get Cart",
 					"request": {
 						"method": "GET",
-						"header": [],
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json",
+								"type": "text"
+							}
+						],
 						"url": {
-							"raw": "{{API_URL}}/cart",
+							"raw": "{{API_URL}}/account.v1.AccountService/GetCart?encoding=json&message={}",
 							"host": [
 								"{{API_URL}}"
 							],
 							"path": [
-								"cart"
+								"account.v1.AccountService",
+								"GetCart"
+							],
+							"query": [
+								{
+									"key": "encoding",
+									"value": "json"
+								},
+								{
+									"key": "message",
+									"value": "{}"
+								}
 							]
 						}
 					},
@@ -370,24 +170,25 @@
 					"name": "Add Cart Item",
 					"request": {
 						"method": "POST",
-						"header": [],
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json",
+								"type": "text"
+							}
+						],
 						"body": {
 							"mode": "raw",
-							"raw": "{\r\n    \"product_model_id\": 1,\r\n    \"quantity\": 2\r\n}",
-							"options": {
-								"raw": {
-									"language": "json"
-								}
-							}
+							"raw": "{\n    \"product_model_id\": 1,\n    \"quantity\": 2\n}"
 						},
 						"url": {
-							"raw": "{{API_URL}}/cart/items",
+							"raw": "{{API_URL}}/account.v1.AccountService/AddCartItem",
 							"host": [
 								"{{API_URL}}"
 							],
 							"path": [
-								"cart",
-								"items"
+								"account.v1.AccountService",
+								"AddCartItem"
 							]
 						}
 					},
@@ -396,25 +197,26 @@
 				{
 					"name": "Update Cart Item",
 					"request": {
-						"method": "PUT",
-						"header": [],
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json",
+								"type": "text"
+							}
+						],
 						"body": {
 							"mode": "raw",
-							"raw": "{\r\n    \"product_model_id\": 1,\r\n    \"quantity\": 3\r\n}",
-							"options": {
-								"raw": {
-									"language": "json"
-								}
-							}
+							"raw": "{\n    \"product_model_id\": 1,\n    \"quantity\": 3\n}"
 						},
 						"url": {
-							"raw": "{{API_URL}}/cart/items",
+							"raw": "{{API_URL}}/account.v1.AccountService/UpdateCartItem",
 							"host": [
 								"{{API_URL}}"
 							],
 							"path": [
-								"cart",
-								"items"
+								"account.v1.AccountService",
+								"UpdateCartItem"
 							]
 						}
 					},
@@ -423,15 +225,654 @@
 				{
 					"name": "Clear Cart",
 					"request": {
-						"method": "DELETE",
-						"header": [],
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{}"
+						},
 						"url": {
-							"raw": "{{API_URL}}/cart",
+							"raw": "{{API_URL}}/account.v1.AccountService/ClearCart",
 							"host": [
 								"{{API_URL}}"
 							],
 							"path": [
-								"cart"
+								"account.v1.AccountService",
+								"ClearCart"
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Product Model",
+			"item": [
+				{
+					"name": "List Product Models",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{API_URL}}/product.v1.ProductService/ListProductModels?encoding=json&message={\"pagination\":{\"limit\":50,\"page\":1}}",
+							"host": [
+								"{{API_URL}}"
+							],
+							"path": [
+								"product.v1.ProductService",
+								"ListProductModels"
+							],
+							"query": [
+								{
+									"key": "encoding",
+									"value": "json"
+								},
+								{
+									"key": "message",
+									"value": "{\"pagination\":{\"limit\":50,\"page\":1}}"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get Product Model",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{API_URL}}/product.v1.ProductService/GetProductModel?encoding=json&message={\"id\":1}",
+							"host": [
+								"{{API_URL}}"
+							],
+							"path": [
+								"product.v1.ProductService",
+								"GetProductModel"
+							],
+							"query": [
+								{
+									"key": "encoding",
+									"value": "json"
+								},
+								{
+									"key": "message",
+									"value": "{\"id\":1}"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Create Product Model",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"id\": 1\n}"
+						},
+						"url": {
+							"raw": "{{API_URL}}/product.v1.ProductService/CreateProductModel",
+							"host": [
+								"{{API_URL}}"
+							],
+							"path": [
+								"product.v1.ProductService",
+								"CreateProductModel"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Update Product Model",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"id\": 1\n}"
+						},
+						"url": {
+							"raw": "{{API_URL}}/product.v1.ProductService/UpdateProductModel",
+							"host": [
+								"{{API_URL}}"
+							],
+							"path": [
+								"product.v1.ProductService",
+								"UpdateProductModel"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Delete Product Model",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"id\": 1\n}"
+						},
+						"url": {
+							"raw": "{{API_URL}}/product.v1.ProductService/DeleteProductModel",
+							"host": [
+								"{{API_URL}}"
+							],
+							"path": [
+								"product.v1.ProductService",
+								"DeleteProductModel"
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Products",
+			"item": [
+				{
+					"name": "List Products",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{API_URL}}/product.v1.ProductService/ListProducts?encoding=json&message={\"pagination\":{\"limit\":2,\"page\":1}}",
+							"host": [
+								"{{API_URL}}"
+							],
+							"path": [
+								"product.v1.ProductService",
+								"ListProducts"
+							],
+							"query": [
+								{
+									"key": "encoding",
+									"value": "json"
+								},
+								{
+									"key": "message",
+									"value": "{\"pagination\":{\"limit\":2,\"page\":1}}"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get Product",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{API_URL}}/product.v1.ProductService/GetProduct?encoding=json&message={\"id\":1}",
+							"host": [
+								"{{API_URL}}"
+							],
+							"path": [
+								"product.v1.ProductService",
+								"GetProduct"
+							],
+							"query": [
+								{
+									"key": "encoding",
+									"value": "json"
+								},
+								{
+									"key": "message",
+									"value": "{\"id\":1}"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Create Product",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"serial_id\": \"PROD-12345\",\n    \"product_model_id\": 1\n}"
+						},
+						"url": {
+							"raw": "{{API_URL}}/product.v1.ProductService/CreateProduct",
+							"host": [
+								"{{API_URL}}"
+							],
+							"path": [
+								"product.v1.ProductService",
+								"CreateProduct"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Update Product",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"id\": 1,\n    \"serial_id\": \"PROD-12345-UPDATED\",\n    \"product_model_id\": 1\n}"
+						},
+						"url": {
+							"raw": "{{API_URL}}/product.v1.ProductService/UpdateProduct",
+							"host": [
+								"{{API_URL}}"
+							],
+							"path": [
+								"product.v1.ProductService",
+								"UpdateProduct"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Delete Product",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"id\": 1\n}"
+						},
+						"url": {
+							"raw": "{{API_URL}}/product.v1.ProductService/DeleteProduct",
+							"host": [
+								"{{API_URL}}"
+							],
+							"path": [
+								"product.v1.ProductService",
+								"DeleteProduct"
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Sale",
+			"item": [
+				{
+					"name": "List Sales",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{API_URL}}/product.v1.ProductService/ListSales?encoding=json&message={\"pagination\":{\"limit\":10,\"page\":1}}",
+							"host": [
+								"{{API_URL}}"
+							],
+							"path": [
+								"product.v1.ProductService",
+								"ListSales"
+							],
+							"query": [
+								{
+									"key": "encoding",
+									"value": "json"
+								},
+								{
+									"key": "message",
+									"value": "{\"pagination\":{\"limit\":10,\"page\":1}}"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get Sale",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{API_URL}}/product.v1.ProductService/GetSale?encoding=json&message={\"id\":1}",
+							"host": [
+								"{{API_URL}}"
+							],
+							"path": [
+								"product.v1.ProductService",
+								"GetSale"
+							],
+							"query": [
+								{
+									"key": "encoding",
+									"value": "json"
+								},
+								{
+									"key": "message",
+									"value": "{\"id\":1}"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Create Sale",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"serial_id\": \"PROD-12345\",\n    \"product_model_id\": 1\n}"
+						},
+						"url": {
+							"raw": "{{API_URL}}/product.v1.ProductService/CreateSale",
+							"host": [
+								"{{API_URL}}"
+							],
+							"path": [
+								"product.v1.ProductService",
+								"CreateSale"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Update Sale",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"id\": 1,\n    \"serial_id\": \"PROD-12345-UPDATED\",\n    \"product_model_id\": 1\n}"
+						},
+						"url": {
+							"raw": "{{API_URL}}/product.v1.ProductService/UpdateSale",
+							"host": [
+								"{{API_URL}}"
+							],
+							"path": [
+								"product.v1.ProductService",
+								"UpdateSale"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Delete Sale",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"id\": 1\n}"
+						},
+						"url": {
+							"raw": "{{API_URL}}/product.v1.ProductService/DeleteSale",
+							"host": [
+								"{{API_URL}}"
+							],
+							"path": [
+								"product.v1.ProductService",
+								"DeleteSale"
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Tag",
+			"item": [
+				{
+					"name": "List Tags",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{API_URL}}/product.v1.ProductService/ListTags?encoding=json&message={\"pagination\":{\"limit\":2,\"page\":1}}",
+							"host": [
+								"{{API_URL}}"
+							],
+							"path": [
+								"product.v1.ProductService",
+								"ListTags"
+							],
+							"query": [
+								{
+									"key": "encoding",
+									"value": "json"
+								},
+								{
+									"key": "message",
+									"value": "{\"pagination\":{\"limit\":2,\"page\":1}}"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get Tag",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{API_URL}}/product.v1.ProductService/GetTag?encoding=json&message={\"tag\":\"Baby\"}",
+							"host": [
+								"{{API_URL}}"
+							],
+							"path": [
+								"product.v1.ProductService",
+								"GetTag"
+							],
+							"query": [
+								{
+									"key": "encoding",
+									"value": "json"
+								},
+								{
+									"key": "message",
+									"value": "{\"tag\":\"Baby\"}"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Create Tag",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"serial_id\": \"PROD-12345\",\n    \"product_model_id\": 1\n}"
+						},
+						"url": {
+							"raw": "{{API_URL}}/product.v1.ProductService/CreateTag",
+							"host": [
+								"{{API_URL}}"
+							],
+							"path": [
+								"product.v1.ProductService",
+								"CreateTag"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Update Tag",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"id\": 1,\n    \"serial_id\": \"PROD-12345-UPDATED\",\n    \"product_model_id\": 1\n}"
+						},
+						"url": {
+							"raw": "{{API_URL}}/product.v1.ProductService/UpdateTag",
+							"host": [
+								"{{API_URL}}"
+							],
+							"path": [
+								"product.v1.ProductService",
+								"UpdateTag"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Delete Tag",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"id\": 1\n}"
+						},
+						"url": {
+							"raw": "{{API_URL}}/product.v1.ProductService/DeleteTag",
+							"host": [
+								"{{API_URL}}"
+							],
+							"path": [
+								"product.v1.ProductService",
+								"DeleteTag"
 							]
 						}
 					},
@@ -443,26 +884,149 @@
 			"name": "Payment",
 			"item": [
 				{
-					"name": "Create Payment",
+					"name": "Get Payment",
+					"protocolProfileBehavior": {
+						"disableBodyPruning": true
+					},
 					"request": {
-						"method": "POST",
-						"header": [],
+						"method": "GET",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json",
+								"type": "text"
+							}
+						],
 						"body": {
 							"mode": "raw",
-							"raw": "{\r\n    \"address\": \"123 Main St, City, Country\",\r\n    \"payment_method\": \"CASH\"\r\n}",
-							"options": {
-								"raw": {
-									"language": "json"
-								}
-							}
+							"raw": "{\n    \"requestId\": 1, \n    \"method\": \"PAYMENT_METHOD_VNPAY\",\n    \"address\": \"123 Main St, City, Country\"\n}"
 						},
 						"url": {
-							"raw": "{{API_URL}}/payment",
+							"raw": "{{API_URL}}/payment.v1.PaymentService/GetPayment",
 							"host": [
 								"{{API_URL}}"
 							],
 							"path": [
-								"payment"
+								"payment.v1.PaymentService",
+								"GetPayment"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "List payments",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{API_URL}}/payment.v1.PaymentService/ListPayments?encoding=json&message={\"pagination\": {\"limit\": 5, \"page\":1}",
+							"host": [
+								"{{API_URL}}"
+							],
+							"path": [
+								"payment.v1.PaymentService",
+								"ListPayments"
+							],
+							"query": [
+								{
+									"key": "encoding",
+									"value": "json"
+								},
+								{
+									"key": "message",
+									"value": "{\"pagination\": {\"limit\": 5, \"page\":1}"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Create Payment",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"requestId\": 1, \n    \"method\": \"PAYMENT_METHOD_VNPAY\",\n    \"address\": \"123 Main St, City, Country\"\n}"
+						},
+						"url": {
+							"raw": "{{API_URL}}/payment.v1.PaymentService/CreatePayment",
+							"host": [
+								"{{API_URL}}"
+							],
+							"path": [
+								"payment.v1.PaymentService",
+								"CreatePayment"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Update Payment",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"requestId\": 1, \n    \"method\": \"PAYMENT_METHOD_VNPAY\",\n    \"address\": \"123 Main St, City, Country\"\n}"
+						},
+						"url": {
+							"raw": "{{API_URL}}/payment.v1.PaymentService/UpdatePayment",
+							"host": [
+								"{{API_URL}}"
+							],
+							"path": [
+								"payment.v1.PaymentService",
+								"UpdatePayment"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Delete Payment",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"requestId\": 1, \n    \"method\": \"PAYMENT_METHOD_VNPAY\",\n    \"address\": \"123 Main St, City, Country\"\n}"
+						},
+						"url": {
+							"raw": "{{API_URL}}/payment.v1.PaymentService/DeletePayment",
+							"host": [
+								"{{API_URL}}"
+							],
+							"path": [
+								"payment.v1.PaymentService",
+								"DeletePayment"
 							]
 						}
 					},
@@ -474,26 +1038,132 @@
 			"name": "Refund",
 			"item": [
 				{
-					"name": "Create Refund",
+					"name": "Get Refund",
 					"request": {
-						"method": "POST",
-						"header": [],
-						"body": {
-							"mode": "raw",
-							"raw": "{\r\n    \"payment_id\": 1,\r\n    \"method\": \"DROP_OFF\",\r\n    \"reason\": \"Product damaged\",\r\n    \"address\": null\r\n}",
-							"options": {
-								"raw": {
-									"language": "json"
-								}
+						"method": "GET",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json",
+								"type": "text"
 							}
-						},
+						],
 						"url": {
-							"raw": "{{API_URL}}/refund",
+							"raw": "{{API_URL}}/payment.v1.PaymentService/GetRefund",
 							"host": [
 								"{{API_URL}}"
 							],
 							"path": [
-								"refund"
+								"payment.v1.PaymentService",
+								"GetRefund"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "List Refunds",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{API_URL}}/payment.v1.PaymentService/ListRefunds",
+							"host": [
+								"{{API_URL}}"
+							],
+							"path": [
+								"payment.v1.PaymentService",
+								"ListRefunds"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Create Refund",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"payment_id\": 1,\n    \"method\": \"DROP_OFF\",\n    \"reason\": \"Product damaged\",\n    \"address\": null\n}"
+						},
+						"url": {
+							"raw": "{{API_URL}}/payment.v1.PaymentService/CreateRefund",
+							"host": [
+								"{{API_URL}}"
+							],
+							"path": [
+								"payment.v1.PaymentService",
+								"CreateRefund"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Update Refund",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"payment_id\": 1,\n    \"method\": \"DROP_OFF\",\n    \"reason\": \"Product damaged\",\n    \"address\": null\n}"
+						},
+						"url": {
+							"raw": "{{API_URL}}/payment.v1.PaymentService/UpdateRefund",
+							"host": [
+								"{{API_URL}}"
+							],
+							"path": [
+								"payment.v1.PaymentService",
+								"UpdateRefund"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Delete Refund",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"payment_id\": 1,\n    \"method\": \"DROP_OFF\",\n    \"reason\": \"Product damaged\",\n    \"address\": null\n}"
+						},
+						"url": {
+							"raw": "{{API_URL}}/payment.v1.PaymentService/CreateRefund",
+							"host": [
+								"{{API_URL}}"
+							],
+							"path": [
+								"payment.v1.PaymentService",
+								"CreateRefund"
 							]
 						}
 					},
