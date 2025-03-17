@@ -99,7 +99,7 @@ SELECT id, serial_id, product_model_id, quantity, sold, size, color, add_price, 
 FROM product.base
 WHERE (
     product_model_id = $1 AND
-    sold = false
+    sold + $2 <= quantity
 )
 LIMIT $2
 `
