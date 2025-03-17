@@ -58,7 +58,7 @@ type S3 struct {
 	Region          string `yaml:"region"`
 	Bucket          string `yaml:"bucket"`
 	AccessKeyID     string `yaml:"accessKeyID"`
-	SecretAccessKey string `yaml:"secret`
+	SecretAccessKey string `yaml:"secretAccessKey"`
 	CloudfrontURL   string `yaml:"cloudfrontURL"`
 }
 
