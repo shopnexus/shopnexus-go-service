@@ -55,10 +55,30 @@ func (s *Server) Init() {
 }
 
 func (s *Server) Start(port int) {
+	// Create a CORS middleware handler
+	corsHandler := func(h http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			// Set CORS headers
+			w.Header().Set("Access-Control-Allow-Origin", "*")
+			w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
+			w.Header().Set("Access-Control-Allow-Headers", "Accept, Content-Type, Content-Length, Accept-Encoding, Authorization, Connect-Protocol-Version")
+			w.Header().Set("Access-Control-Max-Age", "3600")
+
+			// Handle preflight OPTIONS requests
+			if r.Method == "OPTIONS" {
+				w.WriteHeader(http.StatusNoContent)
+				return
+			}
+
+			// Pass the request to the next handler
+			h.ServeHTTP(w, r)
+		})
+	}
+
 	err := http.ListenAndServe(
 		fmt.Sprintf(":%d", port),
-		// Use h2c so we can serve HTTP/2 without TLS.
-		h2c.NewHandler(s.Mux, &http2.Server{}),
+		// Apply CORS middleware to the h2c handler
+		corsHandler(h2c.NewHandler(s.Mux, &http2.Server{})),
 	)
 	if err != nil {
 		log.Fatal(err)
