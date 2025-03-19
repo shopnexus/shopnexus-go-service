@@ -326,7 +326,7 @@ async function createSales(
 			used: BigInt(Math.floor(Math.random() * 10)),
 			is_active: true,
 			discount_percent:
-				Math.random() < 0.7 ? BigInt(Math.floor(Math.random() * 50) + 5) : null,
+				Math.random() < 0.7 ? Math.floor(Math.random() * 50) + 5 : null,
 			discount_price:
 				Math.random() < 0.3
 					? BigInt(Math.floor(Math.random() * 100000) + 10000)
