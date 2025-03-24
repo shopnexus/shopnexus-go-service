@@ -107,6 +107,11 @@ func (s *PaymentService) CreatePayment(ctx context.Context, params CreatePayment
 		return CreatePaymentResult{}, fmt.Errorf("cart is empty")
 	}
 
+	// Clear the cart
+	if err = txRepo.ClearCart(ctx, params.UserID); err != nil {
+		return CreatePaymentResult{}, err
+	}
+
 	var (
 		productOnPayments []model.ProductOnPayment
 		totalPayment      int64
@@ -131,20 +136,42 @@ func (s *PaymentService) CreatePayment(ctx context.Context, params CreatePayment
 			return CreatePaymentResult{}, err
 		}
 
-		for _, pickProduct := range pickProducts {
-			// TODO: add discount logic to Price or TotalPrice
-			totalPrice := productModel.ListPrice * productModelItem.GetQuantity()
-			totalPayment += totalPrice
+		var (
+			serialIDs  []string
+			totalPrice int64
+		)
 
-			productOnPayments = append(productOnPayments, model.ProductOnPayment{
-				ItemQuantityBase: model.ItemQuantityBase[string]{
-					ItemID:   pickProduct.SerialID,
-					Quantity: productModelItem.GetQuantity(),
-				},
-				Price:      productModel.ListPrice,
-				TotalPrice: totalPrice,
-			})
+		// Get available sales for the product model
+		sales, err := txRepo.GetAvailableSales(ctx, repository.GetLatestSaleParams{
+			ProductModelID: productModelItem.GetID(),
+			BrandID:        productModel.BrandID,
+			Tags:           productModel.Tags,
+		})
+		if err != nil {
+			return CreatePaymentResult{}, err
 		}
+
+		for _, pickProduct := range pickProducts {
+			serialIDs = append(serialIDs, pickProduct.SerialID)
+			totalPrice += productModel.ListPrice + pickProduct.AddPrice
+			totalPriceBase := totalPrice
+
+			// Apply sales
+			for _, sale := range sales {
+				totalPrice -= sale.Apply(totalPriceBase)
+			}
+		}
+		totalPayment += totalPrice
+
+		productOnPayments = append(productOnPayments, model.ProductOnPayment{
+			ItemQuantityBase: model.ItemQuantityBase[int64]{
+				ItemID:   productModelItem.GetID(),
+				Quantity: productModelItem.GetQuantity(),
+			},
+			SerialIDs:  serialIDs,
+			Price:      productModel.ListPrice,
+			TotalPrice: totalPrice,
+		})
 	}
 
 	// Create payment
@@ -225,21 +252,11 @@ func (s *PaymentService) UpdatePayment(ctx context.Context, params UpdatePayment
 	}
 	defer txRepo.Rollback(ctx)
 
-	exists, err := txRepo.ExistsPayment(ctx, repository.GetPaymentParams{
-		ID:     params.ID,
-		UserID: &params.UserID,
-	})
-	if err != nil {
-		return err
-	}
-
-	if !exists {
-		return fmt.Errorf("payment %d not found", params.ID)
-	}
-
+	// Payment must be pending
 	payment, err := txRepo.GetPayment(ctx, repository.GetPaymentParams{
 		ID:     params.ID,
 		UserID: &params.UserID,
+		Status: util.ToPtr(model.StatusPending),
 	})
 	if err != nil {
 		return err
@@ -335,6 +352,7 @@ func (s *PaymentService) CancelRefund(ctx context.Context, params CancelRefundPa
 
 	if err = txRepo.UpdateRefund(ctx, repository.UpdateRefundParams{
 		ID:     params.RefundID,
+		UserID: &params.UserID,
 		Status: util.ToPtr(model.StatusCancelled),
 	}); err != nil {
 		return err
