@@ -62,23 +62,25 @@ INSERT INTO product.sale (
     used,
     is_active,
     discount_percent,
-    discount_price
+    discount_price,
+    max_discount_price
 ) VALUES (
-    $1, $2, $3, $4, $5, $6, $7, $8, $9, $10
-) RETURNING id, tag, product_model_id, brand_id, date_started, date_ended, quantity, used, is_active, discount_percent, discount_price
+    $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11
+) RETURNING id, tag, product_model_id, brand_id, date_created, date_started, date_ended, quantity, used, is_active, discount_percent, discount_price, max_discount_price
 `
 
 type CreateSaleParams struct {
-	Tag             pgtype.Text
-	ProductModelID  pgtype.Int8
-	BrandID         pgtype.Int8
-	DateStarted     pgtype.Timestamptz
-	DateEnded       pgtype.Timestamptz
-	Quantity        int64
-	Used            int64
-	IsActive        bool
-	DiscountPercent pgtype.Int4
-	DiscountPrice   pgtype.Int8
+	Tag              pgtype.Text
+	ProductModelID   pgtype.Int8
+	BrandID          pgtype.Int8
+	DateStarted      pgtype.Timestamptz
+	DateEnded        pgtype.Timestamptz
+	Quantity         int64
+	Used             int64
+	IsActive         bool
+	DiscountPercent  pgtype.Int4
+	DiscountPrice    pgtype.Int8
+	MaxDiscountPrice int64
 }
 
 func (q *Queries) CreateSale(ctx context.Context, arg CreateSaleParams) (ProductSale, error) {
@@ -93,6 +95,7 @@ func (q *Queries) CreateSale(ctx context.Context, arg CreateSaleParams) (Product
 		arg.IsActive,
 		arg.DiscountPercent,
 		arg.DiscountPrice,
+		arg.MaxDiscountPrice,
 	)
 	var i ProductSale
 	err := row.Scan(
@@ -100,6 +103,7 @@ func (q *Queries) CreateSale(ctx context.Context, arg CreateSaleParams) (Product
 		&i.Tag,
 		&i.ProductModelID,
 		&i.BrandID,
+		&i.DateCreated,
 		&i.DateStarted,
 		&i.DateEnded,
 		&i.Quantity,
@@ -107,6 +111,7 @@ func (q *Queries) CreateSale(ctx context.Context, arg CreateSaleParams) (Product
 		&i.IsActive,
 		&i.DiscountPercent,
 		&i.DiscountPrice,
+		&i.MaxDiscountPrice,
 	)
 	return i, err
 }
@@ -120,8 +125,62 @@ func (q *Queries) DeleteSale(ctx context.Context, id int64) error {
 	return err
 }
 
+const getAvailableSales = `-- name: GetAvailableSales :many
+SELECT id, tag, product_model_id, brand_id, date_created, date_started, date_ended, quantity, used, is_active, discount_percent, discount_price, max_discount_price FROM product.sale
+WHERE 
+    is_active = true AND
+    used < quantity AND
+    date_started <= CURRENT_TIMESTAMP AND
+    (date_ended IS NULL OR date_ended >= CURRENT_TIMESTAMP) AND
+    (
+        (product_model_id = $1::bigint) OR
+        (brand_id = $2::bigint) OR
+        (tag = ANY($3::text[]))
+    )
+`
+
+type GetAvailableSalesParams struct {
+	ProductModelID int64
+	BrandID        int64
+	Tags           []string
+}
+
+func (q *Queries) GetAvailableSales(ctx context.Context, arg GetAvailableSalesParams) ([]ProductSale, error) {
+	rows, err := q.db.Query(ctx, getAvailableSales, arg.ProductModelID, arg.BrandID, arg.Tags)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []ProductSale
+	for rows.Next() {
+		var i ProductSale
+		if err := rows.Scan(
+			&i.ID,
+			&i.Tag,
+			&i.ProductModelID,
+			&i.BrandID,
+			&i.DateCreated,
+			&i.DateStarted,
+			&i.DateEnded,
+			&i.Quantity,
+			&i.Used,
+			&i.IsActive,
+			&i.DiscountPercent,
+			&i.DiscountPrice,
+			&i.MaxDiscountPrice,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const getSale = `-- name: GetSale :one
-SELECT id, tag, product_model_id, brand_id, date_started, date_ended, quantity, used, is_active, discount_percent, discount_price FROM product.sale WHERE id = $1
+SELECT id, tag, product_model_id, brand_id, date_created, date_started, date_ended, quantity, used, is_active, discount_percent, discount_price, max_discount_price FROM product.sale WHERE id = $1
 `
 
 func (q *Queries) GetSale(ctx context.Context, id int64) (ProductSale, error) {
@@ -132,6 +191,7 @@ func (q *Queries) GetSale(ctx context.Context, id int64) (ProductSale, error) {
 		&i.Tag,
 		&i.ProductModelID,
 		&i.BrandID,
+		&i.DateCreated,
 		&i.DateStarted,
 		&i.DateEnded,
 		&i.Quantity,
@@ -139,12 +199,13 @@ func (q *Queries) GetSale(ctx context.Context, id int64) (ProductSale, error) {
 		&i.IsActive,
 		&i.DiscountPercent,
 		&i.DiscountPrice,
+		&i.MaxDiscountPrice,
 	)
 	return i, err
 }
 
 const listSales = `-- name: ListSales :many
-SELECT id, tag, product_model_id, brand_id, date_started, date_ended, quantity, used, is_active, discount_percent, discount_price FROM product.sale
+SELECT id, tag, product_model_id, brand_id, date_created, date_started, date_ended, quantity, used, is_active, discount_percent, discount_price, max_discount_price FROM product.sale
 WHERE
     ($1::text IS NULL OR tag = $1) AND
     ($2::bigint IS NULL OR product_model_id = $2) AND
@@ -197,6 +258,7 @@ func (q *Queries) ListSales(ctx context.Context, arg ListSalesParams) ([]Product
 			&i.Tag,
 			&i.ProductModelID,
 			&i.BrandID,
+			&i.DateCreated,
 			&i.DateStarted,
 			&i.DateEnded,
 			&i.Quantity,
@@ -204,6 +266,7 @@ func (q *Queries) ListSales(ctx context.Context, arg ListSalesParams) ([]Product
 			&i.IsActive,
 			&i.DiscountPercent,
 			&i.DiscountPrice,
+			&i.MaxDiscountPrice,
 		); err != nil {
 			return nil, err
 		}
@@ -227,22 +290,24 @@ SET
     used = COALESCE($8, used),
     is_active = COALESCE($9, is_active),
     discount_percent = COALESCE($10, discount_percent),
-    discount_price = COALESCE($11, discount_price)
+    discount_price = COALESCE($11, discount_price),
+    max_discount_price = COALESCE($12, max_discount_price)
 WHERE id = $1
 `
 
 type UpdateSaleParams struct {
-	ID              int64
-	Tag             pgtype.Text
-	ProductModelID  pgtype.Int8
-	BrandID         pgtype.Int8
-	DateStarted     pgtype.Timestamptz
-	DateEnded       pgtype.Timestamptz
-	Quantity        pgtype.Int8
-	Used            pgtype.Int8
-	IsActive        pgtype.Bool
-	DiscountPercent pgtype.Int4
-	DiscountPrice   pgtype.Int8
+	ID               int64
+	Tag              pgtype.Text
+	ProductModelID   pgtype.Int8
+	BrandID          pgtype.Int8
+	DateStarted      pgtype.Timestamptz
+	DateEnded        pgtype.Timestamptz
+	Quantity         pgtype.Int8
+	Used             pgtype.Int8
+	IsActive         pgtype.Bool
+	DiscountPercent  pgtype.Int4
+	DiscountPrice    pgtype.Int8
+	MaxDiscountPrice pgtype.Int8
 }
 
 func (q *Queries) UpdateSale(ctx context.Context, arg UpdateSaleParams) error {
@@ -258,6 +323,7 @@ func (q *Queries) UpdateSale(ctx context.Context, arg UpdateSaleParams) error {
 		arg.IsActive,
 		arg.DiscountPercent,
 		arg.DiscountPrice,
+		arg.MaxDiscountPrice,
 	)
 	return err
 }

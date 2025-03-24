@@ -16,15 +16,29 @@ SELECT COUNT(id)
 FROM product.base
 WHERE (
     (product_model_id = $1 OR $1 IS NULL) AND
-    (sold = $2 OR $2 IS NULL) AND
-    (date_created >= $3 OR $3 IS NULL) AND
-    (date_created <= $4 OR $4 IS NULL)
+    (quantity >= $2 OR $2 IS NULL) AND
+    (quantity <= $3 OR $3 IS NULL) AND
+    (sold >= $4 OR $4 IS NULL) AND
+    (sold <= $5 OR $5 IS NULL) AND
+    (add_price >= $6 OR $6 IS NULL) AND
+    (add_price <= $7 OR $7 IS NULL) AND
+    (is_active = $8 OR $8 IS NULL) AND
+    (metadata @> $9 OR $9 IS NULL) AND
+    (date_created >= $10 OR $10 IS NULL) AND
+    (date_created <= $11 OR $11 IS NULL)
 )
 `
 
 type CountProductsParams struct {
 	ProductModelID  pgtype.Int8
-	Sold            pgtype.Int8
+	QuantityFrom    pgtype.Int8
+	QuantityTo      pgtype.Int8
+	SoldFrom        pgtype.Int8
+	SoldTo          pgtype.Int8
+	AddPriceFrom    pgtype.Int8
+	AddPriceTo      pgtype.Int8
+	IsActive        pgtype.Bool
+	Metadata        []byte
 	DateCreatedFrom pgtype.Timestamptz
 	DateCreatedTo   pgtype.Timestamptz
 }
@@ -32,7 +46,14 @@ type CountProductsParams struct {
 func (q *Queries) CountProducts(ctx context.Context, arg CountProductsParams) (int64, error) {
 	row := q.db.QueryRow(ctx, countProducts,
 		arg.ProductModelID,
-		arg.Sold,
+		arg.QuantityFrom,
+		arg.QuantityTo,
+		arg.SoldFrom,
+		arg.SoldTo,
+		arg.AddPriceFrom,
+		arg.AddPriceTo,
+		arg.IsActive,
+		arg.Metadata,
 		arg.DateCreatedFrom,
 		arg.DateCreatedTo,
 	)
@@ -45,21 +66,37 @@ const createProduct = `-- name: CreateProduct :one
 INSERT INTO product.base (
     serial_id,
     product_model_id,
-    sold
+    quantity,
+    sold,
+    add_price,
+    is_active,
+    metadata
 ) VALUES (
-    $1, $2, $3
+    $1, $2, $3, $4, $5, $6, $7
 )
-RETURNING id, serial_id, product_model_id, quantity, sold, size, color, add_price, is_active, date_created, date_updated
+RETURNING id, serial_id, product_model_id, quantity, sold, add_price, is_active, metadata, date_created, date_updated
 `
 
 type CreateProductParams struct {
 	SerialID       string
 	ProductModelID int64
+	Quantity       int64
 	Sold           int64
+	AddPrice       int64
+	IsActive       bool
+	Metadata       []byte
 }
 
 func (q *Queries) CreateProduct(ctx context.Context, arg CreateProductParams) (ProductBase, error) {
-	row := q.db.QueryRow(ctx, createProduct, arg.SerialID, arg.ProductModelID, arg.Sold)
+	row := q.db.QueryRow(ctx, createProduct,
+		arg.SerialID,
+		arg.ProductModelID,
+		arg.Quantity,
+		arg.Sold,
+		arg.AddPrice,
+		arg.IsActive,
+		arg.Metadata,
+	)
 	var i ProductBase
 	err := row.Scan(
 		&i.ID,
@@ -67,10 +104,9 @@ func (q *Queries) CreateProduct(ctx context.Context, arg CreateProductParams) (P
 		&i.ProductModelID,
 		&i.Quantity,
 		&i.Sold,
-		&i.Size,
-		&i.Color,
 		&i.AddPrice,
 		&i.IsActive,
+		&i.Metadata,
 		&i.DateCreated,
 		&i.DateUpdated,
 	)
@@ -95,7 +131,7 @@ func (q *Queries) DeleteProduct(ctx context.Context, arg DeleteProductParams) er
 }
 
 const getAvailableProducts = `-- name: GetAvailableProducts :many
-SELECT id, serial_id, product_model_id, quantity, sold, size, color, add_price, is_active, date_created, date_updated
+SELECT id, serial_id, product_model_id, quantity, sold, add_price, is_active, metadata, date_created, date_updated
 FROM product.base
 WHERE (
     product_model_id = $1 AND
@@ -124,10 +160,9 @@ func (q *Queries) GetAvailableProducts(ctx context.Context, arg GetAvailableProd
 			&i.ProductModelID,
 			&i.Quantity,
 			&i.Sold,
-			&i.Size,
-			&i.Color,
 			&i.AddPrice,
 			&i.IsActive,
+			&i.Metadata,
 			&i.DateCreated,
 			&i.DateUpdated,
 		); err != nil {
@@ -141,23 +176,69 @@ func (q *Queries) GetAvailableProducts(ctx context.Context, arg GetAvailableProd
 	return items, nil
 }
 
+const getProduct = `-- name: GetProduct :one
+SELECT id, serial_id, product_model_id, quantity, sold, add_price, is_active, metadata, date_created, date_updated
+FROM product.base
+WHERE (
+    id = $1 OR 
+    serial_id = $2
+)
+`
+
+type GetProductParams struct {
+	ID       pgtype.Int8
+	SerialID pgtype.Text
+}
+
+func (q *Queries) GetProduct(ctx context.Context, arg GetProductParams) (ProductBase, error) {
+	row := q.db.QueryRow(ctx, getProduct, arg.ID, arg.SerialID)
+	var i ProductBase
+	err := row.Scan(
+		&i.ID,
+		&i.SerialID,
+		&i.ProductModelID,
+		&i.Quantity,
+		&i.Sold,
+		&i.AddPrice,
+		&i.IsActive,
+		&i.Metadata,
+		&i.DateCreated,
+		&i.DateUpdated,
+	)
+	return i, err
+}
+
 const listProducts = `-- name: ListProducts :many
-SELECT id, serial_id, product_model_id, quantity, sold, size, color, add_price, is_active, date_created, date_updated
+SELECT id, serial_id, product_model_id, quantity, sold, add_price, is_active, metadata, date_created, date_updated
 FROM product.base
 WHERE (
     (product_model_id = $1 OR $1 IS NULL) AND
-    (sold = $2 OR $2 IS NULL) AND
-    (date_created >= $3 OR $3 IS NULL) AND
-    (date_created <= $4 OR $4 IS NULL)
+    (quantity >= $2 OR $2 IS NULL) AND
+    (quantity <= $3 OR $3 IS NULL) AND
+    (sold >= $4 OR $4 IS NULL) AND
+    (sold <= $5 OR $5 IS NULL) AND
+    (add_price >= $6 OR $6 IS NULL) AND
+    (add_price <= $7 OR $7 IS NULL) AND
+    (is_active = $8 OR $8 IS NULL) AND
+    (metadata @> $9 OR $9 IS NULL) AND
+    (date_created >= $10 OR $10 IS NULL) AND
+    (date_created <= $11 OR $11 IS NULL)
 )
 ORDER BY date_created DESC
-LIMIT $6
-OFFSET $5
+LIMIT $13
+OFFSET $12
 `
 
 type ListProductsParams struct {
 	ProductModelID  pgtype.Int8
-	Sold            pgtype.Int8
+	QuantityFrom    pgtype.Int8
+	QuantityTo      pgtype.Int8
+	SoldFrom        pgtype.Int8
+	SoldTo          pgtype.Int8
+	AddPriceFrom    pgtype.Int8
+	AddPriceTo      pgtype.Int8
+	IsActive        pgtype.Bool
+	Metadata        []byte
 	DateCreatedFrom pgtype.Timestamptz
 	DateCreatedTo   pgtype.Timestamptz
 	Offset          int32
@@ -167,7 +248,14 @@ type ListProductsParams struct {
 func (q *Queries) ListProducts(ctx context.Context, arg ListProductsParams) ([]ProductBase, error) {
 	rows, err := q.db.Query(ctx, listProducts,
 		arg.ProductModelID,
-		arg.Sold,
+		arg.QuantityFrom,
+		arg.QuantityTo,
+		arg.SoldFrom,
+		arg.SoldTo,
+		arg.AddPriceFrom,
+		arg.AddPriceTo,
+		arg.IsActive,
+		arg.Metadata,
 		arg.DateCreatedFrom,
 		arg.DateCreatedTo,
 		arg.Offset,
@@ -186,10 +274,9 @@ func (q *Queries) ListProducts(ctx context.Context, arg ListProductsParams) ([]P
 			&i.ProductModelID,
 			&i.Quantity,
 			&i.Sold,
-			&i.Size,
-			&i.Color,
 			&i.AddPrice,
 			&i.IsActive,
+			&i.Metadata,
 			&i.DateCreated,
 			&i.DateUpdated,
 		); err != nil {
@@ -208,8 +295,11 @@ UPDATE product.base
 SET
     serial_id = COALESCE($2, serial_id),
     product_model_id = COALESCE($3, product_model_id),
-    sold = COALESCE($4, sold),
-    date_updated = NOW()
+    quantity = COALESCE($4, quantity),
+    sold = COALESCE($5, sold),
+    add_price = COALESCE($6, add_price),
+    is_active = COALESCE($7, is_active),
+    metadata = COALESCE($8, metadata)
 WHERE id = $1
 `
 
@@ -217,7 +307,11 @@ type UpdateProductParams struct {
 	ID             int64
 	SerialID       pgtype.Text
 	ProductModelID pgtype.Int8
+	Quantity       pgtype.Int8
 	Sold           pgtype.Int8
+	AddPrice       pgtype.Int8
+	IsActive       pgtype.Bool
+	Metadata       []byte
 }
 
 func (q *Queries) UpdateProduct(ctx context.Context, arg UpdateProductParams) error {
@@ -225,7 +319,11 @@ func (q *Queries) UpdateProduct(ctx context.Context, arg UpdateProductParams) er
 		arg.ID,
 		arg.SerialID,
 		arg.ProductModelID,
+		arg.Quantity,
 		arg.Sold,
+		arg.AddPrice,
+		arg.IsActive,
+		arg.Metadata,
 	)
 	return err
 }

@@ -12,7 +12,7 @@ import (
 )
 
 const countRefunds = `-- name: CountRefunds :one
-SELECT COUNT(id)
+SELECT COUNT(r.id)
 FROM payment.refund r
 INNER JOIN payment.base p ON r.payment_id = p.id
 WHERE (
@@ -73,7 +73,7 @@ inserted_resources AS (
     SELECT id, unnest($6::text[]) FROM inserted_refund
     RETURNING s3_id
 )
-SELECT r.id, COALESCE(array_agg(res.s3_id), '{}')::text[] as resources
+SELECT r.id, COALESCE(array_agg(DISTINCT res.s3_id) FILTER (WHERE res.s3_id IS NOT NULL), '{}')::text[] as resources
 FROM inserted_refund r
 LEFT JOIN inserted_resources res ON true
 GROUP BY r.id
@@ -124,19 +124,20 @@ SELECT EXISTS (
   FROM payment.refund r
   INNER JOIN payment.base p ON r.payment_id = p.id
   WHERE (
-    r.id = $1 AND 
-    (p.user_id = $2 OR $2 IS NULL)
+    (r.payment_id = $1) AND
+    (r.status = 'PENDING' or r.status = 'SUCCESS') AND
+    (p.user_id = $2)
   )
 ) AS exists
 `
 
 type ExistsRefundParams struct {
-	ID     int64
-	UserID pgtype.Int8
+	PaymentID int64
+	UserID    int64
 }
 
 func (q *Queries) ExistsRefund(ctx context.Context, arg ExistsRefundParams) (bool, error) {
-	row := q.db.QueryRow(ctx, existsRefund, arg.ID, arg.UserID)
+	row := q.db.QueryRow(ctx, existsRefund, arg.PaymentID, arg.UserID)
 	var exists bool
 	err := row.Scan(&exists)
 	return exists, err
@@ -145,12 +146,13 @@ func (q *Queries) ExistsRefund(ctx context.Context, arg ExistsRefundParams) (boo
 const getRefund = `-- name: GetRefund :one
 SELECT 
   r.id, r.payment_id, r.method, r.status, r.reason, r.address, r.date_created, r.date_updated,
-  COALESCE(array_agg(res.s3_id), '{}')::text[] AS resources
+  COALESCE(array_agg(DISTINCT res.s3_id) FILTER (WHERE res.s3_id IS NOT NULL), '{}')::text[] as resources
 FROM payment.refund r
 LEFT JOIN product.resource res ON r.id = res.owner_id
+INNER JOIN payment.base p ON r.payment_id = p.id
 WHERE (
   r.id = $1 AND (
-    $2 IS NULL OR r.user_id = $2
+    p.user_id = $2 OR $2 IS NULL
   )
 )
 GROUP BY r.id
@@ -158,7 +160,7 @@ GROUP BY r.id
 
 type GetRefundParams struct {
 	ID     int64
-	UserID interface{}
+	UserID pgtype.Int8
 }
 
 type GetRefundRow struct {
@@ -193,7 +195,7 @@ func (q *Queries) GetRefund(ctx context.Context, arg GetRefundParams) (GetRefund
 const listRefunds = `-- name: ListRefunds :many
 SELECT 
     r.id, r.payment_id, r.method, r.status, r.reason, r.address, r.date_created, r.date_updated,
-    COALESCE(array_agg(res.s3_id), '{}')::text[] as resources
+    COALESCE(array_agg(DISTINCT res.s3_id) FILTER (WHERE res.s3_id IS NOT NULL), '{}')::text[] as resources
 FROM payment.refund r
 LEFT JOIN product.resource res ON res.owner_id = r.id
 INNER JOIN payment.base p ON r.payment_id = p.id
@@ -207,6 +209,7 @@ WHERE (
     (r.date_created >= $7 OR $7 IS NULL) AND
     (r.date_created <= $8 OR $8 IS NULL)
 )
+GROUP BY r.id
 ORDER BY r.date_created DESC
 LIMIT $10
 OFFSET $9
@@ -279,13 +282,19 @@ func (q *Queries) ListRefunds(ctx context.Context, arg ListRefundsParams) ([]Lis
 }
 
 const updateRefund = `-- name: UpdateRefund :exec
-UPDATE payment.refund
+UPDATE payment.refund r
 SET 
     method = COALESCE($2, method),
     status = COALESCE($3, status),
     reason = COALESCE($4, reason),
     address = COALESCE($5, address)
-WHERE id = $1
+FROM payment.refund
+INNER JOIN payment.base p ON r.payment_id = p.id
+WHERE (
+  p.id = $1
+) AND (
+  p.user_id = $6 OR $6 IS NULL
+)
 `
 
 type UpdateRefundParams struct {
@@ -294,6 +303,7 @@ type UpdateRefundParams struct {
 	Status  NullPaymentStatus
 	Reason  pgtype.Text
 	Address pgtype.Text
+	UserID  pgtype.Int8
 }
 
 func (q *Queries) UpdateRefund(ctx context.Context, arg UpdateRefundParams) error {
@@ -303,6 +313,7 @@ func (q *Queries) UpdateRefund(ctx context.Context, arg UpdateRefundParams) erro
 		arg.Status,
 		arg.Reason,
 		arg.Address,
+		arg.UserID,
 	)
 	return err
 }

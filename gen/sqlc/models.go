@@ -281,10 +281,9 @@ type ProductBase struct {
 	ProductModelID int64
 	Quantity       int64
 	Sold           int64
-	Size           int64
-	Color          string
 	AddPrice       int64
 	IsActive       bool
+	Metadata       []byte
 	DateCreated    pgtype.Timestamptz
 	DateUpdated    pgtype.Timestamptz
 }
@@ -307,6 +306,7 @@ type ProductComment struct {
 
 type ProductModel struct {
 	ID               int64
+	Type             int64
 	BrandID          int64
 	Name             string
 	Description      string
@@ -320,17 +320,19 @@ type ProductResource struct {
 }
 
 type ProductSale struct {
-	ID              int64
-	Tag             pgtype.Text
-	ProductModelID  pgtype.Int8
-	BrandID         pgtype.Int8
-	DateStarted     pgtype.Timestamptz
-	DateEnded       pgtype.Timestamptz
-	Quantity        int64
-	Used            int64
-	IsActive        bool
-	DiscountPercent pgtype.Int4
-	DiscountPrice   pgtype.Int8
+	ID               int64
+	Tag              pgtype.Text
+	ProductModelID   pgtype.Int8
+	BrandID          pgtype.Int8
+	DateCreated      pgtype.Timestamptz
+	DateStarted      pgtype.Timestamptz
+	DateEnded        pgtype.Timestamptz
+	Quantity         int64
+	Used             int64
+	IsActive         bool
+	DiscountPercent  pgtype.Int4
+	DiscountPrice    pgtype.Int8
+	MaxDiscountPrice int64
 }
 
 type ProductTag struct {
@@ -341,4 +343,9 @@ type ProductTag struct {
 type ProductTagOnProductModel struct {
 	ProductModelID int64
 	Tag            string
+}
+
+type ProductType struct {
+	ID   int64
+	Name string
 }

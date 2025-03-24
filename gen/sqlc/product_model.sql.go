@@ -16,13 +16,14 @@ WITH filtered_models AS (
     SELECT pm.id
     FROM product.model pm
     WHERE (
-        (pm.brand_id = $1 OR $1 IS NULL) AND
-        (pm.name ILIKE '%' || $2 || '%' OR $2 IS NULL) AND
-        (pm.description ILIKE '%' || $3 || '%' OR $3 IS NULL) AND
-        (pm.list_price >= $4 OR $4 IS NULL) AND
-        (pm.list_price <= $5 OR $5 IS NULL) AND
-        (pm.date_manufactured >= $6 OR $6 IS NULL) AND
-        (pm.date_manufactured <= $7 OR $7 IS NULL)
+        (pm.type = $1 OR $1 IS NULL) AND
+        (pm.brand_id = $2 OR $2 IS NULL) AND
+        (pm.name ILIKE '%' || $3 || '%' OR $3 IS NULL) AND
+        (pm.description ILIKE '%' || $4 || '%' OR $4 IS NULL) AND
+        (pm.list_price >= $5 OR $5 IS NULL) AND
+        (pm.list_price <= $6 OR $6 IS NULL) AND
+        (pm.date_manufactured >= $7 OR $7 IS NULL) AND
+        (pm.date_manufactured <= $8 OR $8 IS NULL)
     )
 )
 SELECT COUNT(id)
@@ -30,6 +31,7 @@ FROM filtered_models
 `
 
 type CountProductModelsParams struct {
+	Type                 pgtype.Int8
 	BrandID              pgtype.Int8
 	Name                 pgtype.Text
 	Description          pgtype.Text
@@ -41,6 +43,7 @@ type CountProductModelsParams struct {
 
 func (q *Queries) CountProductModels(ctx context.Context, arg CountProductModelsParams) (int64, error) {
 	row := q.db.QueryRow(ctx, countProductModels,
+		arg.Type,
 		arg.BrandID,
 		arg.Name,
 		arg.Description,
@@ -57,19 +60,19 @@ func (q *Queries) CountProductModels(ctx context.Context, arg CountProductModels
 const createProductModel = `-- name: CreateProductModel :one
 WITH inserted_model AS (
     INSERT INTO product.model (
-        brand_id, name, description, list_price, date_manufactured
+        type, brand_id, name, description, list_price, date_manufactured
     ) VALUES (
-        $1, $2, $3, $4, $5
-    ) RETURNING id, brand_id, name, description, list_price, date_manufactured
+        $1, $2, $3, $4, $5, $6
+    ) RETURNING id, type, brand_id, name, description, list_price, date_manufactured
 ),
 inserted_resources AS (
     INSERT INTO product.resource (owner_id, s3_id)
-    SELECT id, unnest($6::text[]) FROM inserted_model
+    SELECT id, unnest($7::text[]) FROM inserted_model
     RETURNING s3_id
 ),
 inserted_tags AS (
     INSERT INTO product.tag_on_product_model (product_model_id, tag)
-    SELECT id, unnest($7::text[]) FROM inserted_model
+    SELECT id, unnest($8::text[]) FROM inserted_model
     RETURNING tag
 )
 SELECT 
@@ -83,6 +86,7 @@ GROUP BY m.id
 `
 
 type CreateProductModelParams struct {
+	Type             int64
 	BrandID          int64
 	Name             string
 	Description      string
@@ -100,6 +104,7 @@ type CreateProductModelRow struct {
 
 func (q *Queries) CreateProductModel(ctx context.Context, arg CreateProductModelParams) (CreateProductModelRow, error) {
 	row := q.db.QueryRow(ctx, createProductModel,
+		arg.Type,
 		arg.BrandID,
 		arg.Name,
 		arg.Description,
@@ -122,42 +127,9 @@ func (q *Queries) DeleteProductModel(ctx context.Context, id int64) error {
 	return err
 }
 
-const getProduct = `-- name: GetProduct :one
-SELECT id, serial_id, product_model_id, quantity, sold, size, color, add_price, is_active, date_created, date_updated
-FROM product.base
-WHERE (
-    id = $1 OR 
-    serial_id = $2
-)
-`
-
-type GetProductParams struct {
-	ID       pgtype.Int8
-	SerialID pgtype.Text
-}
-
-func (q *Queries) GetProduct(ctx context.Context, arg GetProductParams) (ProductBase, error) {
-	row := q.db.QueryRow(ctx, getProduct, arg.ID, arg.SerialID)
-	var i ProductBase
-	err := row.Scan(
-		&i.ID,
-		&i.SerialID,
-		&i.ProductModelID,
-		&i.Quantity,
-		&i.Sold,
-		&i.Size,
-		&i.Color,
-		&i.AddPrice,
-		&i.IsActive,
-		&i.DateCreated,
-		&i.DateUpdated,
-	)
-	return i, err
-}
-
 const getProductModel = `-- name: GetProductModel :one
 SELECT 
-    pm.id, pm.brand_id, pm.name, pm.description, pm.list_price, pm.date_manufactured,
+    pm.id, pm.type, pm.brand_id, pm.name, pm.description, pm.list_price, pm.date_manufactured,
     COALESCE(array_agg(i.s3_id) FILTER (WHERE i.s3_id IS NOT NULL), '{}')::text[] as resources,
     COALESCE(array_agg(t.tag) FILTER (WHERE t.tag IS NOT NULL), '{}')::text[] as tags
 FROM product.model pm
@@ -169,6 +141,7 @@ GROUP BY pm.id
 
 type GetProductModelRow struct {
 	ID               int64
+	Type             int64
 	BrandID          int64
 	Name             string
 	Description      string
@@ -183,6 +156,7 @@ func (q *Queries) GetProductModel(ctx context.Context, id int64) (GetProductMode
 	var i GetProductModelRow
 	err := row.Scan(
 		&i.ID,
+		&i.Type,
 		&i.BrandID,
 		&i.Name,
 		&i.Description,
@@ -196,28 +170,30 @@ func (q *Queries) GetProductModel(ctx context.Context, id int64) (GetProductMode
 
 const listProductModels = `-- name: ListProductModels :many
 SELECT 
-    pm.id, pm.brand_id, pm.name, pm.description, pm.list_price, pm.date_manufactured,
+    pm.id, pm.type, pm.brand_id, pm.name, pm.description, pm.list_price, pm.date_manufactured,
     COALESCE(array_agg(DISTINCT i.s3_id) FILTER (WHERE i.s3_id IS NOT NULL), '{}')::text[] as resources,
     COALESCE(array_agg(DISTINCT t.tag) FILTER (WHERE t.tag IS NOT NULL), '{}')::text[] as tags
 FROM product.model pm
 LEFT JOIN product.resource i ON i.owner_id = pm.id
 LEFT JOIN product.tag_on_product_model t ON t.product_model_id = pm.id
 WHERE (
-    (pm.brand_id = $1 OR $1 IS NULL) AND
-    (pm.name ILIKE '%' || $2 || '%' OR $2 IS NULL) AND
-    (pm.description ILIKE '%' || $3 || '%' OR $3 IS NULL) AND
-    (pm.list_price >= $4 OR $4 IS NULL) AND
-    (pm.list_price <= $5 OR $5 IS NULL) AND
-    (pm.date_manufactured >= $6 OR $6 IS NULL) AND
-    (pm.date_manufactured <= $7 OR $7 IS NULL)
+    (pm.type = $1 OR $1 IS NULL) AND
+    (pm.brand_id = $2 OR $2 IS NULL) AND
+    (pm.name ILIKE '%' || $3 || '%' OR $3 IS NULL) AND
+    (pm.description ILIKE '%' || $4 || '%' OR $4 IS NULL) AND
+    (pm.list_price >= $5 OR $5 IS NULL) AND
+    (pm.list_price <= $6 OR $6 IS NULL) AND
+    (pm.date_manufactured >= $7 OR $7 IS NULL) AND
+    (pm.date_manufactured <= $8 OR $8 IS NULL)
 )
 GROUP BY pm.id
 ORDER BY pm.id DESC
-LIMIT $9
-OFFSET $8
+LIMIT $10
+OFFSET $9
 `
 
 type ListProductModelsParams struct {
+	Type                 pgtype.Int8
 	BrandID              pgtype.Int8
 	Name                 pgtype.Text
 	Description          pgtype.Text
@@ -231,6 +207,7 @@ type ListProductModelsParams struct {
 
 type ListProductModelsRow struct {
 	ID               int64
+	Type             int64
 	BrandID          int64
 	Name             string
 	Description      string
@@ -242,6 +219,7 @@ type ListProductModelsRow struct {
 
 func (q *Queries) ListProductModels(ctx context.Context, arg ListProductModelsParams) ([]ListProductModelsRow, error) {
 	rows, err := q.db.Query(ctx, listProductModels,
+		arg.Type,
 		arg.BrandID,
 		arg.Name,
 		arg.Description,
@@ -261,6 +239,7 @@ func (q *Queries) ListProductModels(ctx context.Context, arg ListProductModelsPa
 		var i ListProductModelsRow
 		if err := rows.Scan(
 			&i.ID,
+			&i.Type,
 			&i.BrandID,
 			&i.Name,
 			&i.Description,
@@ -282,16 +261,18 @@ func (q *Queries) ListProductModels(ctx context.Context, arg ListProductModelsPa
 const updateProductModel = `-- name: UpdateProductModel :exec
 UPDATE product.model
 SET 
-    brand_id = COALESCE($2, brand_id),
-    name = COALESCE($3, name),
-    description = COALESCE($4, description),
-    list_price = COALESCE($5, list_price),
-    date_manufactured = COALESCE($6, date_manufactured)
+    type = COALESCE($2, type),
+    brand_id = COALESCE($3, brand_id),
+    name = COALESCE($4, name),
+    description = COALESCE($5, description),
+    list_price = COALESCE($6, list_price),
+    date_manufactured = COALESCE($7, date_manufactured)
 WHERE id = $1
 `
 
 type UpdateProductModelParams struct {
 	ID               int64
+	Type             pgtype.Int8
 	BrandID          pgtype.Int8
 	Name             pgtype.Text
 	Description      pgtype.Text
@@ -302,6 +283,7 @@ type UpdateProductModelParams struct {
 func (q *Queries) UpdateProductModel(ctx context.Context, arg UpdateProductModelParams) error {
 	_, err := q.db.Exec(ctx, updateProductModel,
 		arg.ID,
+		arg.Type,
 		arg.BrandID,
 		arg.Name,
 		arg.Description,

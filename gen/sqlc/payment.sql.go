@@ -119,7 +119,8 @@ SELECT EXISTS (
   FROM payment.base p
   WHERE (
     p.id = $1 AND 
-    (p.user_id = $2 OR $2 IS NULL)
+    (p.user_id = $2 OR $2 IS NULL) AND 
+    (p.status = $3 OR $3 IS NULL)
   )
 ) AS exists
 `
@@ -127,10 +128,11 @@ SELECT EXISTS (
 type ExistsPaymentParams struct {
 	ID     int64
 	UserID pgtype.Int8
+	Status NullPaymentStatus
 }
 
 func (q *Queries) ExistsPayment(ctx context.Context, arg ExistsPaymentParams) (bool, error) {
-	row := q.db.QueryRow(ctx, existsPayment, arg.ID, arg.UserID)
+	row := q.db.QueryRow(ctx, existsPayment, arg.ID, arg.UserID, arg.Status)
 	var exists bool
 	err := row.Scan(&exists)
 	return exists, err
@@ -166,26 +168,38 @@ func (q *Queries) GetPayment(ctx context.Context, arg GetPaymentParams) (Payment
 }
 
 const getPaymentProducts = `-- name: GetPaymentProducts :many
-SELECT pop.payment_id, pop.product_serial_id, pop.quantity, pop.price, pop.total_price
+SELECT pop.payment_id, pop.product_serial_id, pop.quantity, pop.price, pop.total_price, pm.id as product_model_id
 FROM payment.product_on_payment pop
+INNER JOIN product.base p ON pop.product_serial_id = p.serial_id
+INNER JOIN product.model pm ON p.product_model_id = pm.id
 WHERE pop.payment_id = $1
 `
 
-func (q *Queries) GetPaymentProducts(ctx context.Context, paymentID int64) ([]PaymentProductOnPayment, error) {
+type GetPaymentProductsRow struct {
+	PaymentID       int64
+	ProductSerialID string
+	Quantity        int64
+	Price           int64
+	TotalPrice      int64
+	ProductModelID  int64
+}
+
+func (q *Queries) GetPaymentProducts(ctx context.Context, paymentID int64) ([]GetPaymentProductsRow, error) {
 	rows, err := q.db.Query(ctx, getPaymentProducts, paymentID)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	var items []PaymentProductOnPayment
+	var items []GetPaymentProductsRow
 	for rows.Next() {
-		var i PaymentProductOnPayment
+		var i GetPaymentProductsRow
 		if err := rows.Scan(
 			&i.PaymentID,
 			&i.ProductSerialID,
 			&i.Quantity,
 			&i.Price,
 			&i.TotalPrice,
+			&i.ProductModelID,
 		); err != nil {
 			return nil, err
 		}
