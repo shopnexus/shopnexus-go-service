@@ -145,11 +145,25 @@ async function createTags(prisma: TxPrisma, count: number) {
 	return await prisma.tag.findMany({ take: count })
 }
 
+// Generate ProductTypes
+async function createProductTypes(prisma: TxPrisma, count: number) {
+	const productTypesData = Array.from({ length: count }, () => ({
+		name: faker.commerce.productMaterial(),
+	}))
+
+	await prisma.productType.createMany({
+		data: productTypesData,
+		skipDuplicates: true,
+	})
+	return await prisma.productType.findMany({ take: count })
+}
+
 // Generate ProductModels
 async function createProductModels(
 	prisma: TxPrisma,
 	brands: Brand[],
 	tags: any[],
+	productTypes: any[],
 	count: number
 ) {
 	const productModelsData: any[] = []
@@ -163,6 +177,7 @@ async function createProductModels(
 
 		productModelsData.push({
 			brand_id: brands[Math.floor(Math.random() * brands.length)].id,
+			type: productTypes[Math.floor(Math.random() * productTypes.length)].id,
 			name: modelName,
 			description: faker.commerce.productDescription(),
 			list_price: BigInt(
@@ -219,15 +234,18 @@ async function createProducts(
 			productModels[Math.floor(Math.random() * productModels.length)].id,
 		quantity: BigInt(Math.floor(Math.random() * 100) + 10),
 		sold: BigInt(Math.floor(Math.random() * 5)),
-		size: BigInt(Math.floor(Math.random() * 5) + 1),
-		color: faker.color.human(),
 		add_price: BigInt(Math.floor(Math.random() * 50000)),
 		is_active: Math.random() < 0.9, // 90% chance of being active
+		metadata: JSON.stringify({
+			color: faker.color.human(),
+			size: Math.floor(Math.random() * 5) + 1,
+			// Add any other metadata fields you need
+		}),
 		date_created: faker.date.recent(),
 		date_updated: faker.date.recent(),
 	}))
 
-	const result = await prisma.product.createMany({
+	await prisma.product.createMany({
 		data: productsData,
 		skipDuplicates: true,
 	})
@@ -306,31 +324,43 @@ async function createSales(
 	prisma: TxPrisma,
 	productModels: ProductModel[],
 	tags: any[],
+	brands: Brand[],
 	count: number
 ) {
 	const salesData: any[] = []
 
 	for (let i = 0; i < count; i++) {
-		const isByTag = Math.random() < 0.5
+		const saleType = Math.random()
 		const startDate = faker.date.recent()
 		const endDate = faker.date.future({ refDate: startDate })
+		const discountPercent =
+			Math.random() < 0.7 ? Math.floor(Math.random() * 50) + 5 : null
+		const discountPrice =
+			Math.random() < 0.3
+				? BigInt(Math.floor(Math.random() * 100000) + 10000)
+				: null
 
 		salesData.push({
-			tag: isByTag ? tags[Math.floor(Math.random() * tags.length)].tag : null,
-			product_model_id: isByTag
-				? null
-				: productModels[Math.floor(Math.random() * productModels.length)].id,
+			tag:
+				saleType < 0.33
+					? tags[Math.floor(Math.random() * tags.length)].tag
+					: null,
+			product_model_id:
+				saleType >= 0.33 && saleType < 0.66
+					? productModels[Math.floor(Math.random() * productModels.length)].id
+					: null,
+			brand_id:
+				saleType >= 0.66
+					? brands[Math.floor(Math.random() * brands.length)].id
+					: null,
 			date_started: startDate,
 			date_ended: endDate,
 			quantity: BigInt(Math.floor(Math.random() * 100) + 10),
 			used: BigInt(Math.floor(Math.random() * 10)),
 			is_active: true,
-			discount_percent:
-				Math.random() < 0.7 ? Math.floor(Math.random() * 50) + 5 : null,
-			discount_price:
-				Math.random() < 0.3
-					? BigInt(Math.floor(Math.random() * 100000) + 10000)
-					: null,
+			discount_percent: discountPercent,
+			discount_price: discountPrice,
+			max_discount_price: BigInt(Math.floor(Math.random() * 500000) + 50000),
 		})
 	}
 
@@ -516,13 +546,20 @@ async function main() {
 			const userAccounts = accounts.filter((a) => a.role === "USER")
 			const brands = await createBrands(tx, 5)
 			const tags = await createTags(tx, 8)
-			const productModels = await createProductModels(tx, brands, tags, 20)
+			const productTypes = await createProductTypes(tx, 5)
+			const productModels = await createProductModels(
+				tx,
+				brands,
+				tags,
+				productTypes,
+				20
+			)
 			const products = await createProducts(tx, productModels, 50)
 
 			// Create related data
 			const addresses = await createAddresses(tx, userAccounts, 15)
 			const carts = await createCarts(tx, userAccounts, productModels)
-			const sales = await createSales(tx, productModels, tags, 10)
+			const sales = await createSales(tx, productModels, tags, brands, 10)
 			const payments = await createPayments(tx, userAccounts, products, 15)
 			const refunds = await createRefunds(tx, payments, 5)
 
