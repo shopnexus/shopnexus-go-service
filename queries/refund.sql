@@ -4,26 +4,28 @@ SELECT EXISTS (
   FROM payment.refund r
   INNER JOIN payment.base p ON r.payment_id = p.id
   WHERE (
-    r.id = $1 AND 
-    (p.user_id = sqlc.narg('user_id') OR sqlc.narg('user_id') IS NULL)
+    (r.payment_id = sqlc.arg('payment_id')) AND
+    (r.status = 'PENDING' or r.status = 'SUCCESS') AND
+    (p.user_id = sqlc.arg('user_id'))
   )
 ) AS exists;
 
 -- name: GetRefund :one
 SELECT 
   r.*,
-  COALESCE(array_agg(res.s3_id), '{}')::text[] AS resources
+  COALESCE(array_agg(DISTINCT res.s3_id) FILTER (WHERE res.s3_id IS NOT NULL), '{}')::text[] as resources
 FROM payment.refund r
 LEFT JOIN product.resource res ON r.id = res.owner_id
+INNER JOIN payment.base p ON r.payment_id = p.id
 WHERE (
   r.id = $1 AND (
-    sqlc.narg('user_id') IS NULL OR r.user_id = sqlc.narg('user_id')
+    p.user_id = sqlc.narg('user_id') OR sqlc.narg('user_id') IS NULL
   )
 )
 GROUP BY r.id;
 
 -- name: CountRefunds :one
-SELECT COUNT(id)
+SELECT COUNT(r.id)
 FROM payment.refund r
 INNER JOIN payment.base p ON r.payment_id = p.id
 WHERE (
@@ -40,7 +42,7 @@ WHERE (
 -- name: ListRefunds :many
 SELECT 
     r.*,
-    COALESCE(array_agg(res.s3_id), '{}')::text[] as resources
+    COALESCE(array_agg(DISTINCT res.s3_id) FILTER (WHERE res.s3_id IS NOT NULL), '{}')::text[] as resources
 FROM payment.refund r
 LEFT JOIN product.resource res ON res.owner_id = r.id
 INNER JOIN payment.base p ON r.payment_id = p.id
@@ -54,6 +56,7 @@ WHERE (
     (r.date_created >= sqlc.narg('date_created_from') OR sqlc.narg('date_created_from') IS NULL) AND
     (r.date_created <= sqlc.narg('date_created_to') OR sqlc.narg('date_created_to') IS NULL)
 )
+GROUP BY r.id
 ORDER BY r.date_created DESC
 LIMIT sqlc.arg('limit')
 OFFSET sqlc.arg('offset');
@@ -77,19 +80,25 @@ inserted_resources AS (
     SELECT id, unnest(sqlc.arg('resources')::text[]) FROM inserted_refund
     RETURNING s3_id
 )
-SELECT r.id, COALESCE(array_agg(res.s3_id), '{}')::text[] as resources
+SELECT r.id, COALESCE(array_agg(DISTINCT res.s3_id) FILTER (WHERE res.s3_id IS NOT NULL), '{}')::text[] as resources
 FROM inserted_refund r
 LEFT JOIN inserted_resources res ON true
 GROUP BY r.id;
 
 -- name: UpdateRefund :exec
-UPDATE payment.refund
+UPDATE payment.refund r
 SET 
     method = COALESCE(sqlc.narg('method'), method),
     status = COALESCE(sqlc.narg('status'), status),
     reason = COALESCE(sqlc.narg('reason'), reason),
     address = COALESCE(sqlc.narg('address'), address)
-WHERE id = $1;
+FROM payment.refund
+INNER JOIN payment.base p ON r.payment_id = p.id
+WHERE (
+  p.id = $1
+) AND (
+  p.user_id = sqlc.narg('user_id') OR sqlc.narg('user_id') IS NULL
+);
 
 -- name: DeleteRefund :exec
 
