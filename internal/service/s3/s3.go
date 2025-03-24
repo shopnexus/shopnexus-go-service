@@ -3,7 +3,7 @@ package s3
 import (
 	"context"
 	"fmt"
-	"mime/multipart"
+	"io"
 	"path/filepath"
 	"shopnexus-go-service/config"
 	"shopnexus-go-service/internal/repository"
@@ -24,8 +24,10 @@ type S3Service struct {
 	cloudfrontURL string
 }
 
+var _ S3ServiceInterface = (*S3Service)(nil)
+
 type S3ServiceInterface interface {
-	Upload(ctx context.Context, key string, file multipart.File, private bool) (string, error)
+	Upload(ctx context.Context, key string, reader io.Reader, private bool) (string, error)
 	Delete(ctx context.Context, key string) error
 	ListObjects(ctx context.Context, prefix string) ([]string, error)
 	GetPresignedURL(ctx context.Context, key string, expireIn time.Duration) (string, error)
@@ -59,7 +61,7 @@ func NewS3Service(repository *repository.Repository) *S3Service {
 	}
 }
 
-func (s *S3Service) Upload(ctx context.Context, key string, file multipart.File, private bool) (string, error) {
+func (s *S3Service) Upload(ctx context.Context, key string, body io.Reader, private bool) (string, error) {
 	prefix := "public/"
 	if private {
 		prefix = "private/"
@@ -72,7 +74,7 @@ func (s *S3Service) Upload(ctx context.Context, key string, file multipart.File,
 	_, err := s.client.PutObject(ctx, &s3.PutObjectInput{
 		Bucket: aws.String(s.bucket),
 		Key:    aws.String(key),
-		Body:   file,
+		Body:   body,
 	})
 	if err != nil {
 		return "", fmt.Errorf("failed to upload file to S3: %w", err)
