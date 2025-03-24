@@ -28,6 +28,7 @@ func (s *ImplementedProductServiceHandler) ListProductModels(ctx context.Context
 			Page:  req.Msg.GetPagination().GetPage(),
 			Limit: req.Msg.GetPagination().GetLimit(),
 		},
+		Type:                 req.Msg.Type,
 		BrandID:              req.Msg.BrandId,
 		Name:                 req.Msg.Name,
 		Description:          req.Msg.Description,
@@ -54,6 +55,7 @@ func (s *ImplementedProductServiceHandler) ListProductModels(ctx context.Context
 func (s *ImplementedProductServiceHandler) CreateProductModel(ctx context.Context, req *connect.Request[productv1.CreateProductModelRequest]) (*connect.Response[productv1.CreateProductModelResponse], error) {
 	data, err := s.service.CreateProductModel(ctx, product.CreateProductModelParams{
 		ProductModel: model.ProductModel{
+			Type:             req.Msg.Type,
 			BrandID:          req.Msg.BrandId,
 			Name:             req.Msg.Name,
 			Description:      req.Msg.Description,
@@ -75,6 +77,7 @@ func (s *ImplementedProductServiceHandler) CreateProductModel(ctx context.Contex
 func (s *ImplementedProductServiceHandler) UpdateProductModel(ctx context.Context, req *connect.Request[productv1.UpdateProductModelRequest]) (*connect.Response[productv1.UpdateProductModelResponse], error) {
 	err := s.service.UpdateProductModel(ctx, product.UpdateProductModelParams{
 		ID:               req.Msg.Id,
+		Type:             req.Msg.Type,
 		BrandID:          req.Msg.BrandId,
 		Name:             req.Msg.Name,
 		Description:      req.Msg.Description,
@@ -100,6 +103,7 @@ func (s *ImplementedProductServiceHandler) DeleteProductModel(ctx context.Contex
 func modelToProductModelEntity(data model.ProductModel) *productv1.ProductModelEntity {
 	return &productv1.ProductModelEntity{
 		Id:               data.ID,
+		Type:             data.Type,
 		BrandId:          data.BrandID,
 		Name:             data.Name,
 		Description:      data.Description,

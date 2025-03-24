@@ -42,7 +42,7 @@ func (s *ImplementedPaymentServiceHandler) GetPayment(ctx context.Context, req *
 	}
 
 	return connect.NewResponse(&paymentv1.GetPaymentResponse{
-		Payment: convertPaymentToProto(payment),
+		Data: convertPaymentToProto(payment),
 	}), nil
 }
 
@@ -166,10 +166,11 @@ func convertPaymentToProto(p model.Payment) *paymentv1.Payment {
 	products := make([]*paymentv1.ProductOnPayment, 0, len(p.Products))
 	for _, pop := range p.Products {
 		products = append(products, &paymentv1.ProductOnPayment{
-			ItemQuantity: &common_pb.ItemQuantityString{
+			ItemQuantity: &common_pb.ItemQuantityInt64{
 				ItemId:   pop.ItemID,
 				Quantity: pop.Quantity,
 			},
+			SerialIds:  pop.SerialIDs,
 			Price:      pop.Price,
 			TotalPrice: pop.TotalPrice,
 		})

@@ -63,7 +63,7 @@ func (s *ImplementedProductServiceHandler) ListProducts(ctx context.Context, req
 }
 
 func (s *ImplementedProductServiceHandler) CreateProduct(ctx context.Context, req *connect.Request[productv1.CreateProductRequest]) (*connect.Response[productv1.CreateProductResponse], error) {
-	data, err := s.service.CreateProduct(ctx, model.Product{
+	data, err := s.service.CreateProduct(ctx, model.Product[any]{
 		SerialID:       req.Msg.SerialId,
 		ProductModelID: req.Msg.ProductModelId,
 	})
@@ -101,7 +101,7 @@ func (s *ImplementedProductServiceHandler) DeleteProduct(ctx context.Context, re
 	return connect.NewResponse(&productv1.DeleteProductResponse{}), nil
 }
 
-func modelToProductEntity(data model.Product) *productv1.ProductEntity {
+func modelToProductEntity(data model.Product[any]) *productv1.ProductEntity {
 	return &productv1.ProductEntity{
 		Id:             data.ID,
 		SerialId:       data.SerialID,

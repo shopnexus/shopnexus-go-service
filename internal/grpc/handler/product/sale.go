@@ -55,16 +55,18 @@ func (s *ImplementedProductServiceHandler) ListSales(ctx context.Context, req *c
 func (s *ImplementedProductServiceHandler) CreateSale(ctx context.Context, req *connect.Request[productv1.CreateSaleRequest]) (*connect.Response[productv1.CreateSaleResponse], error) {
 	data, err := s.service.CreateSale(ctx, product.CreateSaleParams{
 		Sale: model.Sale{
-			Tag:             req.Msg.Tag,
-			ProductModelID:  req.Msg.ProductModelId,
-			BrandID:         req.Msg.BrandId,
-			DateStarted:     req.Msg.DateStarted,
-			DateEnded:       req.Msg.DateEnded,
-			Quantity:        req.Msg.Quantity,
-			Used:            req.Msg.Used,
-			IsActive:        req.Msg.IsActive,
-			DiscountPercent: req.Msg.DiscountPercent,
-			DiscountPrice:   req.Msg.DiscountPrice,
+			Tag:              req.Msg.Tag,
+			ProductModelID:   req.Msg.ProductModelId,
+			BrandID:          req.Msg.BrandId,
+			DateCreated:      req.Msg.DateCreated,
+			DateStarted:      req.Msg.DateStarted,
+			DateEnded:        req.Msg.DateEnded,
+			Quantity:         req.Msg.Quantity,
+			Used:             req.Msg.Used,
+			IsActive:         req.Msg.IsActive,
+			DiscountPercent:  req.Msg.DiscountPercent,
+			DiscountPrice:    req.Msg.DiscountPrice,
+			MaxDiscountPrice: req.Msg.MaxDiscountPrice,
 		},
 	})
 	if err != nil {
@@ -108,16 +110,18 @@ func (s *ImplementedProductServiceHandler) DeleteSale(ctx context.Context, req *
 
 func modelToSaleEntity(data model.Sale) *productv1.SaleEntity {
 	return &productv1.SaleEntity{
-		Id:              data.ID,
-		Tag:             data.Tag,
-		ProductModelId:  data.ProductModelID,
-		BrandId:         data.BrandID,
-		DateStarted:     data.DateStarted,
-		DateEnded:       data.DateEnded,
-		Quantity:        data.Quantity,
-		Used:            data.Used,
-		IsActive:        data.IsActive,
-		DiscountPercent: data.DiscountPercent,
-		DiscountPrice:   data.DiscountPrice,
+		Id:               data.ID,
+		Tag:              data.Tag,
+		ProductModelId:   data.ProductModelID,
+		BrandId:          data.BrandID,
+		DateCreated:      data.DateCreated,
+		DateStarted:      data.DateStarted,
+		DateEnded:        data.DateEnded,
+		Quantity:         data.Quantity,
+		Used:             data.Used,
+		IsActive:         data.IsActive,
+		DiscountPercent:  data.DiscountPercent,
+		DiscountPrice:    data.DiscountPrice,
+		MaxDiscountPrice: data.MaxDiscountPrice,
 	}
 }
