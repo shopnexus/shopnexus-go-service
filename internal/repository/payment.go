@@ -13,12 +13,14 @@ import (
 type GetPaymentParams struct {
 	ID     int64
 	UserID *int64
+	Status *model.Status
 }
 
 func (r *Repository) ExistsPayment(ctx context.Context, params GetPaymentParams) (bool, error) {
 	return r.sqlc.ExistsPayment(ctx, sqlc.ExistsPaymentParams{
 		ID:     params.ID,
 		UserID: *pgxutil.PtrToPgtype(&pgtype.Int8{}, params.UserID),
+		Status: *pgxutil.PtrBrandedToPgType(&sqlc.NullPaymentStatus{}, params.Status),
 	})
 }
 
@@ -56,16 +58,29 @@ func (r *Repository) GetPaymentProducts(ctx context.Context, paymentID int64) ([
 		return nil, err
 	}
 
-	var products []model.ProductOnPayment
+	productByModel := map[int64]model.ProductOnPayment{}
 	for _, row := range rows {
-		products = append(products, model.ProductOnPayment{
-			ItemQuantityBase: model.ItemQuantityBase[string]{
-				ItemID:   row.ProductSerialID,
-				Quantity: row.Quantity,
-			},
-			Price:      row.Price,
-			TotalPrice: row.TotalPrice,
-		})
+		if product, exists := productByModel[row.ProductModelID]; exists {
+			product.Quantity += row.Quantity
+			product.SerialIDs = append(product.SerialIDs, row.ProductSerialID)
+			product.TotalPrice += row.TotalPrice
+			productByModel[row.ProductModelID] = product
+		} else {
+			productByModel[row.ProductModelID] = model.ProductOnPayment{
+				ItemQuantityBase: model.ItemQuantityBase[int64]{
+					ItemID:   row.ProductModelID,
+					Quantity: row.Quantity,
+				},
+				SerialIDs:  []string{row.ProductSerialID},
+				Price:      row.Price,
+				TotalPrice: row.TotalPrice,
+			}
+		}
+	}
+
+	var products []model.ProductOnPayment
+	for _, product := range productByModel {
+		products = append(products, product)
 	}
 
 	return products, nil
@@ -149,13 +164,15 @@ func (r *Repository) CreatePayment(ctx context.Context, payment model.Payment) (
 
 	var createArgs []sqlc.CreatePaymentProductsParams
 	for _, product := range payment.Products {
-		createArgs = append(createArgs, sqlc.CreatePaymentProductsParams{
-			PaymentID:       row.ID,
-			ProductSerialID: product.ItemID,
-			Quantity:        product.Quantity,
-			Price:           product.Price,
-			TotalPrice:      product.TotalPrice,
-		})
+		for _, serialID := range product.SerialIDs {
+			createArgs = append(createArgs, sqlc.CreatePaymentProductsParams{
+				PaymentID:       row.ID,
+				ProductSerialID: serialID,
+				Quantity:        product.Quantity,
+				Price:           product.Price,
+				TotalPrice:      product.TotalPrice,
+			})
+		}
 	}
 
 	_, err = r.sqlc.CreatePaymentProducts(ctx, createArgs)
