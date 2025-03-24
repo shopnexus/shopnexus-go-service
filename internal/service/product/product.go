@@ -4,10 +4,12 @@ import (
 	"context"
 	"shopnexus-go-service/internal/model"
 	"shopnexus-go-service/internal/repository"
+	"shopnexus-go-service/internal/service/s3"
 )
 
 type ProductService struct {
 	repo *repository.Repository
+	s3   *s3.S3Service
 }
 
 func NewProductService(repo *repository.Repository) *ProductService {
@@ -129,8 +131,18 @@ type CreateProductModelParams struct {
 }
 
 func (s *ProductService) CreateProductModel(ctx context.Context, params CreateProductModelParams) (model.ProductModel, error) {
-	productModel, err := s.repo.CreateProductModel(ctx, params.ProductModel)
+	txRepo, err := s.repo.Begin(ctx)
 	if err != nil {
+		return model.ProductModel{}, err
+	}
+	defer txRepo.Rollback(ctx)
+
+	productModel, err := txRepo.CreateProductModel(ctx, params.ProductModel)
+	if err != nil {
+		return model.ProductModel{}, err
+	}
+
+	if err := txRepo.Commit(ctx); err != nil {
 		return model.ProductModel{}, err
 	}
 
@@ -153,13 +165,13 @@ func (s *ProductService) DeleteProductModel(ctx context.Context, id int64) error
 	return s.repo.DeleteProductModel(ctx, id)
 }
 
-func (s *ProductService) GetProduct(ctx context.Context, params model.ProductIdentifier) (model.Product, error) {
+func (s *ProductService) GetProduct(ctx context.Context, params model.ProductIdentifier) (model.Product[any], error) {
 	return s.repo.GetProduct(ctx, params)
 }
 
 type ListProductsParams = repository.ListProductsParams
 
-func (s *ProductService) ListProducts(ctx context.Context, params ListProductsParams) (result model.PaginateResult[model.Product], err error) {
+func (s *ProductService) ListProducts(ctx context.Context, params ListProductsParams) (result model.PaginateResult[model.Product[any]], err error) {
 	total, err := s.repo.CountProducts(ctx, params)
 	if err != nil {
 		return result, err
@@ -170,7 +182,7 @@ func (s *ProductService) ListProducts(ctx context.Context, params ListProductsPa
 		return result, err
 	}
 
-	return model.PaginateResult[model.Product]{
+	return model.PaginateResult[model.Product[any]]{
 		Data:       products,
 		Limit:      params.Limit,
 		Page:       params.Page,
@@ -180,10 +192,10 @@ func (s *ProductService) ListProducts(ctx context.Context, params ListProductsPa
 	}, nil
 }
 
-func (s *ProductService) CreateProduct(ctx context.Context, product model.Product) (model.Product, error) {
+func (s *ProductService) CreateProduct(ctx context.Context, product model.Product[any]) (model.Product[any], error) {
 	newProduct, err := s.repo.CreateProduct(ctx, product)
 	if err != nil {
-		return model.Product{}, err
+		return model.Product[any]{}, err
 	}
 
 	return newProduct, nil
@@ -212,9 +224,9 @@ type ProductServiceInterface interface {
 	UpdateProductModel(ctx context.Context, params UpdateProductModelParams) error
 	DeleteProductModel(ctx context.Context, id int64) error
 
-	GetProduct(ctx context.Context, params model.ProductIdentifier) (model.Product, error)
-	ListProducts(ctx context.Context, params ListProductsParams) (model.PaginateResult[model.Product], error)
-	CreateProduct(ctx context.Context, product model.Product) (model.Product, error)
+	GetProduct(ctx context.Context, params model.ProductIdentifier) (model.Product[any], error)
+	ListProducts(ctx context.Context, params ListProductsParams) (model.PaginateResult[model.Product[any]], error)
+	CreateProduct(ctx context.Context, product model.Product[any]) (model.Product[any], error)
 	UpdateProduct(ctx context.Context, params UpdateProductParams) error
 	DeleteProduct(ctx context.Context, params model.ProductIdentifier) error
 
