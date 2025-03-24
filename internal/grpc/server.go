@@ -6,6 +6,7 @@ import (
 	"net/http"
 	pgxutil "shopnexus-go-service/internal/db/pgx"
 	"shopnexus-go-service/internal/grpc/handler/account"
+	"shopnexus-go-service/internal/grpc/handler/file"
 	"shopnexus-go-service/internal/grpc/handler/payment"
 	"shopnexus-go-service/internal/grpc/handler/product"
 	"shopnexus-go-service/internal/grpc/interceptor/auth"
@@ -16,6 +17,7 @@ import (
 	"connectrpc.com/connect"
 	"connectrpc.com/grpcreflect"
 	"github.com/shopnexus/shopnexus-protobuf-gen-go/pb/account/v1/accountv1connect"
+	"github.com/shopnexus/shopnexus-protobuf-gen-go/pb/file/v1/filev1connect"
 	"github.com/shopnexus/shopnexus-protobuf-gen-go/pb/payment/v1/paymentv1connect"
 	"github.com/shopnexus/shopnexus-protobuf-gen-go/pb/product/v1/productv1connect"
 	"golang.org/x/net/http2"
@@ -96,6 +98,13 @@ func (s *Server) RegisterInterceptors() {
 
 // RegisterHandlers registers the handlers for the server
 func (s *Server) RegisterHandlers() {
+	// File
+	filePath, fileHandler := filev1connect.NewFileServiceHandler(
+		file.NewFileServiceHandler(s.Services.S3),
+		connect.WithInterceptors(s.interceptors...),
+	)
+	s.Mux.Handle(filePath, fileHandler)
+
 	// Account
 	accountPath, accountHandler := accountv1connect.NewAccountServiceHandler(
 		account.NewAccountServiceHandler(s.Services.Account),
@@ -121,6 +130,7 @@ func (s *Server) RegisterHandlers() {
 // RegisterReflection registers the reflection for the server
 func (s *Server) RegisterReflection() {
 	reflector := grpcreflect.NewStaticReflector(
+		filev1connect.FileServiceName,
 		accountv1connect.AccountServiceName,
 		paymentv1connect.PaymentServiceName,
 		productv1connect.ProductServiceName,
