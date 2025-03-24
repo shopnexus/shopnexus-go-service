@@ -48,8 +48,10 @@ LIMIT sqlc.arg('limit')
 OFFSET sqlc.arg('offset');
 
 -- name: GetPaymentProducts :many
-SELECT pop.*
+SELECT pop.*, pm.id as product_model_id
 FROM payment.product_on_payment pop
+INNER JOIN product.base p ON pop.product_serial_id = p.serial_id
+INNER JOIN product.model pm ON p.product_model_id = pm.id
 WHERE pop.payment_id = $1;
 
 -- name: CreatePayment :one
