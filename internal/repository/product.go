@@ -22,22 +22,23 @@ func ToPgtype(p model.ProductIdentifier) ProductIdentifierPg {
 	}
 }
 
-func (r *Repository) GetProduct(ctx context.Context, id model.ProductIdentifier) (model.Product, error) {
+func (r *Repository) GetProduct(ctx context.Context, id model.ProductIdentifier) (model.Product[any], error) {
 	row, err := r.sqlc.GetProduct(ctx, sqlc.GetProductParams(ToPgtype(id)))
 	if err != nil {
-		return model.Product{}, err
+		return model.Product[any]{}, err
 	}
 
-	return model.Product{
+	return model.Product[any]{
 		ID:             row.ID,
 		SerialID:       row.SerialID,
 		ProductModelID: row.ProductModelID,
+		Metadata:       row.Metadata,
 		DateCreated:    row.DateCreated.Time.UnixMilli(),
 		DateUpdated:    row.DateUpdated.Time.UnixMilli(),
 	}, nil
 }
 
-func (r *Repository) GetAvailableProducts(ctx context.Context, productModelID, amount int64) ([]model.Product, error) {
+func (r *Repository) GetAvailableProducts(ctx context.Context, productModelID, amount int64) ([]model.Product[any], error) {
 	rows, err := r.sqlc.GetAvailableProducts(ctx, sqlc.GetAvailableProductsParams{
 		ProductModelID: productModelID,
 		Amount:         int32(amount),
@@ -46,9 +47,9 @@ func (r *Repository) GetAvailableProducts(ctx context.Context, productModelID, a
 		return nil, err
 	}
 
-	result := make([]model.Product, len(rows))
+	result := make([]model.Product[any], len(rows))
 	for i, row := range rows {
-		result[i] = model.Product{
+		result[i] = model.Product[any]{
 			ID:             row.ID,
 			SerialID:       row.SerialID,
 			ProductModelID: row.ProductModelID,
@@ -75,7 +76,7 @@ func (r *Repository) CountProducts(ctx context.Context, params ListProductsParam
 	})
 }
 
-func (r *Repository) ListProducts(ctx context.Context, params ListProductsParams) ([]model.Product, error) {
+func (r *Repository) ListProducts(ctx context.Context, params ListProductsParams) ([]model.Product[any], error) {
 	products, err := r.sqlc.ListProducts(ctx, sqlc.ListProductsParams{
 		Offset:          params.Offset(),
 		Limit:           params.Limit,
@@ -87,9 +88,9 @@ func (r *Repository) ListProducts(ctx context.Context, params ListProductsParams
 		return nil, err
 	}
 
-	result := make([]model.Product, len(products))
+	result := make([]model.Product[any], len(products))
 	for i, product := range products {
-		result[i] = model.Product{
+		result[i] = model.Product[any]{
 			ID:             product.ID,
 			SerialID:       product.SerialID,
 			ProductModelID: product.ProductModelID,
@@ -101,15 +102,15 @@ func (r *Repository) ListProducts(ctx context.Context, params ListProductsParams
 	return result, nil
 }
 
-func (r *Repository) CreateProduct(ctx context.Context, product model.Product) (model.Product, error) {
+func (r *Repository) CreateProduct(ctx context.Context, product model.Product[any]) (model.Product[any], error) {
 	row, err := r.sqlc.CreateProduct(ctx, sqlc.CreateProductParams{
 		ProductModelID: product.ProductModelID,
 	})
 	if err != nil {
-		return model.Product{}, err
+		return model.Product[any]{}, err
 	}
 
-	return model.Product{
+	return model.Product[any]{
 		SerialID:       row.SerialID,
 		ProductModelID: row.ProductModelID,
 		DateCreated:    row.DateCreated.Time.UnixMilli(),
