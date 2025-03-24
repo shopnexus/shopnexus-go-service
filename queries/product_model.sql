@@ -14,6 +14,7 @@ WITH filtered_models AS (
     SELECT pm.id
     FROM product.model pm
     WHERE (
+        (pm.type = sqlc.narg('type') OR sqlc.narg('type') IS NULL) AND
         (pm.brand_id = sqlc.narg('brand_id') OR sqlc.narg('brand_id') IS NULL) AND
         (pm.name ILIKE '%' || sqlc.narg('name') || '%' OR sqlc.narg('name') IS NULL) AND
         (pm.description ILIKE '%' || sqlc.narg('description') || '%' OR sqlc.narg('description') IS NULL) AND
@@ -35,6 +36,7 @@ FROM product.model pm
 LEFT JOIN product.resource i ON i.owner_id = pm.id
 LEFT JOIN product.tag_on_product_model t ON t.product_model_id = pm.id
 WHERE (
+    (pm.type = sqlc.narg('type') OR sqlc.narg('type') IS NULL) AND
     (pm.brand_id = sqlc.narg('brand_id') OR sqlc.narg('brand_id') IS NULL) AND
     (pm.name ILIKE '%' || sqlc.narg('name') || '%' OR sqlc.narg('name') IS NULL) AND
     (pm.description ILIKE '%' || sqlc.narg('description') || '%' OR sqlc.narg('description') IS NULL) AND
@@ -51,9 +53,9 @@ OFFSET sqlc.arg('offset');
 -- name: CreateProductModel :one
 WITH inserted_model AS (
     INSERT INTO product.model (
-        brand_id, name, description, list_price, date_manufactured
+        type, brand_id, name, description, list_price, date_manufactured
     ) VALUES (
-        $1, $2, $3, $4, $5
+        $1, $2, $3, $4, $5, $6
     ) RETURNING *
 ),
 inserted_resources AS (
@@ -78,6 +80,7 @@ GROUP BY m.id;
 -- name: UpdateProductModel :exec
 UPDATE product.model
 SET 
+    type = COALESCE(sqlc.narg('type'), type),
     brand_id = COALESCE(sqlc.narg('brand_id'), brand_id),
     name = COALESCE(sqlc.narg('name'), name),
     description = COALESCE(sqlc.narg('description'), description),
@@ -88,10 +91,3 @@ WHERE id = $1;
 -- name: DeleteProductModel :exec
 DELETE FROM product.model WHERE id = $1;
 
--- name: GetProduct :one
-SELECT *
-FROM product.base
-WHERE (
-    id = sqlc.narg('id') OR 
-    serial_id = sqlc.narg('serial_id')
-);
