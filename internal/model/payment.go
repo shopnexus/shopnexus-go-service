@@ -21,9 +21,10 @@ const (
 )
 
 type ProductOnPayment struct {
-	ItemQuantityBase[string]
-	Price      int64 `json:"price"`       // Single price, maybe have discount
-	TotalPrice int64 `json:"total_price"` // Total price, maybe have discount if reach certain quantity
+	ItemQuantityBase[int64]
+	SerialIDs  []string `json:"serial_ids"`  // List of serial IDs
+	Price      int64    `json:"price"`       // Single price, maybe have discount
+	TotalPrice int64    `json:"total_price"` // Total price, maybe have discount if reach certain quantity
 }
 
 type Payment struct {
