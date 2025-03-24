@@ -1,6 +1,3 @@
--- name: GetSale :one
-SELECT * FROM product.sale WHERE id = $1;
-
 -- name: CountSales :one
 SELECT COUNT(*) FROM product.sale
 WHERE
@@ -28,6 +25,21 @@ ORDER BY id
 LIMIT sqlc.arg('limit')
 OFFSET sqlc.arg('offset');
 
+-- name: GetSale :one
+SELECT * FROM product.sale WHERE id = $1;
+
+-- name: GetAvailableSales :many
+SELECT * FROM product.sale
+WHERE 
+    is_active = true AND
+    used < quantity AND
+    date_started <= CURRENT_TIMESTAMP AND
+    (date_ended IS NULL OR date_ended >= CURRENT_TIMESTAMP) AND
+    (
+        (product_model_id = sqlc.arg('product_model_id')::bigint) OR
+        (brand_id = sqlc.arg('brand_id')::bigint) OR
+        (tag = ANY(sqlc.arg('tags')::text[]))
+    );
 
 -- name: CreateSale :one
 INSERT INTO product.sale (
@@ -40,9 +52,10 @@ INSERT INTO product.sale (
     used,
     is_active,
     discount_percent,
-    discount_price
+    discount_price,
+    max_discount_price
 ) VALUES (
-    $1, $2, $3, $4, $5, $6, $7, $8, $9, $10
+    $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11
 ) RETURNING *;
 
 -- name: UpdateSale :exec
@@ -57,7 +70,8 @@ SET
     used = COALESCE(sqlc.narg('used'), used),
     is_active = COALESCE(sqlc.narg('is_active'), is_active),
     discount_percent = COALESCE(sqlc.narg('discount_percent'), discount_percent),
-    discount_price = COALESCE(sqlc.narg('discount_price'), discount_price)
+    discount_price = COALESCE(sqlc.narg('discount_price'), discount_price),
+    max_discount_price = COALESCE(sqlc.narg('max_discount_price'), max_discount_price)
 WHERE id = $1;
 
 -- name: DeleteSale :exec
