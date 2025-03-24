@@ -4,7 +4,8 @@ SELECT EXISTS (
   FROM payment.base p
   WHERE (
     p.id = $1 AND 
-    (p.user_id = sqlc.narg('user_id') OR sqlc.narg('user_id') IS NULL)
+    (p.user_id = sqlc.narg('user_id') OR sqlc.narg('user_id') IS NULL) AND 
+    (p.status = sqlc.narg('status') OR sqlc.narg('status') IS NULL)
   )
 ) AS exists;
 
