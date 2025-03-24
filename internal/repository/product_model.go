@@ -18,6 +18,7 @@ func (r *Repository) GetProductModel(ctx context.Context, id int64) (model.Produ
 
 	return model.ProductModel{
 		ID:               productModel.ID,
+		Type:             productModel.Type,
 		BrandID:          productModel.BrandID,
 		Name:             productModel.Name,
 		Description:      productModel.Description,
@@ -30,6 +31,7 @@ func (r *Repository) GetProductModel(ctx context.Context, id int64) (model.Produ
 
 type ListProductModelsParams struct {
 	model.PaginationParams
+	Type                 *int64
 	BrandID              *int64
 	Name                 *string
 	Description          *string
@@ -41,6 +43,7 @@ type ListProductModelsParams struct {
 
 func (r *Repository) CountProductModels(ctx context.Context, params ListProductModelsParams) (int64, error) {
 	return r.sqlc.CountProductModels(ctx, sqlc.CountProductModelsParams{
+		Type:                 *pgxutil.PtrToPgtype(&pgtype.Int8{}, params.Type),
 		BrandID:              *pgxutil.PtrToPgtype(&pgtype.Int8{}, params.BrandID),
 		Name:                 *pgxutil.PtrToPgtype(&pgtype.Text{}, params.Name),
 		Description:          *pgxutil.PtrToPgtype(&pgtype.Text{}, params.Description),
@@ -55,6 +58,7 @@ func (r *Repository) ListProductModels(ctx context.Context, params ListProductMo
 	productModels, err := r.sqlc.ListProductModels(ctx, sqlc.ListProductModelsParams{
 		Offset:               params.Offset(),
 		Limit:                params.Limit,
+		Type:                 *pgxutil.PtrToPgtype(&pgtype.Int8{}, params.Type),
 		BrandID:              *pgxutil.PtrToPgtype(&pgtype.Int8{}, params.BrandID),
 		Name:                 *pgxutil.PtrToPgtype(&pgtype.Text{}, params.Name),
 		Description:          *pgxutil.PtrToPgtype(&pgtype.Text{}, params.Description),
@@ -71,6 +75,7 @@ func (r *Repository) ListProductModels(ctx context.Context, params ListProductMo
 	for i, productModel := range productModels {
 		result[i] = model.ProductModel{
 			ID:               productModel.ID,
+			Type:             productModel.Type,
 			BrandID:          productModel.BrandID,
 			Name:             productModel.Name,
 			Description:      productModel.Description,
@@ -86,6 +91,7 @@ func (r *Repository) ListProductModels(ctx context.Context, params ListProductMo
 
 func (r *Repository) CreateProductModel(ctx context.Context, productModel model.ProductModel) (model.ProductModel, error) {
 	row, err := r.sqlc.CreateProductModel(ctx, sqlc.CreateProductModelParams{
+		Type:        productModel.Type,
 		BrandID:     productModel.BrandID,
 		Name:        productModel.Name,
 		Description: productModel.Description,
@@ -99,6 +105,7 @@ func (r *Repository) CreateProductModel(ctx context.Context, productModel model.
 
 	return model.ProductModel{
 		ID:               row.ID,
+		Type:             productModel.Type,
 		BrandID:          productModel.BrandID,
 		Name:             productModel.Name,
 		Description:      productModel.Description,
@@ -111,6 +118,7 @@ func (r *Repository) CreateProductModel(ctx context.Context, productModel model.
 
 type UpdateProductModelParams struct {
 	ID               int64
+	Type             *int64
 	BrandID          *int64
 	Name             *string
 	Description      *string
@@ -121,6 +129,7 @@ type UpdateProductModelParams struct {
 func (r *Repository) UpdateProductModel(ctx context.Context, params UpdateProductModelParams) error {
 	return r.sqlc.UpdateProductModel(ctx, sqlc.UpdateProductModelParams{
 		ID:               params.ID,
+		Type:             *pgxutil.PtrToPgtype(&pgtype.Int8{}, params.Type),
 		BrandID:          *pgxutil.PtrToPgtype(&pgtype.Int8{}, &params.BrandID),
 		Name:             *pgxutil.PtrToPgtype(&pgtype.Text{}, &params.Name),
 		Description:      *pgxutil.PtrToPgtype(&pgtype.Text{}, &params.Description),
