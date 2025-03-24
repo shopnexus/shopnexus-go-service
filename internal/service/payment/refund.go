@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"shopnexus-go-service/internal/model"
 	repository "shopnexus-go-service/internal/repository"
+	"shopnexus-go-service/internal/util"
 )
 
 type GetRefundParams struct {
@@ -73,6 +74,31 @@ func (s *PaymentService) CreateRefund(ctx context.Context, params CreateRefundPa
 		return model.Refund{}, fmt.Errorf("address is required for refund method pick_up %w", model.ErrMalformedParams)
 	}
 
+	// Payment must exist and is successful
+	existsPayment, err := txRepo.ExistsPayment(ctx, repository.GetPaymentParams{
+		ID:     params.PaymentID,
+		UserID: &params.UserID,
+		Status: util.ToPtr(model.StatusSuccess),
+	})
+	if err != nil {
+		return model.Refund{}, err
+	}
+	if !existsPayment {
+		return model.Refund{}, fmt.Errorf("payment %d not found", params.PaymentID)
+	}
+
+	// Check if there is an existing refund for the payment
+	existsRefund, err := txRepo.ExistsRefund(ctx, repository.ExistsRefundParams{
+		PaymentID: params.PaymentID,
+		UserID:    params.UserID,
+	})
+	if err != nil {
+		return model.Refund{}, err
+	}
+	if existsRefund {
+		return model.Refund{}, fmt.Errorf("refund for payment %d already exists and is pending or resolved", params.PaymentID)
+	}
+
 	refund, err := txRepo.CreateRefund(ctx, model.Refund{
 		PaymentID: params.PaymentID,
 		Method:    params.Method,
@@ -114,6 +140,7 @@ func (s *PaymentService) UpdateRefund(ctx context.Context, params UpdateRefundPa
 
 	if err = txRepo.UpdateRefund(ctx, repository.UpdateRefundParams{
 		ID:      params.ID,
+		UserID:  &params.UserID,
 		Method:  params.Method,
 		Status:  params.Status,
 		Reason:  params.Reason,
