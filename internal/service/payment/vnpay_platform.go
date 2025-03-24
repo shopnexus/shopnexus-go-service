@@ -25,7 +25,7 @@ func (s *VnpayPlatform) CreateOrder(ctx context.Context, params CreateOrderParam
 	q.Add("vnp_Version", "2.1.0")
 	q.Add("vnp_Command", "pay")
 	q.Add("vnp_TmnCode", config.GetConfig().Vnpay.TmnCode)
-	q.Add("vnp_Amount", fmt.Sprintf("%d", params.Amount))
+	q.Add("vnp_Amount", fmt.Sprintf("%d", params.Amount*100))
 	// q.Add("vnp_BankCode", string(BankCodeVNPAYQR))
 	q.Add("vnp_CreateDate", formatTime(time.Now()))
 	q.Add("vnp_CurrCode", "VND")
