@@ -11,16 +11,21 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
+type ExistsRefundParams struct {
+	PaymentID int64
+	UserID    int64
+}
+
+func (r *Repository) ExistsRefund(ctx context.Context, params ExistsRefundParams) (bool, error) {
+	return r.sqlc.ExistsRefund(ctx, sqlc.ExistsRefundParams{
+		PaymentID: params.PaymentID,
+		UserID:    params.UserID,
+	})
+}
+
 type GetRefundParams struct {
 	ID     int64
 	UserID *int64
-}
-
-func (r *Repository) ExistsRefund(ctx context.Context, params GetRefundParams) (bool, error) {
-	return r.sqlc.ExistsRefund(ctx, sqlc.ExistsRefundParams{
-		ID:     params.ID,
-		UserID: *pgxutil.PtrToPgtype(&pgtype.Int8{}, params.UserID),
-	})
 }
 
 func (r *Repository) GetRefund(ctx context.Context, params GetRefundParams) (model.Refund, error) {
@@ -133,6 +138,7 @@ func (r *Repository) CreateRefund(ctx context.Context, refund model.Refund) (mod
 
 type UpdateRefundParams struct {
 	ID      int64
+	UserID  *int64
 	Method  *model.RefundMethod
 	Status  *model.Status
 	Reason  *string
@@ -146,6 +152,7 @@ func (r *Repository) UpdateRefund(ctx context.Context, params UpdateRefundParams
 		Status:  *pgxutil.PtrBrandedToPgType(&sqlc.NullPaymentStatus{}, params.Status),
 		Reason:  *pgxutil.PtrToPgtype(&pgtype.Text{}, params.Reason),
 		Address: *pgxutil.PtrToPgtype(&pgtype.Text{}, params.Address),
+		UserID:  *pgxutil.PtrToPgtype(&pgtype.Int8{}, params.UserID),
 	})
 
 	return err
