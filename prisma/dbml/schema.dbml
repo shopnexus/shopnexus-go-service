@@ -71,6 +71,7 @@ Table Brand {
 
 Table ProductModel {
   id BigInt [pk, increment]
+  type BigInt [not null]
   brand_id BigInt [not null]
   name String [not null]
   description String [not null]
@@ -98,12 +99,16 @@ Table Product {
   product_model_id BigInt [not null]
   quantity BigInt [not null, default: 0]
   sold BigInt [not null, default: 0]
-  size BigInt [not null]
-  color String [not null]
   add_price BigInt [not null, default: 0]
   is_active Boolean [not null, default: true]
+  metadata Json [not null, default: '{}']
   date_created DateTime [default: `now()`, not null]
   date_updated DateTime [default: `now()`, not null]
+}
+
+Table ProductType {
+  id BigInt [pk, increment]
+  name String [not null]
 }
 
 Table Sale {
@@ -111,13 +116,15 @@ Table Sale {
   tag String
   product_model_id BigInt
   brand_id BigInt
+  date_created DateTime [default: `now()`, not null]
   date_started DateTime [default: `now()`, not null]
   date_ended DateTime
   quantity BigInt [not null]
   used BigInt [not null, default: 0]
   is_active Boolean [not null, default: true]
-  discount_percent BigInt
+  discount_percent Int
   discount_price BigInt
+  max_discount_price BigInt [not null, default: 0]
 }
 
 Table TagOnProductModel {
@@ -227,6 +234,8 @@ Ref: Cart.id - UserAccount.id [delete: Cascade]
 Ref: ItemOnCart.cart_id > Cart.id [delete: Cascade]
 
 Ref: ItemOnCart.product_model_id > ProductModel.id [delete: Cascade]
+
+Ref: ProductModel.type > ProductType.id [delete: Cascade]
 
 Ref: ProductModel.brand_id > Brand.id [delete: Cascade]
 

@@ -111,6 +111,7 @@ CREATE TABLE "product"."brand" (
 -- CreateTable
 CREATE TABLE "product"."model" (
     "id" BIGSERIAL NOT NULL,
+    "type" BIGINT NOT NULL,
     "brand_id" BIGINT NOT NULL,
     "name" TEXT NOT NULL,
     "description" TEXT NOT NULL,
@@ -140,14 +141,21 @@ CREATE TABLE "product"."base" (
     "product_model_id" BIGINT NOT NULL,
     "quantity" BIGINT NOT NULL DEFAULT 0,
     "sold" BIGINT NOT NULL DEFAULT 0,
-    "size" BIGINT NOT NULL,
-    "color" TEXT NOT NULL,
     "add_price" BIGINT NOT NULL DEFAULT 0,
     "is_active" BOOLEAN NOT NULL DEFAULT true,
+    "metadata" JSON NOT NULL DEFAULT '{}',
     "date_created" TIMESTAMPTZ(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "date_updated" TIMESTAMPTZ(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
     CONSTRAINT "base_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "product"."type" (
+    "id" BIGSERIAL NOT NULL,
+    "name" TEXT NOT NULL,
+
+    CONSTRAINT "type_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
@@ -156,6 +164,7 @@ CREATE TABLE "product"."sale" (
     "tag" TEXT,
     "product_model_id" BIGINT,
     "brand_id" BIGINT,
+    "date_created" TIMESTAMPTZ(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "date_started" TIMESTAMPTZ(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "date_ended" TIMESTAMPTZ(3),
     "quantity" BIGINT NOT NULL,
@@ -163,6 +172,7 @@ CREATE TABLE "product"."sale" (
     "is_active" BOOLEAN NOT NULL DEFAULT true,
     "discount_percent" INTEGER,
     "discount_price" BIGINT,
+    "max_discount_price" BIGINT NOT NULL DEFAULT 0,
 
     CONSTRAINT "sale_pkey" PRIMARY KEY ("id")
 );
@@ -286,6 +296,9 @@ ALTER TABLE "account"."item_on_cart" ADD CONSTRAINT "item_on_cart_cart_id_fkey" 
 
 -- AddForeignKey
 ALTER TABLE "account"."item_on_cart" ADD CONSTRAINT "item_on_cart_product_model_id_fkey" FOREIGN KEY ("product_model_id") REFERENCES "product"."model"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "product"."model" ADD CONSTRAINT "model_type_fkey" FOREIGN KEY ("type") REFERENCES "product"."type"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "product"."model" ADD CONSTRAINT "model_brand_id_fkey" FOREIGN KEY ("brand_id") REFERENCES "product"."brand"("id") ON DELETE CASCADE ON UPDATE CASCADE;
