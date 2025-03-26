@@ -247,9 +247,9 @@ CREATE TABLE "payment"."refund" (
 -- CreateTable
 CREATE TABLE "product"."resource" (
     "owner_id" BIGINT NOT NULL,
-    "s3_id" TEXT NOT NULL,
+    "key" TEXT NOT NULL,
 
-    CONSTRAINT "resource_pkey" PRIMARY KEY ("owner_id","s3_id")
+    CONSTRAINT "resource_pkey" PRIMARY KEY ("owner_id","key")
 );
 
 -- CreateIndex

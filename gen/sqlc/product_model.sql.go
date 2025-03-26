@@ -66,9 +66,9 @@ WITH inserted_model AS (
     ) RETURNING id, type, brand_id, name, description, list_price, date_manufactured
 ),
 inserted_resources AS (
-    INSERT INTO product.resource (owner_id, s3_id)
+    INSERT INTO product.resource (owner_id, key)
     SELECT id, unnest($7::text[]) FROM inserted_model
-    RETURNING s3_id
+    RETURNING key
 ),
 inserted_tags AS (
     INSERT INTO product.tag_on_product_model (product_model_id, tag)
@@ -77,7 +77,7 @@ inserted_tags AS (
 )
 SELECT 
     m.id,
-    COALESCE(array_agg(res.s3_id), '{}')::text[] as resources,
+    COALESCE(array_agg(res.key), '{}')::text[] as resources,
     COALESCE(array_agg(t.tag), '{}')::text[] as tags
 FROM inserted_model m
 LEFT JOIN inserted_resources res ON true
@@ -130,7 +130,7 @@ func (q *Queries) DeleteProductModel(ctx context.Context, id int64) error {
 const getProductModel = `-- name: GetProductModel :one
 SELECT 
     pm.id, pm.type, pm.brand_id, pm.name, pm.description, pm.list_price, pm.date_manufactured,
-    COALESCE(array_agg(i.s3_id) FILTER (WHERE i.s3_id IS NOT NULL), '{}')::text[] as resources,
+    COALESCE(array_agg(i.key) FILTER (WHERE i.key IS NOT NULL), '{}')::text[] as resources,
     COALESCE(array_agg(t.tag) FILTER (WHERE t.tag IS NOT NULL), '{}')::text[] as tags
 FROM product.model pm
 LEFT JOIN product.resource i ON i.owner_id = pm.id
@@ -168,10 +168,36 @@ func (q *Queries) GetProductModel(ctx context.Context, id int64) (GetProductMode
 	return i, err
 }
 
+const getProductSerialIDs = `-- name: GetProductSerialIDs :many
+SELECT serial_id
+FROM product.base
+WHERE product_model_id = $1
+`
+
+func (q *Queries) GetProductSerialIDs(ctx context.Context, productModelID int64) ([]string, error) {
+	rows, err := q.db.Query(ctx, getProductSerialIDs, productModelID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []string
+	for rows.Next() {
+		var serial_id string
+		if err := rows.Scan(&serial_id); err != nil {
+			return nil, err
+		}
+		items = append(items, serial_id)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const listProductModels = `-- name: ListProductModels :many
 SELECT 
     pm.id, pm.type, pm.brand_id, pm.name, pm.description, pm.list_price, pm.date_manufactured,
-    COALESCE(array_agg(DISTINCT i.s3_id) FILTER (WHERE i.s3_id IS NOT NULL), '{}')::text[] as resources,
+    COALESCE(array_agg(DISTINCT i.key) FILTER (WHERE i.key IS NOT NULL), '{}')::text[] as resources,
     COALESCE(array_agg(DISTINCT t.tag) FILTER (WHERE t.tag IS NOT NULL), '{}')::text[] as tags
 FROM product.model pm
 LEFT JOIN product.resource i ON i.owner_id = pm.id

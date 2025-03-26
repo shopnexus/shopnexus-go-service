@@ -1,13 +1,19 @@
 -- name: GetProductModel :one
 SELECT 
     pm.*,
-    COALESCE(array_agg(i.s3_id) FILTER (WHERE i.s3_id IS NOT NULL), '{}')::text[] as resources,
+    COALESCE(array_agg(i.key) FILTER (WHERE i.key IS NOT NULL), '{}')::text[] as resources,
     COALESCE(array_agg(t.tag) FILTER (WHERE t.tag IS NOT NULL), '{}')::text[] as tags
 FROM product.model pm
 LEFT JOIN product.resource i ON i.owner_id = pm.id
 LEFT JOIN product.tag_on_product_model t ON t.product_model_id = pm.id
 WHERE pm.id = $1
 GROUP BY pm.id;
+
+-- name: GetProductSerialIDs :many
+SELECT serial_id
+FROM product.base
+WHERE product_model_id = $1;
+
 
 -- name: CountProductModels :one
 WITH filtered_models AS (
@@ -30,7 +36,7 @@ FROM filtered_models;
 -- name: ListProductModels :many
 SELECT 
     pm.*,
-    COALESCE(array_agg(DISTINCT i.s3_id) FILTER (WHERE i.s3_id IS NOT NULL), '{}')::text[] as resources,
+    COALESCE(array_agg(DISTINCT i.key) FILTER (WHERE i.key IS NOT NULL), '{}')::text[] as resources,
     COALESCE(array_agg(DISTINCT t.tag) FILTER (WHERE t.tag IS NOT NULL), '{}')::text[] as tags
 FROM product.model pm
 LEFT JOIN product.resource i ON i.owner_id = pm.id
@@ -59,9 +65,9 @@ WITH inserted_model AS (
     ) RETURNING *
 ),
 inserted_resources AS (
-    INSERT INTO product.resource (owner_id, s3_id)
+    INSERT INTO product.resource (owner_id, key)
     SELECT id, unnest(sqlc.arg('resources')::text[]) FROM inserted_model
-    RETURNING s3_id
+    RETURNING key
 ),
 inserted_tags AS (
     INSERT INTO product.tag_on_product_model (product_model_id, tag)
@@ -70,7 +76,7 @@ inserted_tags AS (
 )
 SELECT 
     m.id,
-    COALESCE(array_agg(res.s3_id), '{}')::text[] as resources,
+    COALESCE(array_agg(res.key), '{}')::text[] as resources,
     COALESCE(array_agg(t.tag), '{}')::text[] as tags
 FROM inserted_model m
 LEFT JOIN inserted_resources res ON true

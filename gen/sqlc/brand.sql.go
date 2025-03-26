@@ -43,13 +43,13 @@ WITH inserted_brand AS (
     RETURNING id, name, description
 ),
 inserted_resources AS (
-    INSERT INTO product.resource (owner_id, s3_id)
+    INSERT INTO product.resource (owner_id, key)
     SELECT id, unnest($3::text[]) FROM inserted_brand
-    RETURNING s3_id
+    RETURNING key
 )
 SELECT 
     b.id,
-    COALESCE(array_agg(res.s3_id), '{}')::text[] as resources
+    COALESCE(array_agg(res.key), '{}')::text[] as resources
 FROM inserted_brand b
 LEFT JOIN inserted_resources res ON true
 GROUP BY b.id
@@ -85,7 +85,7 @@ func (q *Queries) DeleteBrand(ctx context.Context, id int64) error {
 const getBrand = `-- name: GetBrand :one
 SELECT 
     b.id, b.name, b.description,
-    COALESCE(array_agg(i.s3_id) FILTER (WHERE i.s3_id IS NOT NULL), '{}')::TEXT[] as resources
+    COALESCE(array_agg(i.key) FILTER (WHERE i.key IS NOT NULL), '{}')::TEXT[] as resources
 FROM product.brand b
 LEFT JOIN product.resource i ON i.owner_id = b.id
 WHERE b.id = $1
@@ -115,7 +115,7 @@ const listBrands = `-- name: ListBrands :many
 WITH filtered_brands AS (
   SELECT
     b.id, b.name, b.description, 
-    COALESCE(array_agg(i.s3_id) FILTER (WHERE i.s3_id IS NOT NULL), '{}')::TEXT[] as resources
+    COALESCE(array_agg(i.key) FILTER (WHERE i.key IS NOT NULL), '{}')::TEXT[] as resources
   FROM product.brand b
   INNER JOIN product.resource i ON i.owner_id = b.id
   WHERE (

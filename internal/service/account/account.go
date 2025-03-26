@@ -50,15 +50,16 @@ func (s *AccountService) CreateHash(password string) (string, error) {
 }
 
 type FindAccountParams struct {
+	Role     model.Role
+	UserID   *int64
 	Username *string
 	Email    *string
 	Phone    *string
-	Role     model.Role
-	Password string
+	Password *string
 }
 
 func (s *AccountService) FindAccount(ctx context.Context, params FindAccountParams) (account model.Account, err error) {
-	if params.Username == nil && params.Email == nil && params.Phone == nil {
+	if params.Username == nil && params.Email == nil && params.Phone == nil && params.UserID == nil {
 		return nil, model.ErrInvalidCreds
 	}
 
@@ -66,12 +67,14 @@ func (s *AccountService) FindAccount(ctx context.Context, params FindAccountPara
 	case model.RoleAdmin:
 		account, err = s.repo.GetAccount(ctx, model.AccountAdmin{
 			AccountBase: model.AccountBase{
+				ID:       util.DerefDefault(params.UserID, 0),
 				Username: util.DerefDefault(params.Username, ""),
 			},
 		})
 	case model.RoleUser:
 		account, err = s.repo.GetAccount(ctx, model.AccountUser{
 			AccountBase: model.AccountBase{
+				ID:       util.DerefDefault(params.UserID, 0),
 				Username: util.DerefDefault(params.Username, ""),
 			},
 			Email: util.DerefDefault(params.Email, ""),
@@ -84,15 +87,23 @@ func (s *AccountService) FindAccount(ctx context.Context, params FindAccountPara
 		return nil, err
 	}
 
-	// Check hash password
-	if ok := s.CheckPassword(account.GetBase().Password, params.Password); !ok {
-		return nil, model.ErrWrongPassword
+	if params.Password != nil {
+		// Check hash password
+		if ok := s.CheckPassword(account.GetBase().Password, *params.Password); !ok {
+			return nil, model.ErrWrongPassword
+		}
 	}
 
 	return account, nil
 }
 
-type LoginParams = FindAccountParams
+type LoginParams struct {
+	Role     model.Role
+	Password string
+	Username *string
+	Email    *string
+	Phone    *string
+}
 
 func (s *AccountService) Login(ctx context.Context, params LoginParams) (string, error) {
 	if params.Username == nil && params.Email == nil && params.Phone == nil {
@@ -108,7 +119,7 @@ func (s *AccountService) Login(ctx context.Context, params LoginParams) (string,
 	case model.RoleAdmin:
 		account, err = s.FindAccount(ctx, FindAccountParams{
 			Username: params.Username,
-			Password: params.Password,
+			Password: &params.Password,
 			Role:     model.RoleAdmin,
 		})
 	case model.RoleUser:
@@ -116,7 +127,7 @@ func (s *AccountService) Login(ctx context.Context, params LoginParams) (string,
 			Username: params.Username,
 			Email:    params.Email,
 			Phone:    params.Phone,
-			Password: params.Password,
+			Password: &params.Password,
 			Role:     model.RoleUser,
 		})
 	}

@@ -17,8 +17,14 @@ func (s *ImplementedProductServiceHandler) GetProductModel(ctx context.Context, 
 		return nil, err
 	}
 
+	serialIds, err := s.service.GetProductSerialIDs(ctx, req.Msg.Id)
+	if err != nil {
+		return nil, err
+	}
+
 	return connect.NewResponse(&productv1.GetProductModelResponse{
-		Data: modelToProductModelEntity(data),
+		Data:      modelToProductModelEntity(data),
+		SerialIds: serialIds,
 	}), nil
 }
 

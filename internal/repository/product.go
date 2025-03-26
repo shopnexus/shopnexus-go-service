@@ -32,6 +32,10 @@ func (r *Repository) GetProduct(ctx context.Context, id model.ProductIdentifier)
 		ID:             row.ID,
 		SerialID:       row.SerialID,
 		ProductModelID: row.ProductModelID,
+		Quantity:       row.Quantity,
+		Sold:           row.Sold,
+		AddPrice:       row.AddPrice,
+		IsActive:       row.IsActive,
 		Metadata:       row.Metadata,
 		DateCreated:    row.DateCreated.Time.UnixMilli(),
 		DateUpdated:    row.DateUpdated.Time.UnixMilli(),
@@ -53,6 +57,11 @@ func (r *Repository) GetAvailableProducts(ctx context.Context, productModelID, a
 			ID:             row.ID,
 			SerialID:       row.SerialID,
 			ProductModelID: row.ProductModelID,
+			Quantity:       row.Quantity,
+			Sold:           row.Sold,
+			AddPrice:       row.AddPrice,
+			IsActive:       row.IsActive,
+			Metadata:       row.Metadata,
 			DateCreated:    row.DateCreated.Time.UnixMilli(),
 			DateUpdated:    row.DateUpdated.Time.UnixMilli(),
 		}
@@ -68,6 +77,7 @@ type ListProductsParams struct {
 	DateCreatedTo   *int64
 }
 
+// TODO: fix list pagination product (missing fields in sqlc)
 func (r *Repository) CountProducts(ctx context.Context, params ListProductsParams) (int64, error) {
 	return r.sqlc.CountProducts(ctx, sqlc.CountProductsParams{
 		ProductModelID:  *pgxutil.PtrToPgtype(&pgtype.Int8{}, params.ProductModelID),

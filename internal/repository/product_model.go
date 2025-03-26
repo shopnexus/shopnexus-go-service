@@ -29,6 +29,10 @@ func (r *Repository) GetProductModel(ctx context.Context, id int64) (model.Produ
 	}, nil
 }
 
+func (r *Repository) GetProductSerialIDs(ctx context.Context, productModelID int64) ([]string, error) {
+	return r.sqlc.GetProductSerialIDs(ctx, productModelID)
+}
+
 type ListProductModelsParams struct {
 	model.PaginationParams
 	Type                 *int64

@@ -9,6 +9,7 @@ var permissionRoutes = map[string]permission.Options{
 	// OTHER will skip validate roles & permissions
 
 	// ACCOUNT
+	"/account.v1.AccountService/GetUser":        permission.UseOptions(permission.NeedRoles(model.RoleUser)),
 	"/account.v1.AccountService/GetCart":        permission.UseOptions(permission.NeedRoles(model.RoleUser)),
 	"/account.v1.AccountService/AddCartItem":    permission.UseOptions(permission.NeedRoles(model.RoleUser)),
 	"/account.v1.AccountService/UpdateCartItem": permission.UseOptions(permission.NeedRoles(model.RoleUser)),

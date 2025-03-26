@@ -32,3 +32,5 @@ node_modules/
 main
 
 tmp/
+
+uploads/

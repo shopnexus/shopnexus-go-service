@@ -2,6 +2,7 @@ package product
 
 import (
 	"context"
+	"encoding/json"
 	"shopnexus-go-service/internal/model"
 	"shopnexus-go-service/internal/service/product"
 
@@ -102,10 +103,20 @@ func (s *ImplementedProductServiceHandler) DeleteProduct(ctx context.Context, re
 }
 
 func modelToProductEntity(data model.Product[any]) *productv1.ProductEntity {
+	metadata, err := json.Marshal(data.Metadata)
+	if err != nil {
+		panic(err)
+	}
+
 	return &productv1.ProductEntity{
 		Id:             data.ID,
 		SerialId:       data.SerialID,
 		ProductModelId: data.ProductModelID,
+		Quantity:       data.Quantity,
+		Sold:           data.Sold,
+		AddPrice:       data.AddPrice,
+		IsActive:       data.IsActive,
+		Metadata:       metadata,
 		DateCreated:    data.DateCreated,
 		DateUpdated:    data.DateUpdated,
 	}
