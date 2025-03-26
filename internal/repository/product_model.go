@@ -95,13 +95,14 @@ func (r *Repository) ListProductModels(ctx context.Context, params ListProductMo
 
 func (r *Repository) CreateProductModel(ctx context.Context, productModel model.ProductModel) (model.ProductModel, error) {
 	row, err := r.sqlc.CreateProductModel(ctx, sqlc.CreateProductModelParams{
-		Type:        productModel.Type,
-		BrandID:     productModel.BrandID,
-		Name:        productModel.Name,
-		Description: productModel.Description,
-		ListPrice:   productModel.ListPrice,
-		Resources:   productModel.Resources,
-		Tags:        productModel.Tags,
+		Type:             productModel.Type,
+		BrandID:          productModel.BrandID,
+		Name:             productModel.Name,
+		Description:      productModel.Description,
+		ListPrice:        productModel.ListPrice,
+		DateManufactured: *pgxutil.ValueToPgtype(&pgtype.Timestamptz{}, util.PtrMilisToTime(&productModel.DateManufactured)),
+		Resources:        productModel.Resources,
+		Tags:             productModel.Tags,
 	})
 	if err != nil {
 		return model.ProductModel{}, err

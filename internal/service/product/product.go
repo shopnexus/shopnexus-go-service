@@ -85,9 +85,15 @@ type ProductServiceInterface interface {
 	UpdateProduct(ctx context.Context, params UpdateProductParams) error
 	DeleteProduct(ctx context.Context, params model.ProductIdentifier) error
 
-	CreateSale(ctx context.Context, sale model.Sale) (model.Sale, error)
+	GetSale(ctx context.Context, id int64) (model.Sale, error)
+	ListSales(ctx context.Context, params ListSalesParams) (model.PaginateResult[model.Sale], error)
+	CreateSale(ctx context.Context, params CreateSaleParams) (model.Sale, error)
+	UpdateSale(ctx context.Context, params UpdateSaleParams) error
 	DeleteSale(ctx context.Context, id int64) error
 
-	CreateTag(ctx context.Context, tag model.Tag) (model.Tag, error)
-	DeleteTag(ctx context.Context, name string) error
+	GetTag(ctx context.Context, tag string) (model.Tag, error)
+	ListTags(ctx context.Context, params ListTagsParams) (model.PaginateResult[model.Tag], error)
+	CreateTag(ctx context.Context, tag model.Tag) error
+	UpdateTag(ctx context.Context, params UpdateTagParams) error
+	DeleteTag(ctx context.Context, tag string) error
 }

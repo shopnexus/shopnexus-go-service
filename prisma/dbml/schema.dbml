@@ -186,10 +186,10 @@ Table Refund {
 
 Table Resource {
   owner_id BigInt [not null]
-  key String [not null]
+  url String [not null]
 
   indexes {
-    (owner_id, key) [pk]
+    (owner_id, url) [pk]
   }
 }
 

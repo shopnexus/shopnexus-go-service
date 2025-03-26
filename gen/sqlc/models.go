@@ -316,7 +316,7 @@ type ProductModel struct {
 
 type ProductResource struct {
 	OwnerID int64
-	Key     string
+	Url     string
 }
 
 type ProductSale struct {

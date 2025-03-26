@@ -39,6 +39,7 @@ func (r *Repository) GetProduct(ctx context.Context, id model.ProductIdentifier)
 		Metadata:       row.Metadata,
 		DateCreated:    row.DateCreated.Time.UnixMilli(),
 		DateUpdated:    row.DateUpdated.Time.UnixMilli(),
+		Resources:      row.Resources,
 	}, nil
 }
 
@@ -104,8 +105,14 @@ func (r *Repository) ListProducts(ctx context.Context, params ListProductsParams
 			ID:             product.ID,
 			SerialID:       product.SerialID,
 			ProductModelID: product.ProductModelID,
+			Quantity:       product.Quantity,
+			Sold:           product.Sold,
+			AddPrice:       product.AddPrice,
+			IsActive:       product.IsActive,
+			Metadata:       product.Metadata,
 			DateCreated:    product.DateCreated.Time.UnixMilli(),
 			DateUpdated:    product.DateUpdated.Time.UnixMilli(),
+			Resources:      product.Resources,
 		}
 	}
 
@@ -121,10 +128,17 @@ func (r *Repository) CreateProduct(ctx context.Context, product model.Product[an
 	}
 
 	return model.Product[any]{
+		ID:             row.ID,
 		SerialID:       row.SerialID,
 		ProductModelID: row.ProductModelID,
+		Quantity:       row.Quantity,
+		Sold:           row.Sold,
+		AddPrice:       row.AddPrice,
+		IsActive:       row.IsActive,
+		Metadata:       row.Metadata,
 		DateCreated:    row.DateCreated.Time.UnixMilli(),
 		DateUpdated:    row.DateUpdated.Time.UnixMilli(),
+		Resources:      row.Resources,
 	}, nil
 }
 

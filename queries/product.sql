@@ -25,16 +25,22 @@ WHERE (
 );
 
 -- name: GetProduct :one
-SELECT *
-FROM product.base
+SELECT 
+    p.*,
+    COALESCE(array_agg(DISTINCT res.url) FILTER (WHERE res.url IS NOT NULL), '{}')::text[] as resources
+FROM product.base p
+LEFT JOIN product.resource res ON res.owner_id = p.id
 WHERE (
     id = sqlc.narg('id') OR 
     serial_id = sqlc.narg('serial_id')
 );
 
 -- name: ListProducts :many
-SELECT *
-FROM product.base
+SELECT
+    p.*,
+    COALESCE(array_agg(DISTINCT res.url) FILTER (WHERE res.url IS NOT NULL), '{}')::text[] as resources
+FROM product.base p
+LEFT JOIN product.resource res ON res.owner_id = p.id
 WHERE (
     (product_model_id = sqlc.narg('product_model_id') OR sqlc.narg('product_model_id') IS NULL) AND
     (quantity >= sqlc.narg('quantity_from') OR sqlc.narg('quantity_from') IS NULL) AND
@@ -53,18 +59,29 @@ LIMIT sqlc.arg('limit')
 OFFSET sqlc.arg('offset');
 
 -- name: CreateProduct :one
-INSERT INTO product.base (
-    serial_id,
-    product_model_id,
-    quantity,
-    sold,
-    add_price,
-    is_active,
-    metadata
-) VALUES (
-    $1, $2, $3, $4, $5, $6, $7
+WITH inserted_product AS (
+    INSERT INTO product.base (
+        serial_id,
+        product_model_id,
+        quantity,
+        sold,
+        add_price,
+        is_active,
+        metadata
+    ) VALUES ($1, $2, $3, $4, $5, $6, $7)
+    RETURNING *
+),
+inserted_resources AS (
+    INSERT INTO product.resource (owner_id, url)
+    SELECT id, unnest(sqlc.arg('resources')::text[]) FROM inserted_product
+    RETURNING url
 )
-RETURNING *;
+SELECT
+    p.*,
+    COALESCE(array_agg(DISTINCT res.url) FILTER (WHERE res.url IS NOT NULL), '{}')::text[] as resources
+FROM inserted_product p
+LEFT JOIN inserted_resources res ON res.owner_id = p.id
+GROUP BY p.id;
 
 -- name: UpdateProduct :exec
 UPDATE product.base

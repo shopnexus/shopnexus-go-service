@@ -17,6 +17,8 @@ type Product[T any] struct {
 	Metadata       T      `json:"metadata"`
 	DateCreated    int64  `json:"date_created"`
 	DateUpdated    int64  `json:"date_updated"`
+
+	Resources []string `json:"resources"`
 }
 
 type ProductMetadataShoe struct {

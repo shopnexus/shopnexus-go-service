@@ -67,6 +67,11 @@ func (s *ImplementedProductServiceHandler) CreateProduct(ctx context.Context, re
 	data, err := s.service.CreateProduct(ctx, model.Product[any]{
 		SerialID:       req.Msg.SerialId,
 		ProductModelID: req.Msg.ProductModelId,
+		Quantity:       req.Msg.Quantity,
+		AddPrice:       req.Msg.AddPrice,
+		IsActive:       req.Msg.IsActive,
+		Metadata:       req.Msg.Metadata,
+		Resources:      req.Msg.Resources,
 	})
 	if err != nil {
 		return nil, err
@@ -119,5 +124,6 @@ func modelToProductEntity(data model.Product[any]) *productv1.ProductEntity {
 		Metadata:       metadata,
 		DateCreated:    data.DateCreated,
 		DateUpdated:    data.DateUpdated,
+		Resources:      data.Resources,
 	}
 }

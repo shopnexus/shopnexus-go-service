@@ -62,7 +62,8 @@ func (s *ProductService) ListSales(ctx context.Context, params ListSalesParams) 
 }
 
 type CreateSaleParams struct {
-	Sale model.Sale
+	UserID int64
+	Sale   model.Sale
 }
 
 func (s *ProductService) CreateSale(ctx context.Context, params CreateSaleParams) (model.Sale, error) {
