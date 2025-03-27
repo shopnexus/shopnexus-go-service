@@ -117,7 +117,7 @@ WITH filtered_brands AS (
     b.id, b.name, b.description, 
     COALESCE(array_agg(res.url) FILTER (WHERE res.url IS NOT NULL), '{}')::TEXT[] as resources
   FROM product.brand b
-  INNER JOIN product.resource res ON res.owner_id = b.id
+  LEFT JOIN product.resource res ON res.owner_id = b.id
   WHERE (
     (name ILIKE '%' || $3 || '%' OR $3 IS NULL) AND
     (description ILIKE '%' || $4 || '%' OR $4 IS NULL)

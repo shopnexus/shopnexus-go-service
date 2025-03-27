@@ -14,8 +14,26 @@ SELECT serial_id
 FROM product.base
 WHERE product_model_id = $1;
 
+-- name: CountProductTypes :one
+SELECT COUNT(id)
+FROM product.type
+WHERE (
+    (name ILIKE '%' || sqlc.narg('name') || '%' OR sqlc.narg('name') IS NULL)
+);
+
+-- name: ListProductTypes :many
+SELECT t.*
+FROM product.type t
+WHERE (
+    (name ILIKE '%' || sqlc.narg('name') || '%' OR sqlc.narg('name') IS NULL)
+)
+ORDER BY t.id DESC
+LIMIT sqlc.arg('limit')
+OFFSET sqlc.arg('offset');
+
 
 -- name: CountProductModels :one
+-- TODO: đổi hết WITH SELECT về dạng SELECT * FROM.. bình thường
 WITH filtered_models AS (
     SELECT pm.id
     FROM product.model pm

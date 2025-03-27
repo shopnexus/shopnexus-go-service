@@ -214,6 +214,7 @@ WHERE (
     id = $1 OR 
     serial_id = $2
 )
+GROUP BY p.id
 `
 
 type GetProductParams struct {
@@ -273,6 +274,7 @@ WHERE (
     (date_created >= $10 OR $10 IS NULL) AND
     (date_created <= $11 OR $11 IS NULL)
 )
+GROUP BY p.id
 ORDER BY date_created DESC
 LIMIT $13
 OFFSET $12

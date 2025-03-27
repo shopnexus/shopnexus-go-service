@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"log"
 	"net/http"
-	"regexp"
 	pgxutil "shopnexus-go-service/internal/db/pgx"
 	"shopnexus-go-service/internal/grpc/handler/account"
 	"shopnexus-go-service/internal/grpc/handler/file"
@@ -171,15 +170,15 @@ func (s *Server) RegisterTusd() {
 		BasePath:              "/files/",
 		StoreComposer:         composer,
 		NotifyCompleteUploads: true,
-		Cors: &tusd.CorsConfig{
-			Disable:          false,
-			AllowOrigin:      regexp.MustCompile(".*"),
-			AllowMethods:     "GET, POST, PUT, DELETE, HEAD, PATCH, OPTIONS",
-			AllowHeaders:     "Accept, Content-Type, Content-Length, Accept-Encoding, Authorization, Upload-Length, Upload-Offset, Tus-Resumable, Upload-Metadata, Connect-Protocol-Version, Tus-Version, Tus-Max-Size, Tus-Extension, X-HTTP-Method-Override, X-Requested-With",
-			ExposeHeaders:    "Upload-Offset, Location, Upload-Length, Tus-Version, Tus-Resumable, Tus-Max-Size, Tus-Extension, Upload-Metadata",
-			MaxAge:           "3600",
-			AllowCredentials: true,
-		},
+		// Cors: &tusd.CorsConfig{
+		// 	Disable:          false,
+		// 	AllowOrigin:      regexp.MustCompile(".*"),
+		// 	AllowMethods:     "GET, POST, PUT, DELETE, HEAD, PATCH, OPTIONS",
+		// 	AllowHeaders:     "Accept, Content-Type, Content-Length, Accept-Encoding, Authorization, Upload-Length, Upload-Offset, Tus-Resumable, Upload-Metadata, Connect-Protocol-Version, Tus-Version, Tus-Max-Size, Tus-Extension, X-HTTP-Method-Override, X-Requested-With",
+		// 	ExposeHeaders:    "Upload-Offset, Location, Upload-Length, Tus-Version, Tus-Resumable, Tus-Max-Size, Tus-Extension, Upload-Metadata",
+		// 	MaxAge:           "3600",
+		// 	AllowCredentials: true,
+		// },
 	})
 	if err != nil {
 		log.Fatalf("unable to create handler: %s", err)

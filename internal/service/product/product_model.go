@@ -81,3 +81,9 @@ func (s *ProductService) UpdateProductModel(ctx context.Context, params UpdatePr
 func (s *ProductService) DeleteProductModel(ctx context.Context, id int64) error {
 	return s.repo.DeleteProductModel(ctx, id)
 }
+
+type ListProductTypesParams = repository.ListProductTypesParams
+
+func (s *ProductService) ListProductTypes(ctx context.Context, params ListProductTypesParams) ([]model.ProductType, error) {
+	return s.repo.ListProductTypes(ctx, params)
+}

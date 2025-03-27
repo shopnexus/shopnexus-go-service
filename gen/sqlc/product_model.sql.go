@@ -41,6 +41,7 @@ type CountProductModelsParams struct {
 	DateManufacturedTo   pgtype.Timestamptz
 }
 
+// TODO: đổi hết WITH SELECT về dạng SELECT * FROM.. bình thường
 func (q *Queries) CountProductModels(ctx context.Context, arg CountProductModelsParams) (int64, error) {
 	row := q.db.QueryRow(ctx, countProductModels,
 		arg.Type,
@@ -52,6 +53,21 @@ func (q *Queries) CountProductModels(ctx context.Context, arg CountProductModels
 		arg.DateManufacturedFrom,
 		arg.DateManufacturedTo,
 	)
+	var count int64
+	err := row.Scan(&count)
+	return count, err
+}
+
+const countProductTypes = `-- name: CountProductTypes :one
+SELECT COUNT(id)
+FROM product.type
+WHERE (
+    (name ILIKE '%' || $1 || '%' OR $1 IS NULL)
+)
+`
+
+func (q *Queries) CountProductTypes(ctx context.Context, name pgtype.Text) (int64, error) {
+	row := q.db.QueryRow(ctx, countProductTypes, name)
 	var count int64
 	err := row.Scan(&count)
 	return count, err
@@ -274,6 +290,43 @@ func (q *Queries) ListProductModels(ctx context.Context, arg ListProductModelsPa
 			&i.Resources,
 			&i.Tags,
 		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const listProductTypes = `-- name: ListProductTypes :many
+SELECT t.id, t.name
+FROM product.type t
+WHERE (
+    (name ILIKE '%' || $1 || '%' OR $1 IS NULL)
+)
+ORDER BY t.id DESC
+LIMIT $3
+OFFSET $2
+`
+
+type ListProductTypesParams struct {
+	Name   pgtype.Text
+	Offset int32
+	Limit  int32
+}
+
+func (q *Queries) ListProductTypes(ctx context.Context, arg ListProductTypesParams) ([]ProductType, error) {
+	rows, err := q.db.Query(ctx, listProductTypes, arg.Name, arg.Offset, arg.Limit)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []ProductType
+	for rows.Next() {
+		var i ProductType
+		if err := rows.Scan(&i.ID, &i.Name); err != nil {
 			return nil, err
 		}
 		items = append(items, i)

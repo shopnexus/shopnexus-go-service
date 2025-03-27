@@ -108,7 +108,7 @@ Table Product {
 
 Table ProductType {
   id BigInt [pk, increment]
-  name String [not null]
+  name String [unique, not null]
 }
 
 Table Sale {

@@ -62,9 +62,7 @@ func (s *ProductService) CreateBrand(ctx context.Context, params CreateBrandPara
 	return newBrand, nil
 }
 
-type UpdateBrandParams struct {
-	repository.UpdateBrandParams
-}
+type UpdateBrandParams = repository.UpdateBrandParams
 
 func (s *ProductService) UpdateBrand(ctx context.Context, params UpdateBrandParams) error {
 	// TODO: chuyển isAdmin này ra chỗ khác
@@ -74,7 +72,7 @@ func (s *ProductService) UpdateBrand(ctx context.Context, params UpdateBrandPara
 	// 	return model.ErrForbidden
 	// }
 
-	return s.repo.UpdateBrand(ctx, params.UpdateBrandParams)
+	return s.repo.UpdateBrand(ctx, params)
 }
 
 func (s *ProductService) DeleteBrand(ctx context.Context, id int64) error {

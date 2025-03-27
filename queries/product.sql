@@ -33,7 +33,8 @@ LEFT JOIN product.resource res ON res.owner_id = p.id
 WHERE (
     id = sqlc.narg('id') OR 
     serial_id = sqlc.narg('serial_id')
-);
+)
+GROUP BY p.id;
 
 -- name: ListProducts :many
 SELECT
@@ -54,6 +55,7 @@ WHERE (
     (date_created >= sqlc.narg('date_created_from') OR sqlc.narg('date_created_from') IS NULL) AND
     (date_created <= sqlc.narg('date_created_to') OR sqlc.narg('date_created_to') IS NULL)
 )
+GROUP BY p.id
 ORDER BY date_created DESC
 LIMIT sqlc.arg('limit')
 OFFSET sqlc.arg('offset');

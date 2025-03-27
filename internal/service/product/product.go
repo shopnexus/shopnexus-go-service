@@ -4,12 +4,10 @@ import (
 	"context"
 	"shopnexus-go-service/internal/model"
 	"shopnexus-go-service/internal/repository"
-	"shopnexus-go-service/internal/service/s3"
 )
 
 type ProductService struct {
 	repo *repository.Repository
-	s3   *s3.S3Service
 }
 
 var _ ProductServiceInterface = (*ProductService)(nil)
@@ -78,6 +76,7 @@ type ProductServiceInterface interface {
 	CreateProductModel(ctx context.Context, params CreateProductModelParams) (model.ProductModel, error)
 	UpdateProductModel(ctx context.Context, params UpdateProductModelParams) error
 	DeleteProductModel(ctx context.Context, id int64) error
+	ListProductTypes(ctx context.Context, params ListProductTypesParams) ([]model.ProductType, error)
 
 	GetProduct(ctx context.Context, params model.ProductIdentifier) (model.Product[any], error)
 	ListProducts(ctx context.Context, params ListProductsParams) (model.PaginateResult[model.Product[any]], error)

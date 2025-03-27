@@ -143,7 +143,7 @@ CREATE TABLE "product"."base" (
     "sold" BIGINT NOT NULL DEFAULT 0,
     "add_price" BIGINT NOT NULL DEFAULT 0,
     "is_active" BOOLEAN NOT NULL DEFAULT true,
-    "metadata" JSON NOT NULL DEFAULT '{}',
+    "metadata" JSONB NOT NULL DEFAULT '{}',
     "date_created" TIMESTAMPTZ(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "date_updated" TIMESTAMPTZ(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
@@ -269,6 +269,9 @@ CREATE UNIQUE INDEX "base_serial_id_key" ON "product"."base"("serial_id");
 
 -- CreateIndex
 CREATE INDEX "base_product_model_id_sold_idx" ON "product"."base"("product_model_id", "sold");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "type_name_key" ON "product"."type"("name");
 
 -- AddForeignKey
 ALTER TABLE "account"."base" ADD CONSTRAINT "base_role_fkey" FOREIGN KEY ("role") REFERENCES "account"."role"("name") ON DELETE RESTRICT ON UPDATE CASCADE;
