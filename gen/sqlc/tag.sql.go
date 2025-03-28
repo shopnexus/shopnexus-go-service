@@ -11,6 +11,17 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
+const countProductModelsOnTag = `-- name: CountProductModelsOnTag :one
+SELECT COUNT(product_model_id) FROM product.tag_on_product_model WHERE tag = $1
+`
+
+func (q *Queries) CountProductModelsOnTag(ctx context.Context, tag string) (int64, error) {
+	row := q.db.QueryRow(ctx, countProductModelsOnTag, tag)
+	var count int64
+	err := row.Scan(&count)
+	return count, err
+}
+
 const countTags = `-- name: CountTags :one
 SELECT COUNT(*) FROM product.tag
 WHERE

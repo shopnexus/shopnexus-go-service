@@ -66,14 +66,9 @@ func NewAuthInterceptor(methods ...string) connect.UnaryInterceptorFunc {
 				// Check token in headers.
 				token := strings.TrimPrefix(req.Header().Get(tokenHeader), "Bearer ")
 				accountClaim, err := util.ValidateAccessToken(token)
-				if err != nil {
-					return nil, connect.NewError(
-						connect.CodeUnauthenticated,
-						err,
-					)
+				if err == nil {
+					ctx = context.WithValue(ctx, CtxServerAccount, accountClaim)
 				}
-
-				ctx = context.WithValue(ctx, CtxServerAccount, accountClaim)
 			}
 			return next(ctx, req)
 		})

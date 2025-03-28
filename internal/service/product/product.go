@@ -90,8 +90,8 @@ type ProductServiceInterface interface {
 	UpdateSale(ctx context.Context, params UpdateSaleParams) error
 	DeleteSale(ctx context.Context, id int64) error
 
-	GetTag(ctx context.Context, tag string) (model.Tag, error)
-	ListTags(ctx context.Context, params ListTagsParams) (model.PaginateResult[model.Tag], error)
+	GetTag(ctx context.Context, tag string) (TagResponse, error)
+	ListTags(ctx context.Context, params ListTagsParams) (model.PaginateResult[TagResponse], error)
 	CreateTag(ctx context.Context, tag model.Tag) error
 	UpdateTag(ctx context.Context, params UpdateTagParams) error
 	DeleteTag(ctx context.Context, tag string) error

@@ -34,3 +34,6 @@ WHERE tag = $1;
 
 -- name: DeleteTag :exec
 DELETE FROM product.tag WHERE tag = $1;
+
+-- name: CountProductModelsOnTag :one
+SELECT COUNT(product_model_id) FROM product.tag_on_product_model WHERE tag = $1;

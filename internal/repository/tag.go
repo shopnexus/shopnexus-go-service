@@ -80,3 +80,7 @@ func (r *Repository) UpdateTag(ctx context.Context, params UpdateTagParams) erro
 func (r *Repository) DeleteTag(ctx context.Context, tag string) error {
 	return r.sqlc.DeleteTag(ctx, tag)
 }
+
+func (r *Repository) CountProductModelsOnTag(ctx context.Context, tag string) (int64, error) {
+	return r.sqlc.CountProductModelsOnTag(ctx, tag)
+}
