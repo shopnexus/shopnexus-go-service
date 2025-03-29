@@ -9,7 +9,6 @@ import (
 	"shopnexus-go-service/internal/grpc/handler/file"
 	"shopnexus-go-service/internal/grpc/handler/payment"
 	"shopnexus-go-service/internal/grpc/handler/product"
-	"shopnexus-go-service/internal/grpc/interceptor/auth"
 	"shopnexus-go-service/internal/grpc/interceptor/permission"
 	"shopnexus-go-service/internal/repository"
 	"shopnexus-go-service/internal/service"
@@ -95,9 +94,7 @@ func (s *Server) Start(port int) {
 func (s *Server) RegisterInterceptors() {
 	s.interceptors = append(
 		s.interceptors,
-		// TODO: remove interceptor and create function that return model.Claims instead (with cache)
-		// -> remove redundant checking auth token
-		auth.NewAuthInterceptor(),
+		// auth.NewAuthInterceptor(),
 		permission.NewPermissionInterceptor(s.Services.Account, permissionRoutes),
 	)
 }

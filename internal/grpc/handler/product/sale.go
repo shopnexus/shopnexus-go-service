@@ -6,6 +6,7 @@ import (
 	"shopnexus-go-service/internal/service/product"
 
 	common_grpc "shopnexus-go-service/internal/grpc/handler/common"
+	"shopnexus-go-service/internal/grpc/interceptor/auth"
 
 	"connectrpc.com/connect"
 	productv1 "github.com/shopnexus/shopnexus-protobuf-gen-go/pb/product/v1"
@@ -53,7 +54,13 @@ func (s *ImplementedProductServiceHandler) ListSales(ctx context.Context, req *c
 }
 
 func (s *ImplementedProductServiceHandler) CreateSale(ctx context.Context, req *connect.Request[productv1.CreateSaleRequest]) (*connect.Response[productv1.CreateSaleResponse], error) {
+	claims, err := auth.GetAccount(req)
+	if err != nil {
+		return nil, err
+	}
+
 	data, err := s.service.CreateSale(ctx, product.CreateSaleParams{
+		UserID: claims.UserID,
 		Sale: model.Sale{
 			Tag:              req.Msg.Tag,
 			ProductModelID:   req.Msg.ProductModelId,

@@ -14,9 +14,9 @@ import (
 
 // GetRefund implements the GetRefund method from PaymentServiceHandler
 func (s *ImplementedPaymentServiceHandler) GetRefund(ctx context.Context, req *connect.Request[paymentv1.GetRefundRequest]) (*connect.Response[paymentv1.GetRefundResponse], error) {
-	claims, ok := ctx.Value(auth.CtxServerAccount).(model.Claims)
-	if !ok {
-		return nil, model.ErrTokenInvalid
+	claims, err := auth.GetAccount(req)
+	if err != nil {
+		return nil, err
 	}
 
 	refund, err := s.service.GetRefund(ctx, payment.GetRefundParams{
@@ -34,9 +34,9 @@ func (s *ImplementedPaymentServiceHandler) GetRefund(ctx context.Context, req *c
 
 // ListRefunds implements the ListRefunds method from PaymentServiceHandler
 func (s *ImplementedPaymentServiceHandler) ListRefunds(ctx context.Context, req *connect.Request[paymentv1.ListRefundsRequest]) (*connect.Response[paymentv1.ListRefundsResponse], error) {
-	claims, ok := ctx.Value(auth.CtxServerAccount).(model.Claims)
-	if !ok {
-		return nil, model.ErrTokenInvalid
+	claims, err := auth.GetAccount(req)
+	if err != nil {
+		return nil, err
 	}
 
 	var (
@@ -81,9 +81,9 @@ func (s *ImplementedPaymentServiceHandler) ListRefunds(ctx context.Context, req 
 
 // CreateRefund implements the CreateRefund method from PaymentServiceHandler
 func (s *ImplementedPaymentServiceHandler) CreateRefund(ctx context.Context, req *connect.Request[paymentv1.CreateRefundRequest]) (*connect.Response[paymentv1.CreateRefundResponse], error) {
-	claims, ok := ctx.Value(auth.CtxServerAccount).(model.Claims)
-	if !ok {
-		return nil, model.ErrTokenInvalid
+	claims, err := auth.GetAccount(req)
+	if err != nil {
+		return nil, err
 	}
 
 	refund, err := s.service.CreateRefund(ctx, payment.CreateRefundParams{
@@ -105,9 +105,9 @@ func (s *ImplementedPaymentServiceHandler) CreateRefund(ctx context.Context, req
 
 // UpdateRefund implements the UpdateRefund method from PaymentServiceHandler
 func (s *ImplementedPaymentServiceHandler) UpdateRefund(ctx context.Context, req *connect.Request[paymentv1.UpdateRefundRequest]) (*connect.Response[paymentv1.UpdateRefundResponse], error) {
-	claims, ok := ctx.Value(auth.CtxServerAccount).(model.Claims)
-	if !ok {
-		return nil, model.ErrTokenInvalid
+	claims, err := auth.GetAccount(req)
+	if err != nil {
+		return nil, err
 	}
 
 	var (
@@ -121,7 +121,7 @@ func (s *ImplementedPaymentServiceHandler) UpdateRefund(ctx context.Context, req
 		status = util.ToPtr(convertStatus(*req.Msg.Status))
 	}
 
-	err := s.service.UpdateRefund(ctx, payment.UpdateRefundParams{
+	err = s.service.UpdateRefund(ctx, payment.UpdateRefundParams{
 		ID:      req.Msg.Id,
 		UserID:  claims.UserID,
 		Method:  method,
@@ -140,12 +140,12 @@ func (s *ImplementedPaymentServiceHandler) UpdateRefund(ctx context.Context, req
 
 // CancelRefund implements the CancelRefund method from PaymentServiceHandler
 func (s *ImplementedPaymentServiceHandler) CancelRefund(ctx context.Context, req *connect.Request[paymentv1.CancelRefundRequest]) (*connect.Response[paymentv1.CancelRefundResponse], error) {
-	claims, ok := ctx.Value(auth.CtxServerAccount).(model.Claims)
-	if !ok {
-		return nil, model.ErrTokenInvalid
+	claims, err := auth.GetAccount(req)
+	if err != nil {
+		return nil, err
 	}
 
-	err := s.service.CancelRefund(ctx, payment.CancelRefundParams{
+	err = s.service.CancelRefund(ctx, payment.CancelRefundParams{
 		UserID:   claims.UserID,
 		RefundID: req.Msg.Id,
 	})

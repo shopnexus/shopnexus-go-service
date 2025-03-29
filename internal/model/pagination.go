@@ -12,7 +12,7 @@ func (p *PaginationParams) Offset() int32 {
 
 func (p *PaginationParams) NextPage(total int64) *int32 {
 	nextPage := p.Page + 1
-	if int64(nextPage*p.Limit) >= total {
+	if p.Limit == 0 || int64(p.Page*p.Limit) >= total {
 		return nil
 	}
 

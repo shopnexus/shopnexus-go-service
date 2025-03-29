@@ -79,10 +79,10 @@ inserted_resources AS (
     RETURNING url
 )
 SELECT
-    p.*,
+    p.id,
     COALESCE(array_agg(DISTINCT res.url) FILTER (WHERE res.url IS NOT NULL), '{}')::text[] as resources
 FROM inserted_product p
-LEFT JOIN inserted_resources res ON res.owner_id = p.id
+LEFT JOIN inserted_resources res ON true
 GROUP BY p.id;
 
 -- name: UpdateProduct :exec
@@ -102,3 +102,17 @@ DELETE FROM product.base WHERE (
     id = sqlc.narg('id') OR 
     serial_id = sqlc.narg('serial_id')
 );
+
+-- name: GetResources :many
+SELECT url
+FROM product.resource
+WHERE owner_id = $1;
+
+-- name: AddResources :exec
+INSERT INTO product.resource (owner_id, url)
+SELECT $1, unnest(sqlc.arg('resources')::text[])
+ON CONFLICT (owner_id, url) DO NOTHING;
+
+-- name: RemoveResources :exec
+DELETE FROM product.resource
+WHERE owner_id = $1 AND url = ANY(sqlc.arg('resources')::text[]);

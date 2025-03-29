@@ -28,9 +28,9 @@ func NewPaymentServiceHandler(paymentService *payment.PaymentService) paymentv1c
 
 // GetPayment implements the GetPayment method from PaymentServiceHandler
 func (s *ImplementedPaymentServiceHandler) GetPayment(ctx context.Context, req *connect.Request[paymentv1.GetPaymentRequest]) (*connect.Response[paymentv1.GetPaymentResponse], error) {
-	claims, ok := ctx.Value(auth.CtxServerAccount).(model.Claims)
-	if !ok {
-		return nil, model.ErrTokenInvalid
+	claims, err := auth.GetAccount(req)
+	if err != nil {
+		return nil, err
 	}
 
 	payment, err := s.service.GetPayment(ctx, payment.GetPaymentParams{
@@ -48,9 +48,9 @@ func (s *ImplementedPaymentServiceHandler) GetPayment(ctx context.Context, req *
 
 // ListPayments implements the ListPayments method from PaymentServiceHandler
 func (s *ImplementedPaymentServiceHandler) ListPayments(ctx context.Context, req *connect.Request[paymentv1.ListPaymentsRequest]) (*connect.Response[paymentv1.ListPaymentsResponse], error) {
-	claims, ok := ctx.Value(auth.CtxServerAccount).(model.Claims)
-	if !ok {
-		return nil, model.ErrTokenInvalid
+	claims, err := auth.GetAccount(req)
+	if err != nil {
+		return nil, err
 	}
 
 	var (
@@ -97,9 +97,9 @@ func (s *ImplementedPaymentServiceHandler) ListPayments(ctx context.Context, req
 
 // CreatePayment implements the CreatePayment method from PaymentServiceHandler
 func (s *ImplementedPaymentServiceHandler) CreatePayment(ctx context.Context, req *connect.Request[paymentv1.CreatePaymentRequest]) (*connect.Response[paymentv1.CreatePaymentResponse], error) {
-	claims, ok := ctx.Value(auth.CtxServerAccount).(model.Claims)
-	if !ok {
-		return nil, model.ErrTokenInvalid
+	claims, err := auth.GetAccount(req)
+	if err != nil {
+		return nil, err
 	}
 
 	result, err := s.service.CreatePayment(ctx, payment.CreatePaymentParams{
@@ -120,9 +120,9 @@ func (s *ImplementedPaymentServiceHandler) CreatePayment(ctx context.Context, re
 
 // UpdatePayment implements the UpdatePayment method from PaymentServiceHandler
 func (s *ImplementedPaymentServiceHandler) UpdatePayment(ctx context.Context, req *connect.Request[paymentv1.UpdatePaymentRequest]) (*connect.Response[paymentv1.UpdatePaymentResponse], error) {
-	claims, ok := ctx.Value(auth.CtxServerAccount).(model.Claims)
-	if !ok {
-		return nil, model.ErrTokenInvalid
+	claims, err := auth.GetAccount(req)
+	if err != nil {
+		return nil, err
 	}
 
 	var method *model.PaymentMethod
@@ -130,7 +130,7 @@ func (s *ImplementedPaymentServiceHandler) UpdatePayment(ctx context.Context, re
 		method = util.ToPtr(convertPaymentMethod(*req.Msg.Method))
 	}
 
-	err := s.service.UpdatePayment(ctx, payment.UpdatePaymentParams{
+	err = s.service.UpdatePayment(ctx, payment.UpdatePaymentParams{
 		ID:      req.Msg.Id,
 		UserID:  claims.UserID,
 		Method:  method,
@@ -145,12 +145,12 @@ func (s *ImplementedPaymentServiceHandler) UpdatePayment(ctx context.Context, re
 
 // CancelPayment implements the CancelPayment method from PaymentServiceHandler
 func (s *ImplementedPaymentServiceHandler) CancelPayment(ctx context.Context, req *connect.Request[paymentv1.CancelPaymentRequest]) (*connect.Response[paymentv1.CancelPaymentResponse], error) {
-	claims, ok := ctx.Value(auth.CtxServerAccount).(model.Claims)
-	if !ok {
-		return nil, model.ErrTokenInvalid
+	claims, err := auth.GetAccount(req)
+	if err != nil {
+		return nil, err
 	}
 
-	err := s.service.CancelPayment(ctx, payment.CancelPaymentParams{
+	err = s.service.CancelPayment(ctx, payment.CancelPaymentParams{
 		UserID:    claims.UserID,
 		PaymentID: req.Msg.Id,
 	})

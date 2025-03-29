@@ -4,6 +4,7 @@ import (
 	"context"
 	"shopnexus-go-service/internal/model"
 	"shopnexus-go-service/internal/repository"
+	"shopnexus-go-service/internal/util"
 )
 
 type ProductService struct {
@@ -18,13 +19,13 @@ func NewProductService(repo *repository.Repository) *ProductService {
 	}
 }
 
-func (s *ProductService) GetProduct(ctx context.Context, params model.ProductIdentifier) (model.Product[any], error) {
+func (s *ProductService) GetProduct(ctx context.Context, params model.ProductIdentifier) (model.Product, error) {
 	return s.repo.GetProduct(ctx, params)
 }
 
 type ListProductsParams = repository.ListProductsParams
 
-func (s *ProductService) ListProducts(ctx context.Context, params ListProductsParams) (result model.PaginateResult[model.Product[any]], err error) {
+func (s *ProductService) ListProducts(ctx context.Context, params ListProductsParams) (result model.PaginateResult[model.Product], err error) {
 	total, err := s.repo.CountProducts(ctx, params)
 	if err != nil {
 		return result, err
@@ -35,7 +36,7 @@ func (s *ProductService) ListProducts(ctx context.Context, params ListProductsPa
 		return result, err
 	}
 
-	return model.PaginateResult[model.Product[any]]{
+	return model.PaginateResult[model.Product]{
 		Data:       products,
 		Limit:      params.Limit,
 		Page:       params.Page,
@@ -45,19 +46,49 @@ func (s *ProductService) ListProducts(ctx context.Context, params ListProductsPa
 	}, nil
 }
 
-func (s *ProductService) CreateProduct(ctx context.Context, product model.Product[any]) (model.Product[any], error) {
+func (s *ProductService) CreateProduct(ctx context.Context, product model.Product) (model.Product, error) {
 	newProduct, err := s.repo.CreateProduct(ctx, product)
 	if err != nil {
-		return model.Product[any]{}, err
+		return model.Product{}, err
 	}
 
 	return newProduct, nil
 }
 
-type UpdateProductParams = repository.UpdateProductParams
+type UpdateProductParams = struct {
+	RepoParams repository.UpdateProductParams
+	Resources  []string
+}
 
 func (s *ProductService) UpdateProduct(ctx context.Context, params UpdateProductParams) error {
-	return s.repo.UpdateProduct(ctx, params)
+	txRepo, err := s.repo.Begin(ctx)
+	if err != nil {
+		return err
+	}
+	defer txRepo.Rollback(ctx)
+
+	if err = s.repo.UpdateProduct(ctx, params.RepoParams); err != nil {
+		return err
+	}
+
+	current, err := txRepo.GetResources(ctx, params.RepoParams.ID)
+	if err != nil {
+		return err
+	}
+
+	added, removed := util.Diff(current, params.Resources)
+	if err = txRepo.AddResources(ctx, params.RepoParams.ID, added); err != nil {
+		return err
+	}
+	if err = txRepo.RemoveResources(ctx, params.RepoParams.ID, removed); err != nil {
+		return err
+	}
+
+	if err = txRepo.Commit(ctx); err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func (s *ProductService) DeleteProduct(ctx context.Context, params model.ProductIdentifier) error {
@@ -78,9 +109,9 @@ type ProductServiceInterface interface {
 	DeleteProductModel(ctx context.Context, id int64) error
 	ListProductTypes(ctx context.Context, params ListProductTypesParams) ([]model.ProductType, error)
 
-	GetProduct(ctx context.Context, params model.ProductIdentifier) (model.Product[any], error)
-	ListProducts(ctx context.Context, params ListProductsParams) (model.PaginateResult[model.Product[any]], error)
-	CreateProduct(ctx context.Context, product model.Product[any]) (model.Product[any], error)
+	GetProduct(ctx context.Context, params model.ProductIdentifier) (model.Product, error)
+	ListProducts(ctx context.Context, params ListProductsParams) (model.PaginateResult[model.Product], error)
+	CreateProduct(ctx context.Context, product model.Product) (model.Product, error)
 	UpdateProduct(ctx context.Context, params UpdateProductParams) error
 	DeleteProduct(ctx context.Context, params model.ProductIdentifier) error
 

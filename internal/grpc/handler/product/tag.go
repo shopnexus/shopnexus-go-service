@@ -59,6 +59,10 @@ func (s *ImplementedProductServiceHandler) CreateTag(ctx context.Context, req *c
 }
 
 func (s *ImplementedProductServiceHandler) UpdateTag(ctx context.Context, req *connect.Request[productv1.UpdateTagRequest]) (*connect.Response[productv1.UpdateTagResponse], error) {
+	if req.Msg.NewTag != nil && *req.Msg.NewTag == "" {
+		return nil, model.ErrMalformedParams
+	}
+
 	err := s.service.UpdateTag(ctx, product.UpdateTagParams{
 		Tag:         req.Msg.Tag,
 		NewTag:      req.Msg.NewTag,

@@ -3,6 +3,7 @@ package product
 import (
 	"context"
 	"shopnexus-go-service/internal/model"
+	"shopnexus-go-service/internal/repository"
 	"shopnexus-go-service/internal/service/product"
 
 	common_grpc "shopnexus-go-service/internal/grpc/handler/common"
@@ -82,13 +83,17 @@ func (s *ImplementedProductServiceHandler) CreateProductModel(ctx context.Contex
 
 func (s *ImplementedProductServiceHandler) UpdateProductModel(ctx context.Context, req *connect.Request[productv1.UpdateProductModelRequest]) (*connect.Response[productv1.UpdateProductModelResponse], error) {
 	err := s.service.UpdateProductModel(ctx, product.UpdateProductModelParams{
-		ID:               req.Msg.Id,
-		Type:             req.Msg.Type,
-		BrandID:          req.Msg.BrandId,
-		Name:             req.Msg.Name,
-		Description:      req.Msg.Description,
-		ListPrice:        req.Msg.ListPrice,
-		DateManufactured: req.Msg.DateManufactured,
+		RepoParams: repository.UpdateProductModelParams{
+			ID:               req.Msg.Id,
+			Type:             req.Msg.Type,
+			BrandID:          req.Msg.BrandId,
+			Name:             req.Msg.Name,
+			Description:      req.Msg.Description,
+			ListPrice:        req.Msg.ListPrice,
+			DateManufactured: req.Msg.DateManufactured,
+		},
+		Resources: req.Msg.Resources,
+		Tags:      req.Msg.Tags,
 	})
 	if err != nil {
 		return nil, err

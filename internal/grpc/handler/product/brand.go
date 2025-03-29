@@ -10,8 +10,6 @@ import (
 
 	"connectrpc.com/connect"
 	productv1 "github.com/shopnexus/shopnexus-protobuf-gen-go/pb/product/v1"
-	"google.golang.org/grpc/codes"
-	"google.golang.org/grpc/status"
 )
 
 func (s *ImplementedProductServiceHandler) GetBrand(ctx context.Context, req *connect.Request[productv1.GetBrandRequest]) (*connect.Response[productv1.GetBrandResponse], error) {
@@ -50,9 +48,9 @@ func (s *ImplementedProductServiceHandler) ListBrands(ctx context.Context, req *
 }
 
 func (s *ImplementedProductServiceHandler) CreateBrand(ctx context.Context, req *connect.Request[productv1.CreateBrandRequest]) (*connect.Response[productv1.CreateBrandResponse], error) {
-	claims, ok := ctx.Value(auth.CtxServerAccount).(model.Claims)
-	if !ok {
-		return nil, status.Error(codes.Unauthenticated, "unauthenticated")
+	claims, err := auth.GetAccount(req)
+	if err != nil {
+		return nil, err
 	}
 
 	// TODO: make all create function need UserID in its params, not naked model params

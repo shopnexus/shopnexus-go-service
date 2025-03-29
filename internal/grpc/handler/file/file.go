@@ -5,7 +5,6 @@ import (
 	"context"
 	"fmt"
 	"shopnexus-go-service/internal/grpc/interceptor/auth"
-	"shopnexus-go-service/internal/model"
 	"shopnexus-go-service/internal/service/s3"
 
 	"connectrpc.com/connect"
@@ -72,9 +71,9 @@ func NewFileServiceHandler(s3Service *s3.S3Service) filev1connect.FileServiceHan
 // }
 
 func (s *ImplementedFileServiceHandler) Upload(ctx context.Context, req *connect.Request[filev1.UploadRequest]) (*connect.Response[filev1.UploadResponse], error) {
-	claims, ok := ctx.Value(auth.CtxServerAccount).(model.Claims)
-	if !ok {
-		return nil, model.ErrTokenInvalid
+	claims, err := auth.GetAccount(req)
+	if err != nil {
+		return nil, err
 	}
 
 	body := bytes.NewReader(req.Msg.Content)

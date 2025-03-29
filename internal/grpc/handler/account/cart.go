@@ -2,9 +2,7 @@ package account
 
 import (
 	"context"
-	"errors"
 	"shopnexus-go-service/internal/grpc/interceptor/auth"
-	"shopnexus-go-service/internal/model"
 	"shopnexus-go-service/internal/service/account"
 
 	"connectrpc.com/connect"
@@ -13,9 +11,9 @@ import (
 )
 
 func (s *ImplementedAccountServiceHandler) GetCart(ctx context.Context, req *connect.Request[accountv1.GetCartRequest]) (*connect.Response[accountv1.GetCartResponse], error) {
-	claims, ok := ctx.Value(auth.CtxServerAccount).(model.Claims)
-	if !ok {
-		return nil, connect.NewError(connect.CodeUnauthenticated, errors.New("unauthenticated"))
+	claims, err := auth.GetAccount(req)
+	if err != nil {
+		return nil, err
 	}
 
 	cart, err := s.service.GetCart(ctx, claims.UserID)
@@ -37,9 +35,9 @@ func (s *ImplementedAccountServiceHandler) GetCart(ctx context.Context, req *con
 }
 
 func (s *ImplementedAccountServiceHandler) AddCartItem(ctx context.Context, req *connect.Request[accountv1.AddCartItemRequest]) (*connect.Response[accountv1.AddCartItemResponse], error) {
-	claims, ok := ctx.Value(auth.CtxServerAccount).(model.Claims)
-	if !ok {
-		return nil, connect.NewError(connect.CodeUnauthenticated, errors.New("unauthenticated"))
+	claims, err := auth.GetAccount(req)
+	if err != nil {
+		return nil, err
 	}
 
 	for _, item := range req.Msg.GetItems() {
@@ -57,9 +55,9 @@ func (s *ImplementedAccountServiceHandler) AddCartItem(ctx context.Context, req 
 }
 
 func (s *ImplementedAccountServiceHandler) UpdateCartItem(ctx context.Context, req *connect.Request[accountv1.UpdateCartItemRequest]) (*connect.Response[accountv1.UpdateCartItemResponse], error) {
-	claims, ok := ctx.Value(auth.CtxServerAccount).(model.Claims)
-	if !ok {
-		return nil, connect.NewError(connect.CodeUnauthenticated, errors.New("unauthenticated"))
+	claims, err := auth.GetAccount(req)
+	if err != nil {
+		return nil, err
 	}
 
 	for _, item := range req.Msg.GetItems() {
@@ -77,12 +75,12 @@ func (s *ImplementedAccountServiceHandler) UpdateCartItem(ctx context.Context, r
 }
 
 func (s *ImplementedAccountServiceHandler) ClearCart(ctx context.Context, req *connect.Request[accountv1.ClearCartRequest]) (*connect.Response[accountv1.ClearCartResponse], error) {
-	claims, ok := ctx.Value(auth.CtxServerAccount).(model.Claims)
-	if !ok {
-		return nil, connect.NewError(connect.CodeUnauthenticated, errors.New("unauthenticated"))
+	claims, err := auth.GetAccount(req)
+	if err != nil {
+		return nil, err
 	}
 
-	err := s.service.ClearCart(ctx, claims.UserID)
+	err = s.service.ClearCart(ctx, claims.UserID)
 	if err != nil {
 		return nil, err
 	}

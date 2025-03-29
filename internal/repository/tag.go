@@ -84,3 +84,21 @@ func (r *Repository) DeleteTag(ctx context.Context, tag string) error {
 func (r *Repository) CountProductModelsOnTag(ctx context.Context, tag string) (int64, error) {
 	return r.sqlc.CountProductModelsOnTag(ctx, tag)
 }
+
+func (r *Repository) GetTags(ctx context.Context, productModelID int64) ([]string, error) {
+	return r.sqlc.GetTags(ctx, productModelID)
+}
+
+func (r *Repository) AddTags(ctx context.Context, productModelID int64, tags []string) error {
+	return r.sqlc.AddTags(ctx, sqlc.AddTagsParams{
+		ProductModelID: productModelID,
+		Tags:           tags,
+	})
+}
+
+func (r *Repository) RemoveTags(ctx context.Context, productModelID int64, tags []string) error {
+	return r.sqlc.RemoveTags(ctx, sqlc.RemoveTagsParams{
+		ProductModelID: productModelID,
+		Tags:           tags,
+	})
+}

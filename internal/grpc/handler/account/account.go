@@ -21,10 +21,9 @@ func NewAccountServiceHandler(service *account.AccountService) accountv1connect.
 }
 
 func (s *ImplementedAccountServiceHandler) GetUser(ctx context.Context, req *connect.Request[accountv1.GetUserRequest]) (*connect.Response[accountv1.GetUserResponse], error) {
-	// TODO: change all claims to use util function and extract the model.Claims
-	claims, ok := ctx.Value(auth.CtxServerAccount).(model.Claims)
-	if !ok {
-		return nil, model.ErrTokenInvalid
+	claims, err := auth.GetAccount(req)
+	if err != nil {
+		return nil, err
 	}
 
 	account, err := s.service.FindAccount(ctx, account.FindAccountParams{
