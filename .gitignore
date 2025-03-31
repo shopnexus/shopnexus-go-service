@@ -23,8 +23,8 @@ go.work.sum
 
 # env file
 .env
-!config/config.example.yml
 config/config.*.yml
+!config/config.example.yml
 
 # prisma files
 node_modules/
@@ -32,3 +32,5 @@ node_modules/
 main
 
 tmp/
+
+uploads/
