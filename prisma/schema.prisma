@@ -192,10 +192,10 @@ model Product {
   sold             BigInt   @default(0)
   add_price        BigInt   @default(0)
   is_active        Boolean  @default(true)
-  metadata      Json    @db.Json @default("{}")
+  metadata         Json     @default("{}") @db.JsonB
   date_created     DateTime @default(now()) @db.Timestamptz(3)
   date_updated     DateTime @default(now()) @db.Timestamptz(3)
-  
+
   product_model ProductModel       @relation(fields: [product_model_id], references: [id], onUpdate: Cascade, onDelete: Cascade)
   payments      ProductOnPayment[]
 
