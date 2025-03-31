@@ -20,6 +20,10 @@ const (
 	PermissionCreateTag
 	PermissionUpdateTag
 	PermissionDeleteTag
+
+	PermissionCreateBrand
+	PermissionUpdateBrand
+	PermissionDeleteBrand
 )
 
 func GetAllPermissions() []Permission {
@@ -36,5 +40,8 @@ func GetAllPermissions() []Permission {
 		PermissionCreateTag,
 		PermissionUpdateTag,
 		PermissionDeleteTag,
+		PermissionCreateBrand,
+		PermissionUpdateBrand,
+		PermissionDeleteBrand,
 	}
 }
