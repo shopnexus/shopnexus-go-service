@@ -54,10 +54,11 @@ func (s *ProductService) ListSales(ctx context.Context, params ListSalesParams) 
 	}
 
 	return model.PaginateResult[model.Sale]{
-		Data:  data,
-		Total: count,
-		Page:  params.Page,
-		Limit: params.Limit,
+		Data:     data,
+		Total:    count,
+		Page:     params.Page,
+		Limit:    params.Limit,
+		NextPage: params.NextPage(count),
 	}, nil
 }
 
