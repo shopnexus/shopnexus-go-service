@@ -3,6 +3,7 @@ package product
 import (
 	"context"
 	"shopnexus-go-service/internal/model"
+	"shopnexus-go-service/internal/repository"
 	"shopnexus-go-service/internal/service/product"
 
 	common_grpc "shopnexus-go-service/internal/grpc/handler/common"
@@ -44,6 +45,14 @@ func (s *ImplementedProductServiceHandler) ListProducts(ctx context.Context, req
 			Limit: req.Msg.GetPagination().GetLimit(),
 		},
 		ProductModelID:  req.Msg.ProductModelId,
+		QuantityFrom:    req.Msg.QuantityFrom,
+		QuantityTo:      req.Msg.QuantityTo,
+		SoldFrom:        req.Msg.SoldFrom,
+		SoldTo:          req.Msg.SoldTo,
+		AddPriceFrom:    req.Msg.AddPriceFrom,
+		AddPriceTo:      req.Msg.AddPriceTo,
+		IsActive:        req.Msg.IsActive,
+		Metadata:        req.Msg.Metadata,
 		DateCreatedFrom: req.Msg.DateCreatedFrom,
 		DateCreatedTo:   req.Msg.DateCreatedTo,
 	})
@@ -63,9 +72,14 @@ func (s *ImplementedProductServiceHandler) ListProducts(ctx context.Context, req
 }
 
 func (s *ImplementedProductServiceHandler) CreateProduct(ctx context.Context, req *connect.Request[productv1.CreateProductRequest]) (*connect.Response[productv1.CreateProductResponse], error) {
-	data, err := s.service.CreateProduct(ctx, model.Product[any]{
+	data, err := s.service.CreateProduct(ctx, model.Product{
 		SerialID:       req.Msg.SerialId,
 		ProductModelID: req.Msg.ProductModelId,
+		Quantity:       req.Msg.Quantity,
+		AddPrice:       req.Msg.AddPrice,
+		IsActive:       req.Msg.IsActive,
+		Metadata:       req.Msg.Metadata,
+		Resources:      req.Msg.Resources,
 	})
 	if err != nil {
 		return nil, err
@@ -78,9 +92,17 @@ func (s *ImplementedProductServiceHandler) CreateProduct(ctx context.Context, re
 
 func (s *ImplementedProductServiceHandler) UpdateProduct(ctx context.Context, req *connect.Request[productv1.UpdateProductRequest]) (*connect.Response[productv1.UpdateProductResponse], error) {
 	err := s.service.UpdateProduct(ctx, product.UpdateProductParams{
-		ID:             req.Msg.GetId(),
-		SerialID:       req.Msg.SerialId,
-		ProductModelID: req.Msg.ProductModelId,
+		RepoParams: repository.UpdateProductParams{
+			ID:             req.Msg.GetId(),
+			SerialID:       req.Msg.SerialId,
+			ProductModelID: req.Msg.ProductModelId,
+			Quantity:       req.Msg.Quantity,
+			Sold:           req.Msg.Sold,
+			AddPrice:       req.Msg.AddPrice,
+			IsActive:       req.Msg.IsActive,
+			Metadata:       req.Msg.Metadata,
+		},
+		Resources: req.Msg.Resources,
 	})
 	if err != nil {
 		return nil, err
@@ -101,12 +123,18 @@ func (s *ImplementedProductServiceHandler) DeleteProduct(ctx context.Context, re
 	return connect.NewResponse(&productv1.DeleteProductResponse{}), nil
 }
 
-func modelToProductEntity(data model.Product[any]) *productv1.ProductEntity {
+func modelToProductEntity(data model.Product) *productv1.ProductEntity {
 	return &productv1.ProductEntity{
 		Id:             data.ID,
 		SerialId:       data.SerialID,
 		ProductModelId: data.ProductModelID,
+		Quantity:       data.Quantity,
+		Sold:           data.Sold,
+		AddPrice:       data.AddPrice,
+		IsActive:       data.IsActive,
+		Metadata:       data.Metadata,
 		DateCreated:    data.DateCreated,
 		DateUpdated:    data.DateUpdated,
+		Resources:      data.Resources,
 	}
 }
