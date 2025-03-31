@@ -1,18 +1,49 @@
 {
 	"info": {
-		"_postman_id": "a5718a7b-4f95-4f2b-b2f0-ef3867aa9b0b",
+		"_postman_id": "23111293-1bd2-4d03-a434-6ed00beea1d9",
 		"name": "shopnexus",
 		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
 		"_exporter_id": "34158645",
-		"_collection_link": "https://lively-crater-239797.postman.co/workspace/safe-trade~2d8fbe46-3fde-4ebc-9732-3789a9f6341f/collection/34158645-a5718a7b-4f95-4f2b-b2f0-ef3867aa9b0b?action=share&source=collection_link&creator=34158645"
+		"_collection_link": "https://lively-crater-239797.postman.co/workspace/safe-trade~2d8fbe46-3fde-4ebc-9732-3789a9f6341f/collection/34158645-23111293-1bd2-4d03-a434-6ed00beea1d9?action=share&source=collection_link&creator=34158645"
 	},
 	"item": [
 		{
 			"name": "Account",
 			"item": [
 				{
+					"name": "Get User",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{API_URL}}/account.v1.AccountService/GetUser?encoding=json&message={}",
+							"host": [
+								"{{API_URL}}"
+							],
+							"path": [
+								"account.v1.AccountService",
+								"GetUser"
+							],
+							"query": [
+								{
+									"key": "encoding",
+									"value": "json"
+								},
+								{
+									"key": "message",
+									"value": "{}"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
 					"name": "Login User",
 					"request": {
+						"auth": {
+							"type": "noauth"
+						},
 						"method": "POST",
 						"header": [
 							{
@@ -41,6 +72,9 @@
 				{
 					"name": "Login Admin",
 					"request": {
+						"auth": {
+							"type": "noauth"
+						},
 						"method": "POST",
 						"header": [
 							{
@@ -112,7 +146,7 @@
 						],
 						"body": {
 							"mode": "raw",
-							"raw": "{\n    \"username\": \"user1\",\n    \"password\": \"password123\",\n    \"email\": \"user1@example.com\",\n    \"phone\": \"+84123456789\",\n    \"gender\": \"MALE\",\n    \"full_name\": \"John Doe\"\n}"
+							"raw": "{\n    \"username\": \"user1\",\n    \"password\": \"password123\",\n    \"email\": \"user1@example.com\",\n    \"phone\": \"+84123456789\",\n    \"gender\": \"GENDER_MALE\",\n    \"full_name\": \"John Doe\"\n}"
 						},
 						"url": {
 							"raw": "{{API_URL}}/account.v1.AccountService/RegisterUser",
@@ -179,7 +213,7 @@
 						],
 						"body": {
 							"mode": "raw",
-							"raw": "{\n    \"items\": [\n        {\n            \"item_id\": 18,\n            \"quantity\": 2\n        }\n    ]\n}"
+							"raw": "{\n    \"items\": [\n        {\n            \"item_id\": 20,\n            \"quantity\": 2\n        }\n    ]\n}"
 						},
 						"url": {
 							"raw": "{{API_URL}}/account.v1.AccountService/AddCartItem",
@@ -274,6 +308,40 @@
 							"path": [
 								"product.v1.ProductService",
 								"ListProductModels"
+							],
+							"query": [
+								{
+									"key": "encoding",
+									"value": "json"
+								},
+								{
+									"key": "message",
+									"value": "{\"pagination\":{\"limit\":50,\"page\":1}}"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "List Product Types",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{API_URL}}/product.v1.ProductService/ListProductTypes?encoding=json&message={\"pagination\":{\"limit\":50,\"page\":1}}",
+							"host": [
+								"{{API_URL}}"
+							],
+							"path": [
+								"product.v1.ProductService",
+								"ListProductTypes"
 							],
 							"query": [
 								{
@@ -881,13 +949,10 @@
 			]
 		},
 		{
-			"name": "Payment",
+			"name": "Brand",
 			"item": [
 				{
-					"name": "Get Payment",
-					"protocolProfileBehavior": {
-						"disableBodyPruning": true
-					},
+					"name": "List Brands",
 					"request": {
 						"method": "GET",
 						"header": [
@@ -897,18 +962,181 @@
 								"type": "text"
 							}
 						],
+						"url": {
+							"raw": "{{API_URL}}/product.v1.ProductService/ListTags?encoding=json&message={\"pagination\":{\"limit\":10,\"page\":1}}",
+							"host": [
+								"{{API_URL}}"
+							],
+							"path": [
+								"product.v1.ProductService",
+								"ListTags"
+							],
+							"query": [
+								{
+									"key": "encoding",
+									"value": "json"
+								},
+								{
+									"key": "message",
+									"value": "{\"pagination\":{\"limit\":10,\"page\":1}}"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get Tag",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{API_URL}}/product.v1.ProductService/GetTag?encoding=json&message={\"tag\":\"Baby\"}",
+							"host": [
+								"{{API_URL}}"
+							],
+							"path": [
+								"product.v1.ProductService",
+								"GetTag"
+							],
+							"query": [
+								{
+									"key": "encoding",
+									"value": "json"
+								},
+								{
+									"key": "message",
+									"value": "{\"tag\":\"Baby\"}"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Create Tag",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json",
+								"type": "text"
+							}
+						],
 						"body": {
 							"mode": "raw",
-							"raw": "{\n    \"requestId\": 1, \n    \"method\": \"PAYMENT_METHOD_VNPAY\",\n    \"address\": \"123 Main St, City, Country\"\n}"
+							"raw": "{\n    \"serial_id\": \"PROD-12345\",\n    \"product_model_id\": 1\n}"
 						},
 						"url": {
-							"raw": "{{API_URL}}/payment.v1.PaymentService/GetPayment",
+							"raw": "{{API_URL}}/product.v1.ProductService/CreateTag",
+							"host": [
+								"{{API_URL}}"
+							],
+							"path": [
+								"product.v1.ProductService",
+								"CreateTag"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Update Tag",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"id\": 1,\n    \"serial_id\": \"PROD-12345-UPDATED\",\n    \"product_model_id\": 1\n}"
+						},
+						"url": {
+							"raw": "{{API_URL}}/product.v1.ProductService/UpdateTag",
+							"host": [
+								"{{API_URL}}"
+							],
+							"path": [
+								"product.v1.ProductService",
+								"UpdateTag"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Delete Tag",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"id\": 1\n}"
+						},
+						"url": {
+							"raw": "{{API_URL}}/product.v1.ProductService/DeleteTag",
+							"host": [
+								"{{API_URL}}"
+							],
+							"path": [
+								"product.v1.ProductService",
+								"DeleteTag"
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Payment",
+			"item": [
+				{
+					"name": "Get Payment",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{API_URL}}/payment.v1.PaymentService/GetPayment?encoding=json&message={\"id\":\"19\"}",
 							"host": [
 								"{{API_URL}}"
 							],
 							"path": [
 								"payment.v1.PaymentService",
 								"GetPayment"
+							],
+							"query": [
+								{
+									"key": "encoding",
+									"value": "json"
+								},
+								{
+									"key": "message",
+									"value": "{\"id\":\"19\"}"
+								}
 							]
 						}
 					},
@@ -1049,13 +1277,23 @@
 							}
 						],
 						"url": {
-							"raw": "{{API_URL}}/payment.v1.PaymentService/GetRefund",
+							"raw": "{{API_URL}}/payment.v1.PaymentService/GetRefund?encoding=json&message={\"id\":12}",
 							"host": [
 								"{{API_URL}}"
 							],
 							"path": [
 								"payment.v1.PaymentService",
 								"GetRefund"
+							],
+							"query": [
+								{
+									"key": "encoding",
+									"value": "json"
+								},
+								{
+									"key": "message",
+									"value": "{\"id\":12}"
+								}
 							]
 						}
 					},
@@ -1073,13 +1311,23 @@
 							}
 						],
 						"url": {
-							"raw": "{{API_URL}}/payment.v1.PaymentService/ListRefunds",
+							"raw": "{{API_URL}}/payment.v1.PaymentService/ListRefunds?encoding=json&message={\"pagination\": {\"limit\":5, \"page\":1}}",
 							"host": [
 								"{{API_URL}}"
 							],
 							"path": [
 								"payment.v1.PaymentService",
 								"ListRefunds"
+							],
+							"query": [
+								{
+									"key": "encoding",
+									"value": "json"
+								},
+								{
+									"key": "message",
+									"value": "{\"pagination\": {\"limit\":5, \"page\":1}}"
+								}
 							]
 						}
 					},
@@ -1098,7 +1346,7 @@
 						],
 						"body": {
 							"mode": "raw",
-							"raw": "{\n    \"payment_id\": 1,\n    \"method\": \"DROP_OFF\",\n    \"reason\": \"Product damaged\",\n    \"address\": null\n}"
+							"raw": "{\n    \"payment_id\": 19,\n    \"method\": \"REFUND_METHOD_DROP_OFF\",\n    \"reason\": \"Product damaged\",\n    \"address\": \"\"\n}"
 						},
 						"url": {
 							"raw": "{{API_URL}}/payment.v1.PaymentService/CreateRefund",
@@ -1126,7 +1374,7 @@
 						],
 						"body": {
 							"mode": "raw",
-							"raw": "{\n    \"payment_id\": 1,\n    \"method\": \"DROP_OFF\",\n    \"reason\": \"Product damaged\",\n    \"address\": null\n}"
+							"raw": "{\n    \"payment_id\": 19,\n    \"method\": \"REFUND_METHOD_DROP_OFF\",\n    \"reason\": \"Product damaged\",\n    \"address\": null\n}"
 						},
 						"url": {
 							"raw": "{{API_URL}}/payment.v1.PaymentService/UpdateRefund",
@@ -1166,6 +1414,19 @@
 								"CreateRefund"
 							]
 						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "File",
+			"item": [
+				{
+					"name": "New Request",
+					"request": {
+						"method": "GET",
+						"header": []
 					},
 					"response": []
 				}
