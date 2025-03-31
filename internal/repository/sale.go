@@ -17,6 +17,11 @@ func (r *Repository) GetSale(ctx context.Context, id int64) (model.Sale, error) 
 		return model.Sale{}, err
 	}
 
+	var discountPercent *int32
+	if row.DiscountPercent.Valid {
+		discountPercent = &row.DiscountPercent.Int32
+	}
+
 	return model.Sale{
 		ID:               row.ID,
 		Tag:              pgxutil.PgtypeToPtr[string](row.Tag),
@@ -28,7 +33,7 @@ func (r *Repository) GetSale(ctx context.Context, id int64) (model.Sale, error) 
 		Quantity:         row.Quantity,
 		Used:             row.Used,
 		IsActive:         row.IsActive,
-		DiscountPercent:  pgxutil.PgtypeToPtr[int32](row.DiscountPercent),
+		DiscountPercent:  discountPercent,
 		DiscountPrice:    pgxutil.PgtypeToPtr[int64](row.DiscountPrice),
 		MaxDiscountPrice: row.MaxDiscountPrice,
 	}, nil
@@ -52,6 +57,11 @@ func (r *Repository) GetAvailableSales(ctx context.Context, params GetLatestSale
 
 	sales := make([]model.Sale, 0, len(rows))
 	for _, row := range rows {
+		var discountPercent *int32
+		if row.DiscountPercent.Valid {
+			discountPercent = &row.DiscountPercent.Int32
+		}
+
 		sales = append(sales, model.Sale{
 			ID:               row.ID,
 			Tag:              pgxutil.PgtypeToPtr[string](row.Tag),
@@ -63,7 +73,7 @@ func (r *Repository) GetAvailableSales(ctx context.Context, params GetLatestSale
 			Quantity:         row.Quantity,
 			Used:             row.Used,
 			IsActive:         row.IsActive,
-			DiscountPercent:  pgxutil.PgtypeToPtr[int32](row.DiscountPercent),
+			DiscountPercent:  discountPercent,
 			DiscountPrice:    pgxutil.PgtypeToPtr[int64](row.DiscountPrice),
 			MaxDiscountPrice: row.MaxDiscountPrice,
 		})
@@ -116,6 +126,11 @@ func (r *Repository) ListSales(ctx context.Context, params ListSalesParams) ([]m
 
 	sales := make([]model.Sale, 0, len(rows))
 	for _, row := range rows {
+		var discountPercent *int32
+		if row.DiscountPercent.Valid {
+			discountPercent = &row.DiscountPercent.Int32
+		}
+
 		sales = append(sales, model.Sale{
 			ID:               row.ID,
 			Tag:              pgxutil.PgtypeToPtr[string](row.Tag),
@@ -127,7 +142,7 @@ func (r *Repository) ListSales(ctx context.Context, params ListSalesParams) ([]m
 			Quantity:         row.Quantity,
 			Used:             row.Used,
 			IsActive:         row.IsActive,
-			DiscountPercent:  pgxutil.PgtypeToPtr[int32](row.DiscountPercent),
+			DiscountPercent:  discountPercent,
 			DiscountPrice:    pgxutil.PgtypeToPtr[int64](row.DiscountPrice),
 			MaxDiscountPrice: row.MaxDiscountPrice,
 		})
@@ -154,6 +169,11 @@ func (r *Repository) CreateSale(ctx context.Context, sale model.Sale) (model.Sal
 		return model.Sale{}, err
 	}
 
+	var discountPercent *int32
+	if row.DiscountPercent.Valid {
+		discountPercent = &row.DiscountPercent.Int32
+	}
+
 	return model.Sale{
 		ID:               row.ID,
 		Tag:              pgxutil.PgtypeToPtr[string](row.Tag),
@@ -165,7 +185,7 @@ func (r *Repository) CreateSale(ctx context.Context, sale model.Sale) (model.Sal
 		Quantity:         row.Quantity,
 		Used:             row.Used,
 		IsActive:         row.IsActive,
-		DiscountPercent:  pgxutil.PgtypeToPtr[int32](row.DiscountPercent),
+		DiscountPercent:  discountPercent,
 		DiscountPrice:    pgxutil.PgtypeToPtr[int64](row.DiscountPrice),
 		MaxDiscountPrice: row.MaxDiscountPrice,
 	}, nil
