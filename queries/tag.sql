@@ -34,3 +34,18 @@ WHERE tag = $1;
 
 -- name: DeleteTag :exec
 DELETE FROM product.tag WHERE tag = $1;
+
+-- name: CountProductModelsOnTag :one
+SELECT COUNT(product_model_id) FROM product.tag_on_product_model WHERE tag = $1;
+
+-- name: GetTags :many
+SELECT tag FROM product.tag_on_product_model WHERE product_model_id = $1;
+
+-- name: AddTags :exec
+INSERT INTO product.tag_on_product_model (product_model_id, tag)
+SELECT $1, unnest(sqlc.arg('tags')::text[])
+ON CONFLICT DO NOTHING;
+
+-- name: RemoveTags :exec
+DELETE FROM product.tag_on_product_model
+WHERE product_model_id = $1 AND tag = ANY(sqlc.arg('tags')::text[]);
