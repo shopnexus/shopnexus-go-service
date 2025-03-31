@@ -159,7 +159,7 @@ func (r *Repository) CreateSale(ctx context.Context, sale model.Sale) (model.Sal
 		DateStarted:      *pgxutil.ValueToPgtype(&pgtype.Timestamptz{}, time.UnixMilli(sale.DateStarted)),
 		DateEnded:        *pgxutil.PtrToPgtype(&pgtype.Timestamptz{}, util.PtrMilisToTime(sale.DateEnded)),
 		Quantity:         sale.Quantity,
-		Used:             sale.Used,
+		Used:             0,
 		IsActive:         sale.IsActive,
 		DiscountPercent:  pgtype.Int4{Int32: util.DerefDefault(sale.DiscountPercent, 0), Valid: sale.DiscountPercent != nil},
 		DiscountPrice:    *pgxutil.PtrToPgtype(&pgtype.Int8{}, sale.DiscountPrice),
