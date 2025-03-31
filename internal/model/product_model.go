@@ -12,3 +12,8 @@ type ProductModel struct {
 	Resources []string `json:"resources"`
 	Tags      []string `json:"tags"`
 }
+
+type ProductType struct {
+	ID   int64  `json:"id"` /* unique */
+	Name string `json:"name"`
+}
