@@ -3,6 +3,7 @@ package product
 import (
 	"context"
 	"shopnexus-go-service/internal/model"
+	"shopnexus-go-service/internal/repository"
 	"shopnexus-go-service/internal/service/product"
 
 	common_grpc "shopnexus-go-service/internal/grpc/handler/common"
@@ -73,9 +74,12 @@ func (s *ImplementedProductServiceHandler) CreateBrand(ctx context.Context, req 
 
 func (s *ImplementedProductServiceHandler) UpdateBrand(ctx context.Context, req *connect.Request[productv1.UpdateBrandRequest]) (*connect.Response[productv1.UpdateBrandResponse], error) {
 	err := s.service.UpdateBrand(ctx, product.UpdateBrandParams{
-		ID:          req.Msg.Id,
-		Name:        req.Msg.Name,
-		Description: req.Msg.Description,
+		RepoParams: repository.UpdateBrandParams{
+			ID:          req.Msg.Id,
+			Name:        req.Msg.Name,
+			Description: req.Msg.Description,
+		},
+		Resources: req.Msg.Resources,
 	})
 	if err != nil {
 		return nil, err
