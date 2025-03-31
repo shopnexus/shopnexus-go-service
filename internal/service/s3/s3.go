@@ -19,7 +19,7 @@ import (
 )
 
 type S3Service struct {
-	client        *s3.Client
+	Client        *s3.Client
 	bucket        string
 	cloudfrontURL string
 }
@@ -55,7 +55,7 @@ func NewS3Service(repository *repository.Repository) *S3Service {
 	}
 
 	return &S3Service{
-		client:        s3.NewFromConfig(awsCfg),
+		Client:        s3.NewFromConfig(awsCfg),
 		bucket:        cfg.Bucket,
 		cloudfrontURL: cfg.CloudfrontURL,
 	}
@@ -71,7 +71,7 @@ func (s *S3Service) Upload(ctx context.Context, key string, body io.Reader, priv
 		key = prefix + key
 	}
 
-	_, err := s.client.PutObject(ctx, &s3.PutObjectInput{
+	_, err := s.Client.PutObject(ctx, &s3.PutObjectInput{
 		Bucket: aws.String(s.bucket),
 		Key:    aws.String(key),
 		Body:   body,
@@ -80,15 +80,15 @@ func (s *S3Service) Upload(ctx context.Context, key string, body io.Reader, priv
 		return "", fmt.Errorf("failed to upload file to S3: %w", err)
 	}
 
-	if !private {
-		return fmt.Sprintf("https://%s/%s", s.cloudfrontURL, key), nil
-	}
+	// if !private {
+	// 	return fmt.Sprintf("https://%s/%s", s.cloudfrontURL, key), nil
+	// }
 
 	return key, nil
 }
 
 func (s *S3Service) Delete(ctx context.Context, key string) error {
-	_, err := s.client.DeleteObject(ctx, &s3.DeleteObjectInput{
+	_, err := s.Client.DeleteObject(ctx, &s3.DeleteObjectInput{
 		Bucket: aws.String(s.bucket),
 		Key:    aws.String(key),
 	})
@@ -106,7 +106,7 @@ func (s *S3Service) ListObjects(ctx context.Context, prefix string) ([]string, e
 	}
 
 	var keys []string
-	paginator := s3.NewListObjectsV2Paginator(s.client, input)
+	paginator := s3.NewListObjectsV2Paginator(s.Client, input)
 	for paginator.HasMorePages() {
 		page, err := paginator.NextPage(ctx)
 		if err != nil {
@@ -122,7 +122,7 @@ func (s *S3Service) ListObjects(ctx context.Context, prefix string) ([]string, e
 }
 
 func (s *S3Service) GetPresignedURL(ctx context.Context, key string, expireIn time.Duration) (string, error) {
-	presignClient := s3.NewPresignClient(s.client)
+	presignClient := s3.NewPresignClient(s.Client)
 
 	request, err := presignClient.PresignGetObject(ctx, &s3.GetObjectInput{
 		Bucket: aws.String(s.bucket),
