@@ -41,6 +41,7 @@ type CountProductModelsParams struct {
 	DateManufacturedTo   pgtype.Timestamptz
 }
 
+// TODO: đổi hết WITH SELECT về dạng SELECT * FROM.. bình thường
 func (q *Queries) CountProductModels(ctx context.Context, arg CountProductModelsParams) (int64, error) {
 	row := q.db.QueryRow(ctx, countProductModels,
 		arg.Type,
@@ -57,6 +58,21 @@ func (q *Queries) CountProductModels(ctx context.Context, arg CountProductModels
 	return count, err
 }
 
+const countProductTypes = `-- name: CountProductTypes :one
+SELECT COUNT(id)
+FROM product.type
+WHERE (
+    (name ILIKE '%' || $1 || '%' OR $1 IS NULL)
+)
+`
+
+func (q *Queries) CountProductTypes(ctx context.Context, name pgtype.Text) (int64, error) {
+	row := q.db.QueryRow(ctx, countProductTypes, name)
+	var count int64
+	err := row.Scan(&count)
+	return count, err
+}
+
 const createProductModel = `-- name: CreateProductModel :one
 WITH inserted_model AS (
     INSERT INTO product.model (
@@ -66,9 +82,9 @@ WITH inserted_model AS (
     ) RETURNING id, type, brand_id, name, description, list_price, date_manufactured
 ),
 inserted_resources AS (
-    INSERT INTO product.resource (owner_id, s3_id)
+    INSERT INTO product.resource (owner_id, url)
     SELECT id, unnest($7::text[]) FROM inserted_model
-    RETURNING s3_id
+    RETURNING url
 ),
 inserted_tags AS (
     INSERT INTO product.tag_on_product_model (product_model_id, tag)
@@ -77,7 +93,7 @@ inserted_tags AS (
 )
 SELECT 
     m.id,
-    COALESCE(array_agg(res.s3_id), '{}')::text[] as resources,
+    COALESCE(array_agg(res.url), '{}')::text[] as resources,
     COALESCE(array_agg(t.tag), '{}')::text[] as tags
 FROM inserted_model m
 LEFT JOIN inserted_resources res ON true
@@ -130,10 +146,10 @@ func (q *Queries) DeleteProductModel(ctx context.Context, id int64) error {
 const getProductModel = `-- name: GetProductModel :one
 SELECT 
     pm.id, pm.type, pm.brand_id, pm.name, pm.description, pm.list_price, pm.date_manufactured,
-    COALESCE(array_agg(i.s3_id) FILTER (WHERE i.s3_id IS NOT NULL), '{}')::text[] as resources,
-    COALESCE(array_agg(t.tag) FILTER (WHERE t.tag IS NOT NULL), '{}')::text[] as tags
+    COALESCE(array_agg(DISTINCT res.url) FILTER (WHERE res.url IS NOT NULL), '{}')::text[] as resources,
+    COALESCE(array_agg(DISTINCT t.tag) FILTER (WHERE t.tag IS NOT NULL), '{}')::text[] as tags
 FROM product.model pm
-LEFT JOIN product.resource i ON i.owner_id = pm.id
+LEFT JOIN product.resource res ON res.owner_id = pm.id
 LEFT JOIN product.tag_on_product_model t ON t.product_model_id = pm.id
 WHERE pm.id = $1
 GROUP BY pm.id
@@ -168,13 +184,39 @@ func (q *Queries) GetProductModel(ctx context.Context, id int64) (GetProductMode
 	return i, err
 }
 
+const getProductSerialIDs = `-- name: GetProductSerialIDs :many
+SELECT serial_id
+FROM product.base
+WHERE product_model_id = $1
+`
+
+func (q *Queries) GetProductSerialIDs(ctx context.Context, productModelID int64) ([]string, error) {
+	rows, err := q.db.Query(ctx, getProductSerialIDs, productModelID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []string
+	for rows.Next() {
+		var serial_id string
+		if err := rows.Scan(&serial_id); err != nil {
+			return nil, err
+		}
+		items = append(items, serial_id)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const listProductModels = `-- name: ListProductModels :many
 SELECT 
     pm.id, pm.type, pm.brand_id, pm.name, pm.description, pm.list_price, pm.date_manufactured,
-    COALESCE(array_agg(DISTINCT i.s3_id) FILTER (WHERE i.s3_id IS NOT NULL), '{}')::text[] as resources,
+    COALESCE(array_agg(DISTINCT res.url) FILTER (WHERE res.url IS NOT NULL), '{}')::text[] as resources,
     COALESCE(array_agg(DISTINCT t.tag) FILTER (WHERE t.tag IS NOT NULL), '{}')::text[] as tags
 FROM product.model pm
-LEFT JOIN product.resource i ON i.owner_id = pm.id
+LEFT JOIN product.resource res ON res.owner_id = pm.id
 LEFT JOIN product.tag_on_product_model t ON t.product_model_id = pm.id
 WHERE (
     (pm.type = $1 OR $1 IS NULL) AND
@@ -248,6 +290,43 @@ func (q *Queries) ListProductModels(ctx context.Context, arg ListProductModelsPa
 			&i.Resources,
 			&i.Tags,
 		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const listProductTypes = `-- name: ListProductTypes :many
+SELECT t.id, t.name
+FROM product.type t
+WHERE (
+    (name ILIKE '%' || $1 || '%' OR $1 IS NULL)
+)
+ORDER BY t.id DESC
+LIMIT $3
+OFFSET $2
+`
+
+type ListProductTypesParams struct {
+	Name   pgtype.Text
+	Offset int32
+	Limit  int32
+}
+
+func (q *Queries) ListProductTypes(ctx context.Context, arg ListProductTypesParams) ([]ProductType, error) {
+	rows, err := q.db.Query(ctx, listProductTypes, arg.Name, arg.Offset, arg.Limit)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []ProductType
+	for rows.Next() {
+		var i ProductType
+		if err := rows.Scan(&i.ID, &i.Name); err != nil {
 			return nil, err
 		}
 		items = append(items, i)

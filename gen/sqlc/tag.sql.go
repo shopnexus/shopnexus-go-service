@@ -11,6 +11,33 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
+const addTags = `-- name: AddTags :exec
+INSERT INTO product.tag_on_product_model (product_model_id, tag)
+SELECT $1, unnest($2::text[])
+ON CONFLICT DO NOTHING
+`
+
+type AddTagsParams struct {
+	ProductModelID int64
+	Tags           []string
+}
+
+func (q *Queries) AddTags(ctx context.Context, arg AddTagsParams) error {
+	_, err := q.db.Exec(ctx, addTags, arg.ProductModelID, arg.Tags)
+	return err
+}
+
+const countProductModelsOnTag = `-- name: CountProductModelsOnTag :one
+SELECT COUNT(product_model_id) FROM product.tag_on_product_model WHERE tag = $1
+`
+
+func (q *Queries) CountProductModelsOnTag(ctx context.Context, tag string) (int64, error) {
+	row := q.db.QueryRow(ctx, countProductModelsOnTag, tag)
+	var count int64
+	err := row.Scan(&count)
+	return count, err
+}
+
 const countTags = `-- name: CountTags :one
 SELECT COUNT(*) FROM product.tag
 WHERE
@@ -69,6 +96,30 @@ func (q *Queries) GetTag(ctx context.Context, tag string) (ProductTag, error) {
 	return i, err
 }
 
+const getTags = `-- name: GetTags :many
+SELECT tag FROM product.tag_on_product_model WHERE product_model_id = $1
+`
+
+func (q *Queries) GetTags(ctx context.Context, productModelID int64) ([]string, error) {
+	rows, err := q.db.Query(ctx, getTags, productModelID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []string
+	for rows.Next() {
+		var tag string
+		if err := rows.Scan(&tag); err != nil {
+			return nil, err
+		}
+		items = append(items, tag)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const listTags = `-- name: ListTags :many
 SELECT tag, description FROM product.tag
 WHERE
@@ -109,6 +160,21 @@ func (q *Queries) ListTags(ctx context.Context, arg ListTagsParams) ([]ProductTa
 		return nil, err
 	}
 	return items, nil
+}
+
+const removeTags = `-- name: RemoveTags :exec
+DELETE FROM product.tag_on_product_model
+WHERE product_model_id = $1 AND tag = ANY($2::text[])
+`
+
+type RemoveTagsParams struct {
+	ProductModelID int64
+	Tags           []string
+}
+
+func (q *Queries) RemoveTags(ctx context.Context, arg RemoveTagsParams) error {
+	_, err := q.db.Exec(ctx, removeTags, arg.ProductModelID, arg.Tags)
+	return err
 }
 
 const updateTag = `-- name: UpdateTag :exec
