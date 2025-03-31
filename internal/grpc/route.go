@@ -70,4 +70,18 @@ var permissionRoutes = map[string]permission.Options{
 		permission.NeedRoles(model.RoleAdmin, model.RoleStaff),
 		permission.NeedPermissions(model.PermissionDeleteTag),
 	),
+
+	// BRAND
+	"/product.v1.ProductService/CreateBrand": permission.UseOptions(
+		permission.NeedRoles(model.RoleAdmin, model.RoleStaff),
+		permission.NeedPermissions(model.PermissionCreateBrand),
+	),
+	"/product.v1.ProductService/UpdateBrand": permission.UseOptions(
+		permission.NeedRoles(model.RoleAdmin, model.RoleStaff),
+		permission.NeedPermissions(model.PermissionUpdateBrand),
+	),
+	"/product.v1.ProductService/DeleteBrand": permission.UseOptions(
+		permission.NeedRoles(model.RoleAdmin, model.RoleStaff),
+		permission.NeedPermissions(model.PermissionDeleteBrand),
+	),
 }
