@@ -9,7 +9,7 @@ prevent-naked-make:
 
 # Help target - Displays available commands
 help:
-	@echo "ShopNexus Go Service - Available Commands"
+	@echo "Shopnexus Go Service - Available Commands"
 	@echo "======================================"
 	@echo
 	@echo "Development:"
