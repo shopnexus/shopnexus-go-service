@@ -59,6 +59,10 @@ func (s *ImplementedProductServiceHandler) CreateTag(ctx context.Context, req *c
 }
 
 func (s *ImplementedProductServiceHandler) UpdateTag(ctx context.Context, req *connect.Request[productv1.UpdateTagRequest]) (*connect.Response[productv1.UpdateTagResponse], error) {
+	if req.Msg.NewTag != nil && *req.Msg.NewTag == "" {
+		return nil, model.ErrMalformedParams
+	}
+
 	err := s.service.UpdateTag(ctx, product.UpdateTagParams{
 		Tag:         req.Msg.Tag,
 		NewTag:      req.Msg.NewTag,
@@ -80,9 +84,14 @@ func (s *ImplementedProductServiceHandler) DeleteTag(ctx context.Context, req *c
 	return connect.NewResponse(&productv1.DeleteTagResponse{}), nil
 }
 
-func modelToTagEntity(data model.Tag) *productv1.TagEntity {
+type TagResponseParams struct {
+	ProductCount int32
+}
+
+func modelToTagEntity(data product.TagResponse) *productv1.TagEntity {
 	return &productv1.TagEntity{
-		Tag:         data.Tag,
-		Description: data.Description,
+		Tag:          data.Tag.Tag,
+		Description:  data.Tag.Description,
+		ProductCount: data.ProductCount,
 	}
 }
