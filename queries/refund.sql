@@ -13,7 +13,7 @@ SELECT EXISTS (
 -- name: GetRefund :one
 SELECT 
   r.*,
-  COALESCE(array_agg(DISTINCT res.s3_id) FILTER (WHERE res.s3_id IS NOT NULL), '{}')::text[] as resources
+  COALESCE(array_agg(DISTINCT res.url) FILTER (WHERE res.url IS NOT NULL), '{}')::text[] as resources
 FROM payment.refund r
 LEFT JOIN product.resource res ON r.id = res.owner_id
 INNER JOIN payment.base p ON r.payment_id = p.id
@@ -42,7 +42,7 @@ WHERE (
 -- name: ListRefunds :many
 SELECT 
     r.*,
-    COALESCE(array_agg(DISTINCT res.s3_id) FILTER (WHERE res.s3_id IS NOT NULL), '{}')::text[] as resources
+    COALESCE(array_agg(DISTINCT res.url) FILTER (WHERE res.url IS NOT NULL), '{}')::text[] as resources
 FROM payment.refund r
 LEFT JOIN product.resource res ON res.owner_id = r.id
 INNER JOIN payment.base p ON r.payment_id = p.id
@@ -76,11 +76,11 @@ WITH inserted_refund AS (
     RETURNING *
 ),
 inserted_resources AS (
-    INSERT INTO product.resource (owner_id, s3_id)
+    INSERT INTO product.resource (owner_id, url)
     SELECT id, unnest(sqlc.arg('resources')::text[]) FROM inserted_refund
-    RETURNING s3_id
+    RETURNING url
 )
-SELECT r.id, COALESCE(array_agg(DISTINCT res.s3_id) FILTER (WHERE res.s3_id IS NOT NULL), '{}')::text[] as resources
+SELECT r.id, COALESCE(array_agg(DISTINCT res.url) FILTER (WHERE res.url IS NOT NULL), '{}')::text[] as resources
 FROM inserted_refund r
 LEFT JOIN inserted_resources res ON true
 GROUP BY r.id;
