@@ -59,9 +59,7 @@ func (s *VnpayPlatform) CreateOrder(ctx context.Context, params CreateOrderParam
 	// if err != nil {
 	// 	return "", err
 	// }
-	// fmt.Println(string(body))
 
-	// fmt.Println(data)
 	// return "", nil
 
 }
