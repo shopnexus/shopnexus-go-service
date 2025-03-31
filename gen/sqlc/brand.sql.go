@@ -49,7 +49,8 @@ inserted_resources AS (
 )
 SELECT 
     b.id,
-    COALESCE(array_agg(res.url), '{}')::text[] as resources
+    -- TODO: add the filter to all queries to avoid null values
+    COALESCE(array_agg(res.url) FILTER (WHERE res.url IS NOT NULL), '{}')::text[] as resources
 FROM inserted_brand b
 LEFT JOIN inserted_resources res ON true
 GROUP BY b.id
