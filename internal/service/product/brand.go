@@ -4,6 +4,7 @@ import (
 	"context"
 	"shopnexus-go-service/internal/model"
 	"shopnexus-go-service/internal/repository"
+	"shopnexus-go-service/internal/util"
 )
 
 func (s *ProductService) GetBrand(ctx context.Context, id int64) (model.Brand, error) {
@@ -62,17 +63,40 @@ func (s *ProductService) CreateBrand(ctx context.Context, params CreateBrandPara
 	return newBrand, nil
 }
 
-type UpdateBrandParams = repository.UpdateBrandParams
+type UpdateBrandParams struct {
+	RepoParams repository.UpdateBrandParams
+	Resources  []string
+}
 
 func (s *ProductService) UpdateBrand(ctx context.Context, params UpdateBrandParams) error {
-	// TODO: chuyển isAdmin này ra chỗ khác
-	// if isAdmin, err := s.Account.IsAdmin(ctx, params.UserID); err != nil {
-	// 	return err
-	// } else if !isAdmin {
-	// 	return model.ErrForbidden
-	// }
+	txRepo, err := s.repo.Begin(ctx)
+	if err != nil {
+		return err
+	}
+	defer txRepo.Rollback(ctx)
 
-	return s.repo.UpdateBrand(ctx, params)
+	if err = txRepo.UpdateBrand(ctx, params.RepoParams); err != nil {
+		return err
+	}
+
+	current, err := txRepo.GetResources(ctx, params.RepoParams.ID)
+	if err != nil {
+		return err
+	}
+
+	added, removed := util.Diff(current, params.Resources)
+	if err := txRepo.AddResources(ctx, params.RepoParams.ID, added); err != nil {
+		return err
+	}
+	if err := txRepo.RemoveResources(ctx, params.RepoParams.ID, removed); err != nil {
+		return err
+	}
+
+	if err := txRepo.Commit(ctx); err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func (s *ProductService) DeleteBrand(ctx context.Context, id int64) error {
