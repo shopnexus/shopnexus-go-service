@@ -44,7 +44,7 @@ model PermissionOnRole {
   role       String @db.VarChar(50)
   permission String @db.VarBit(100) // TODO: Extend if need more permissions
 
-  role_relation       Role       @relation(fields: [role], references: [name], onUpdate: Cascade)
+  role_relation Role @relation(fields: [role], references: [name], onUpdate: Cascade)
 
   @@id([permission, role])
   @@map("permission_on_role")
@@ -79,7 +79,7 @@ model AdminAccount {
 }
 
 model StaffAccount {
-  id BigInt @id
+  id                BigInt  @id
   custom_permission String? @db.VarBit(100) // TODO: Extend if need more permissions
 
   account Account @relation(fields: [id], references: [id], onDelete: Cascade, onUpdate: Cascade)
@@ -138,6 +138,7 @@ enum Gender {
 
 model Brand {
   id          BigInt @id @default(autoincrement())
+  // TODO: because brand name not unique, should implement the logo images via Resources[0] in the FE (show brand name along with logo)
   name        String
   description String
 
@@ -150,19 +151,19 @@ model Brand {
 
 model ProductModel {
   id                BigInt   @id @default(autoincrement())
-  type BigInt
+  type              BigInt
   brand_id          BigInt
   name              String
   description       String
   list_price        BigInt
   date_manufactured DateTime @db.Timestamptz(3)
 
-  product_type ProductType @relation(fields: [type], references: [id], onUpdate: Cascade, onDelete: Cascade)
-  brand    Brand               @relation(fields: [brand_id], references: [id], onUpdate: Cascade, onDelete: Cascade)
-  tags     TagOnProductModel[]
-  products Product[]
-  sales    Sale[]
-  carts    ItemOnCart[]
+  product_type ProductType         @relation(fields: [type], references: [id], onUpdate: Cascade, onDelete: Cascade)
+  brand        Brand               @relation(fields: [brand_id], references: [id], onUpdate: Cascade, onDelete: Cascade)
+  tags         TagOnProductModel[]
+  products     Product[]
+  sales        Sale[]
+  carts        ItemOnCart[]
 
   @@map("model")
   @@schema("product")
@@ -205,8 +206,8 @@ model Product {
 }
 
 model ProductType {
-  id          BigInt @id @default(autoincrement())
-  name        String
+  id   BigInt @id @default(autoincrement())
+  name String @unique
 
   productModels ProductModel[]
 
@@ -223,17 +224,17 @@ model Sale {
   product_model_id BigInt?
   brand_id         BigInt?
 
-  date_created     DateTime  @default(now()) @db.Timestamptz(3)
-  date_started     DateTime  @default(now()) @db.Timestamptz(3)
-  date_ended       DateTime? @db.Timestamptz(3)
-  quantity         BigInt // 0 to unlimited
-  used             BigInt    @default(0)
-  is_active        Boolean   @default(true)
+  date_created DateTime  @default(now()) @db.Timestamptz(3)
+  date_started DateTime  @default(now()) @db.Timestamptz(3)
+  date_ended   DateTime? @db.Timestamptz(3)
+  quantity     BigInt // 0 to unlimited
+  used         BigInt    @default(0)
+  is_active    Boolean   @default(true)
 
   // discount properties
-  discount_percent Int? // either discount_percent or discount_price
-  discount_price   BigInt?
-  max_discount_price     BigInt @default(0) // 0 means no limit
+  discount_percent   Int? // either discount_percent or discount_price
+  discount_price     BigInt?
+  max_discount_price BigInt  @default(0) // 0 means no limit
 
   tag_relation  Tag?          @relation(fields: [tag], references: [tag], onUpdate: Cascade, onDelete: Cascade)
   product_model ProductModel? @relation(fields: [product_model_id], references: [id], onUpdate: Cascade, onDelete: Cascade)
@@ -322,7 +323,7 @@ model Refund {
   method       RefundMethod
   status       Status
   reason       String
-  address      String      // PICK_UP address, if method is DROP_OFF, address is empty
+  address      String // PICK_UP address, if method is DROP_OFF, address is empty
   date_created DateTime     @default(now()) @db.Timestamptz(3)
   date_updated DateTime     @default(now()) @db.Timestamptz(3)
 

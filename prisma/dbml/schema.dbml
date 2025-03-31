@@ -108,7 +108,7 @@ Table Product {
 
 Table ProductType {
   id BigInt [pk, increment]
-  name String [not null]
+  name String [unique, not null]
 }
 
 Table Sale {
@@ -186,10 +186,10 @@ Table Refund {
 
 Table Resource {
   owner_id BigInt [not null]
-  s3_id String [not null]
+  url String [not null]
 
   indexes {
-    (owner_id, s3_id) [pk]
+    (owner_id, url) [pk]
   }
 }
 
