@@ -1,0 +1,63 @@
+# This Config only for Dev Purpose
+
+env: "dev" # dev, staging, production
+app:
+  decimals: 9 # Max decimals for handling float number
+  accessTokenDuration: 86400 # 1 day
+  refreshTokenDuration: 604800 # 7 days
+
+httpServer:
+  port: 9005
+
+log:
+  level: "debug"
+  stacktraceLevel: "error" # debug, info, warn, error, dpanic, panic, fatal
+  fileEnabled: false
+  fileSize: 10 # MB
+  filePath: "log/log.log"
+  fileCompress: false # enable log file compress before rotate
+  maxAge: 1 # days to keep log files
+  maxBackups: 10 # umber of log files
+
+postgres:
+  url: "" # "postgresql://doadmin:... Neither url nor host/port/database/username/password is set
+  host: "localhost" # use "host.docker.internal" if you run app inside docker container
+  port: "5432"
+  database: "shopnexus"
+  username: "shopnexus"
+  password: ''
+  maxConnections: 8
+  maxIdleConnections: 10
+  logQuery: false
+
+s3:
+  accessKeyID: ""
+  secretAccessKey: ""
+  region: ""
+  bucket: ""
+  cloudfrontUrl: ""
+
+#Redis:
+#  - host: "localhost"
+#    port: 63791
+#    password: ""
+#    db: 0
+
+sentry:
+  dsn: ""
+  environment: "DEV"
+  release: ""
+  debug: false
+
+scheduler:
+  timezone: "Asia/Bangkok"
+
+sensitiveKeys:
+  jwtSecret: ""
+  pepper: ""
+  encryptionKey: ""
+  iterations: 150000
+
+vnpay:
+  tmnCode: ""
+  hashSecret: ""
