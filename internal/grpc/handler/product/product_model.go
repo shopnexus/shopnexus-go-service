@@ -3,6 +3,7 @@ package product
 import (
 	"context"
 	"shopnexus-go-service/internal/model"
+	"shopnexus-go-service/internal/repository"
 	"shopnexus-go-service/internal/service/product"
 
 	common_grpc "shopnexus-go-service/internal/grpc/handler/common"
@@ -17,8 +18,14 @@ func (s *ImplementedProductServiceHandler) GetProductModel(ctx context.Context, 
 		return nil, err
 	}
 
+	serialIds, err := s.service.GetProductSerialIDs(ctx, req.Msg.Id)
+	if err != nil {
+		return nil, err
+	}
+
 	return connect.NewResponse(&productv1.GetProductModelResponse{
-		Data: modelToProductModelEntity(data),
+		Data:      modelToProductModelEntity(data),
+		SerialIds: serialIds,
 	}), nil
 }
 
@@ -76,13 +83,17 @@ func (s *ImplementedProductServiceHandler) CreateProductModel(ctx context.Contex
 
 func (s *ImplementedProductServiceHandler) UpdateProductModel(ctx context.Context, req *connect.Request[productv1.UpdateProductModelRequest]) (*connect.Response[productv1.UpdateProductModelResponse], error) {
 	err := s.service.UpdateProductModel(ctx, product.UpdateProductModelParams{
-		ID:               req.Msg.Id,
-		Type:             req.Msg.Type,
-		BrandID:          req.Msg.BrandId,
-		Name:             req.Msg.Name,
-		Description:      req.Msg.Description,
-		ListPrice:        req.Msg.ListPrice,
-		DateManufactured: req.Msg.DateManufactured,
+		RepoParams: repository.UpdateProductModelParams{
+			ID:               req.Msg.Id,
+			Type:             req.Msg.Type,
+			BrandID:          req.Msg.BrandId,
+			Name:             req.Msg.Name,
+			Description:      req.Msg.Description,
+			ListPrice:        req.Msg.ListPrice,
+			DateManufactured: req.Msg.DateManufactured,
+		},
+		Resources: req.Msg.Resources,
+		Tags:      req.Msg.Tags,
 	})
 	if err != nil {
 		return nil, err
@@ -100,6 +111,29 @@ func (s *ImplementedProductServiceHandler) DeleteProductModel(ctx context.Contex
 	return connect.NewResponse(&productv1.DeleteProductModelResponse{}), nil
 }
 
+func (s *ImplementedProductServiceHandler) ListProductTypes(ctx context.Context, req *connect.Request[productv1.ListProductTypesRequest]) (*connect.Response[productv1.ListProductTypesResponse], error) {
+	data, err := s.service.ListProductTypes(ctx, product.ListProductTypesParams{
+		PaginationParams: model.PaginationParams{
+			// TODO: change all .Pagination to .GetPagination to prevent nil pointer
+			Page:  req.Msg.GetPagination().GetPage(),
+			Limit: req.Msg.GetPagination().GetLimit(),
+		},
+		Name: req.Msg.Name,
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	var types []*productv1.ProductTypeEntity
+	for _, d := range data {
+		types = append(types, modelToProductTypeEntity(d))
+	}
+
+	return connect.NewResponse(&productv1.ListProductTypesResponse{
+		Data: types,
+	}), nil
+}
+
 func modelToProductModelEntity(data model.ProductModel) *productv1.ProductModelEntity {
 	return &productv1.ProductModelEntity{
 		Id:               data.ID,
@@ -111,5 +145,12 @@ func modelToProductModelEntity(data model.ProductModel) *productv1.ProductModelE
 		DateManufactured: data.DateManufactured,
 		Resources:        data.Resources,
 		Tags:             data.Tags,
+	}
+}
+
+func modelToProductTypeEntity(data model.ProductType) *productv1.ProductTypeEntity {
+	return &productv1.ProductTypeEntity{
+		Id:   data.ID,
+		Name: data.Name,
 	}
 }
