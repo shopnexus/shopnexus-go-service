@@ -54,7 +54,7 @@ func NewPermissionInterceptor(
 			}
 
 			// Perform permission validation
-			if err := validatePermissions(ctx, accountSvc, opts); err != nil {
+			if err := validatePermissions(ctx, req, accountSvc, opts); err != nil {
 				return nil, err
 			}
 
@@ -64,8 +64,8 @@ func NewPermissionInterceptor(
 }
 
 // validatePermissions performs the complete permission validation process
-func validatePermissions(ctx context.Context, accountSvc *account.AccountService, opts Options) error {
-	claims, err := auth.GetAccountFromContext(ctx)
+func validatePermissions(ctx context.Context, req connect.AnyRequest, accountSvc *account.AccountService, opts Options) error {
+	claims, err := auth.GetAccount(req)
 	if err != nil {
 		return err
 	}

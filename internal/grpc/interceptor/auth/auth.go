@@ -5,7 +5,11 @@ import (
 	"errors"
 	"shopnexus-go-service/internal/model"
 	"shopnexus-go-service/internal/util"
+	"shopnexus-go-service/pkg/cache"
 	"strings"
+	"time"
+
+	"slices"
 
 	"connectrpc.com/connect"
 )
@@ -21,6 +25,10 @@ const (
 	CtxToken         ctxClientKey = "client-account" // Storing token in context
 )
 
+var (
+	claimsCache = cache.NewCache[string, model.Claims]()
+)
+
 // NewAuthInterceptor returns a new auth interceptor.
 // This interceptor checks for a token in the request headers or sends a token with client requests.
 // If no token is provided, it returns an unauthenticated error.
@@ -31,13 +39,7 @@ func NewAuthInterceptor(methods ...string) connect.UnaryInterceptorFunc {
 			req connect.AnyRequest,
 		) (connect.AnyResponse, error) {
 			if len(methods) > 0 {
-				found := false
-				for _, method := range methods {
-					if req.Spec().Procedure == method {
-						found = true
-						break
-					}
-				}
+				found := slices.Contains(methods, req.Spec().Procedure)
 				if !found {
 					return next(ctx, req)
 				}
@@ -66,14 +68,9 @@ func NewAuthInterceptor(methods ...string) connect.UnaryInterceptorFunc {
 				// Check token in headers.
 				token := strings.TrimPrefix(req.Header().Get(tokenHeader), "Bearer ")
 				accountClaim, err := util.ValidateAccessToken(token)
-				if err != nil {
-					return nil, connect.NewError(
-						connect.CodeUnauthenticated,
-						err,
-					)
+				if err == nil {
+					ctx = context.WithValue(ctx, CtxServerAccount, accountClaim)
 				}
-
-				ctx = context.WithValue(ctx, CtxServerAccount, accountClaim)
 			}
 			return next(ctx, req)
 		})
@@ -82,10 +79,19 @@ func NewAuthInterceptor(methods ...string) connect.UnaryInterceptorFunc {
 	return connect.UnaryInterceptorFunc(interceptor)
 }
 
-func GetAccountFromContext(ctx context.Context) (model.Claims, error) {
-	account, ok := ctx.Value(CtxServerAccount).(model.Claims)
-	if !ok {
-		return model.Claims{}, connect.NewError(connect.CodeUnauthenticated, errors.New("unauthenticated"))
+func GetAccount(req connect.AnyRequest) (claims model.Claims, err error) {
+	token := req.Header().Get(tokenHeader)
+
+	claims, ok := claimsCache.Get(token)
+	if ok {
+		return claims, nil
 	}
-	return account, nil
+
+	claims, err = util.ValidateAccessToken(strings.TrimPrefix(token, "Bearer "))
+	if err != nil {
+		return model.Claims{}, connect.NewError(connect.CodeUnauthenticated, err)
+	}
+
+	claimsCache.Set(token, claims, 5*60*time.Second)
+	return claims, nil
 }
