@@ -125,7 +125,7 @@ func (s *ImplementedPaymentServiceHandler) UpdateRefund(ctx context.Context, req
 		ID:      req.Msg.Id,
 		UserID:  claims.UserID,
 		Method:  method,
-		Status:  status,
+		Status:  status, // TODO: only admin can update refund status
 		Reason:  req.Msg.Reason,
 		Address: req.Msg.Address,
 	})
