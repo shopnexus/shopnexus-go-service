@@ -364,9 +364,9 @@ enum Status {
 // TODO: should catch "remove" event and remove them in s3; https://chatgpt.com/c/67bea496-7388-800f-a564-9641dc54c520
 model Resource {
   owner_id BigInt
-  s3_id    String
+  url      String
 
-  @@id([owner_id, s3_id])
+  @@id([owner_id, url])
   @@map("resource")
   @@schema("product")
 }
