@@ -1,5 +1,7 @@
 # ShopNexus Go Service
 
+[![wakatime](https://wakatime.com/badge/user/592c97c4-15ad-49cb-ac34-d607be35c524/project/6c846869-ee63-4198-ac66-b788babcc529.svg)](https://wakatime.com/badge/user/592c97c4-15ad-49cb-ac34-d607be35c524/project/6c846869-ee63-4198-ac66-b788babcc529)
+
 A gRPC-based microservice for handling e-commerce operations including user accounts, product management, cart functionality, and payments.
 
 ![Flow](https://raw.githubusercontent.com/shopnexus/shopnexus-go-service/refs/heads/main/flow.png)
