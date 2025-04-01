@@ -17,8 +17,8 @@ type Services struct {
 
 func NewServices(repo *repository.Repository) *Services {
 	accountSvc := account.NewAccountService(repo)
-	paymentSvc := payment.NewPaymentService(repo)
 	productSvc := product.NewProductService(repo)
+	paymentSvc := payment.NewPaymentService(repo, productSvc)
 	s3Svc := s3.NewS3Service(repo)
 
 	return &Services{

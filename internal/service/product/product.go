@@ -91,6 +91,29 @@ func (s *ProductService) UpdateProduct(ctx context.Context, params UpdateProduct
 	return nil
 }
 
+type UpdateProductSoldParams = struct {
+	IDs    []int64
+	Amount int64
+}
+
+func (s *ProductService) UpdateProductSold(ctx context.Context, params UpdateProductSoldParams) error {
+	txRepo, err := s.repo.Begin(ctx)
+	if err != nil {
+		return err
+	}
+	defer txRepo.Rollback(ctx)
+
+	if err = s.repo.UpdateProductSold(ctx, params.IDs, params.Amount); err != nil {
+		return err
+	}
+
+	if err = txRepo.Commit(ctx); err != nil {
+		return err
+	}
+
+	return nil
+}
+
 func (s *ProductService) DeleteProduct(ctx context.Context, params model.ProductIdentifier) error {
 	return s.repo.DeleteProduct(ctx, params)
 }

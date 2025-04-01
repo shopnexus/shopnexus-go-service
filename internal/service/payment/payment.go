@@ -5,20 +5,25 @@ import (
 	"fmt"
 	"shopnexus-go-service/internal/model"
 	repository "shopnexus-go-service/internal/repository"
+	"shopnexus-go-service/internal/service/account"
+	"shopnexus-go-service/internal/service/product"
 	"shopnexus-go-service/internal/util"
 )
 
 var _ PaymentServiceInterface = (*PaymentService)(nil)
 
 type PaymentService struct {
-	Repo      *repository.Repository
-	platforms map[Platform]PaymentPlatform
+	Repo       *repository.Repository
+	accountSvc *account.AccountService
+	productSvc *product.ProductService
+	platforms  map[Platform]PaymentPlatform
 }
 
-func NewPaymentService(repo *repository.Repository) *PaymentService {
+func NewPaymentService(repo *repository.Repository, productSvc *product.ProductService) *PaymentService {
 	s := &PaymentService{
-		Repo:      repo,
-		platforms: map[Platform]PaymentPlatform{},
+		Repo:       repo,
+		productSvc: productSvc,
+		platforms:  map[Platform]PaymentPlatform{},
 	}
 
 	// Init payment platforms
@@ -220,9 +225,21 @@ func (s *PaymentService) CreatePayment(ctx context.Context, params CreatePayment
 		return CreatePaymentResult{}, err
 	}
 
-	// TODO: write to product.sold + product.quantity
-	// Rollback if purchase failed
+	// TODO: big refactor to use txService instead of txRepo, because currently cannot share tx state between 2 services (payment & product like below)
+	if err = s.productSvc.UpdateProductSold(ctx, product.UpdateProductSoldParams{
+		IDs: func() []int64 {
+			ids := make([]int64, 0, len(productOnPayments))
+			for _, pop := range productOnPayments {
+				ids = append(ids, pop.ItemID)
+			}
+			return ids
+		}(),
+		Amount: 1,
+	}); err != nil {
+		return CreatePaymentResult{}, err
+	}
 
+	// Rollback if purchase failed
 	if err = txRepo.Commit(ctx); err != nil {
 		return CreatePaymentResult{}, err
 	}
