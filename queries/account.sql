@@ -57,3 +57,8 @@ RETURNING id;
 SELECT permission FROM "account".permission_on_role
 INNER JOIN "account".role ON permission_on_role.role = role.name
 WHERE role.name = $1;
+
+-- name: GetCustomPermissions :one
+SELECT custom_permission FROM "account".base
+WHERE 
+id = $1;
