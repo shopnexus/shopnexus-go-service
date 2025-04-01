@@ -4,12 +4,14 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"shopnexus-go-service/config"
 	pgxutil "shopnexus-go-service/internal/db/pgx"
 	"shopnexus-go-service/internal/grpc/handler/account"
 	"shopnexus-go-service/internal/grpc/handler/file"
 	"shopnexus-go-service/internal/grpc/handler/payment"
 	"shopnexus-go-service/internal/grpc/handler/product"
 	"shopnexus-go-service/internal/grpc/interceptor/permission"
+	"shopnexus-go-service/internal/logger"
 	"shopnexus-go-service/internal/repository"
 	"shopnexus-go-service/internal/service"
 
@@ -163,8 +165,9 @@ func (s *Server) RegisterTusd() {
 
 	// Create a new HTTP handler for the tusd server by providing a configuration.
 	// The StoreComposer property must be set to allow the handler to function.
+	logger.Log.Info(fmt.Sprintf("Tus url: %s", config.GetConfig().App.TusUrl))
 	handler, err := tusd.NewHandler(tusd.Config{
-		BasePath:              "/files/",
+		BasePath:              config.GetConfig().App.TusUrl,
 		StoreComposer:         composer,
 		NotifyCompleteUploads: true,
 		// Cors: &tusd.CorsConfig{
