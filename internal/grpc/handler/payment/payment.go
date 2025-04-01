@@ -20,7 +20,7 @@ type ImplementedPaymentServiceHandler struct {
 	service *payment.PaymentService
 }
 
-func NewPaymentServiceHandler(paymentService *payment.PaymentService) paymentv1connect.PaymentServiceHandler {
+func NewPaymentServiceHandler(paymentService *payment.PaymentService) *ImplementedPaymentServiceHandler {
 	return &ImplementedPaymentServiceHandler{
 		service: paymentService,
 	}
@@ -68,8 +68,8 @@ func (s *ImplementedPaymentServiceHandler) ListPayments(ctx context.Context, req
 
 	payments, err := s.service.ListPayments(ctx, payment.ListPaymentsParams{
 		PaginationParams: model.PaginationParams{
-			Page:  req.Msg.Pagination.Page,
-			Limit: req.Msg.Pagination.Limit,
+			Page:  req.Msg.GetPagination().GetPage(),
+			Limit: req.Msg.GetPagination().GetLimit(),
 		},
 		UserID:          &claims.UserID,
 		Method:          method,

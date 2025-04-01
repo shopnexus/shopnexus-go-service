@@ -25,8 +25,8 @@ func (s *ImplementedProductServiceHandler) GetTag(ctx context.Context, req *conn
 func (s *ImplementedProductServiceHandler) ListTags(ctx context.Context, req *connect.Request[productv1.ListTagsRequest]) (*connect.Response[productv1.ListTagsResponse], error) {
 	data, err := s.service.ListTags(ctx, product.ListTagsParams{
 		PaginationParams: model.PaginationParams{
-			Page:  req.Msg.Pagination.Page,
-			Limit: req.Msg.Pagination.Limit,
+			Page:  req.Msg.GetPagination().GetPage(),
+			Limit: req.Msg.GetPagination().GetLimit(),
 		},
 		Tag:         req.Msg.Tag,
 		Description: req.Msg.Description,

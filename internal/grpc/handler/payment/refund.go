@@ -52,8 +52,8 @@ func (s *ImplementedPaymentServiceHandler) ListRefunds(ctx context.Context, req 
 
 	refunds, err := s.service.ListRefunds(ctx, payment.ListRefundsParams{
 		PaginationParams: model.PaginationParams{
-			Page:  req.Msg.Pagination.Page,
-			Limit: req.Msg.Pagination.Limit,
+			Page:  req.Msg.GetPagination().GetPage(),
+			Limit: req.Msg.GetPagination().GetLimit(),
 		},
 		UserID:          &claims.UserID,
 		PaymentID:       req.Msg.PaymentId,
@@ -125,7 +125,7 @@ func (s *ImplementedPaymentServiceHandler) UpdateRefund(ctx context.Context, req
 		ID:      req.Msg.Id,
 		UserID:  claims.UserID,
 		Method:  method,
-		Status:  status, // TODO: only admin can update refund status
+		Status:  status,
 		Reason:  req.Msg.Reason,
 		Address: req.Msg.Address,
 	})

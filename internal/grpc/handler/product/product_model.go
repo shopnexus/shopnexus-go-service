@@ -114,7 +114,6 @@ func (s *ImplementedProductServiceHandler) DeleteProductModel(ctx context.Contex
 func (s *ImplementedProductServiceHandler) ListProductTypes(ctx context.Context, req *connect.Request[productv1.ListProductTypesRequest]) (*connect.Response[productv1.ListProductTypesResponse], error) {
 	data, err := s.service.ListProductTypes(ctx, product.ListProductTypesParams{
 		PaginationParams: model.PaginationParams{
-			// TODO: change all .Pagination to .GetPagination to prevent nil pointer
 			Page:  req.Msg.GetPagination().GetPage(),
 			Limit: req.Msg.GetPagination().GetLimit(),
 		},
