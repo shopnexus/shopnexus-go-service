@@ -241,7 +241,7 @@
 						],
 						"body": {
 							"mode": "raw",
-							"raw": "{\n    \"items\": [\n        {\n            \"item_id\": 18,\n            \"quantity\": 2\n        }\n    ]\n}"
+							"raw": "{\n    \"items\": [\n        {\n            \"item_id\": 20,\n            \"quantity\": 2\n        }\n    ]\n}"
 						},
 						"url": {
 							"raw": "{{API_URL}}/account.v1.AccountService/UpdateCartItem",
@@ -301,7 +301,7 @@
 							}
 						],
 						"url": {
-							"raw": "{{API_URL}}/product.v1.ProductService/ListProductModels?encoding=json&message={\"pagination\":{\"limit\":50,\"page\":1}}",
+							"raw": "{{API_URL}}/product.v1.ProductService/ListProductModels?encoding=json&message={\"pagination\":{\"limit\":10,\"page\":1}}",
 							"host": [
 								"{{API_URL}}"
 							],
@@ -316,7 +316,7 @@
 								},
 								{
 									"key": "message",
-									"value": "{\"pagination\":{\"limit\":50,\"page\":1}}"
+									"value": "{\"pagination\":{\"limit\":10,\"page\":1}}"
 								}
 							]
 						}
@@ -335,7 +335,7 @@
 							}
 						],
 						"url": {
-							"raw": "{{API_URL}}/product.v1.ProductService/ListProductTypes?encoding=json&message={\"pagination\":{\"limit\":50,\"page\":1}}",
+							"raw": "{{API_URL}}/product.v1.ProductService/ListProductTypes?encoding=json&message={\"pagination\":{\"limit\":10,\"page\":1}}",
 							"host": [
 								"{{API_URL}}"
 							],
@@ -350,7 +350,7 @@
 								},
 								{
 									"key": "message",
-									"value": "{\"pagination\":{\"limit\":50,\"page\":1}}"
+									"value": "{\"pagination\":{\"limit\":10,\"page\":1}}"
 								}
 							]
 						}
@@ -404,7 +404,7 @@
 						],
 						"body": {
 							"mode": "raw",
-							"raw": "{\n    \"id\": 1\n}"
+							"raw": "{\n    \"type\": \"1\",\n    \"brand_id\": \"1\",\n    \"name\": \"Example product model\",\n    \"description\": \"Epic example product model description\",\n    \"list_price\": \"100000\",\n    \"date_manufactured\": \"1743443407674\",\n    \"resources\": [],\n    \"tags\": []\n}"
 						},
 						"url": {
 							"raw": "{{API_URL}}/product.v1.ProductService/CreateProductModel",
@@ -432,7 +432,7 @@
 						],
 						"body": {
 							"mode": "raw",
-							"raw": "{\n    \"id\": 1\n}"
+							"raw": "{\n    \"id\": \"1\",\n    \"type\": \"1\",\n    \"brand_id\": \"1\",\n    \"name\": \"Example product model\",\n    \"description\": \"Epic example product model description\",\n    \"list_price\": \"100000\",\n    \"date_manufactured\": \"1743443407674\",\n    \"resources\": [],\n    \"tags\": []\n}"
 						},
 						"url": {
 							"raw": "{{API_URL}}/product.v1.ProductService/UpdateProductModel",
@@ -492,7 +492,7 @@
 							}
 						],
 						"url": {
-							"raw": "{{API_URL}}/product.v1.ProductService/ListProducts?encoding=json&message={\"pagination\":{\"limit\":2,\"page\":1}}",
+							"raw": "{{API_URL}}/product.v1.ProductService/ListProducts?encoding=json&message={\"pagination\":{\"limit\":10,\"page\":1}}",
 							"host": [
 								"{{API_URL}}"
 							],
@@ -507,7 +507,7 @@
 								},
 								{
 									"key": "message",
-									"value": "{\"pagination\":{\"limit\":2,\"page\":1}}"
+									"value": "{\"pagination\":{\"limit\":10,\"page\":1}}"
 								}
 							]
 						}
@@ -561,7 +561,7 @@
 						],
 						"body": {
 							"mode": "raw",
-							"raw": "{\n    \"serial_id\": \"PROD-12345\",\n    \"product_model_id\": 1\n}"
+							"raw": "{\n    \"serial_id\": \"PROD-12345\",\n    \"product_model_id\": \"1\",\n    \"quantity\": \"1\",\n    \"add_price\": \"100\",\n    \"is_active\": true,\n    \"metadata\": \"e30=\", // need base64-encoded!\n    \"resouces\": []\n}"
 						},
 						"url": {
 							"raw": "{{API_URL}}/product.v1.ProductService/CreateProduct",
@@ -589,7 +589,7 @@
 						],
 						"body": {
 							"mode": "raw",
-							"raw": "{\n    \"id\": 1,\n    \"serial_id\": \"PROD-12345-UPDATED\",\n    \"product_model_id\": 1\n}"
+							"raw": "{\n    \"id\": \"1\",\n    \"serial_id\": \"PROD-12345\",\n    \"product_model_id\": \"1\",\n    \"quantity\": \"1\",\n    \"sold\": \"1\",\n    \"add_price\": \"100\",\n    \"is_active\": true,\n    \"metadata\": \"e30=\", // need base64-encoded!\n    \"resouces\": []\n}"
 						},
 						"url": {
 							"raw": "{{API_URL}}/product.v1.ProductService/UpdateProduct",
@@ -718,7 +718,7 @@
 						],
 						"body": {
 							"mode": "raw",
-							"raw": "{\n    \"serial_id\": \"PROD-12345\",\n    \"product_model_id\": 1\n}"
+							"raw": "{\n    \"tag\": null,\n    \"product_model_id\": \"1\",\n    \"brand_id\": null,\n    // Neither tag or model or brand passed\n\n    \"date_started\": \"1743443407674\",\n    \"date_ended\": null, // optional\n    \"quantity\": 100,\n    \"is_active\": true,\n    \"discount_percent\": \"30\",\n    \"discount_price\": \"300\",\n    \"max_discount_price\": \"1000\"\n}"
 						},
 						"url": {
 							"raw": "{{API_URL}}/product.v1.ProductService/CreateSale",
@@ -746,7 +746,7 @@
 						],
 						"body": {
 							"mode": "raw",
-							"raw": "{\n    \"id\": 1,\n    \"serial_id\": \"PROD-12345-UPDATED\",\n    \"product_model_id\": 1\n}"
+							"raw": "{\n    \"id\": \"1\",\n    \"tag\": null,\n    \"product_model_id\": \"1\",\n    \"brand_id\": null,\n    // Neither tag or model or brand passed\n\n    \"date_started\": \"1743443407674\",\n    \"date_ended\": null, // optional\n    \"quantity\": 100,\n    \"is_active\": true,\n    \"discount_percent\": \"30\",\n    \"discount_price\": \"300\",\n    \"max_discount_price\": \"1000\"\n}"
 						},
 						"url": {
 							"raw": "{{API_URL}}/product.v1.ProductService/UpdateSale",
@@ -875,7 +875,7 @@
 						],
 						"body": {
 							"mode": "raw",
-							"raw": "{\n    \"serial_id\": \"PROD-12345\",\n    \"product_model_id\": 1\n}"
+							"raw": "{\n    \"tag\": \"Baby\",\n    \"description\": \"Just a baby, bruh!\"\n}"
 						},
 						"url": {
 							"raw": "{{API_URL}}/product.v1.ProductService/CreateTag",
@@ -903,7 +903,7 @@
 						],
 						"body": {
 							"mode": "raw",
-							"raw": "{\n    \"id\": 1,\n    \"serial_id\": \"PROD-12345-UPDATED\",\n    \"product_model_id\": 1\n}"
+							"raw": "{\n    \"tag\": \"Baby\",\n    \"new_tag\": \"Babygirl\", // optional\n    \"description\": \"Just a baby, bruh!\"\n}"
 						},
 						"url": {
 							"raw": "{{API_URL}}/product.v1.ProductService/UpdateTag",
@@ -963,13 +963,13 @@
 							}
 						],
 						"url": {
-							"raw": "{{API_URL}}/product.v1.ProductService/ListTags?encoding=json&message={\"pagination\":{\"limit\":10,\"page\":1}}",
+							"raw": "{{API_URL}}/product.v1.ProductService/ListBrands?encoding=json&message={\"pagination\":{\"limit\":10,\"page\":1}}",
 							"host": [
 								"{{API_URL}}"
 							],
 							"path": [
 								"product.v1.ProductService",
-								"ListTags"
+								"ListBrands"
 							],
 							"query": [
 								{
@@ -986,7 +986,7 @@
 					"response": []
 				},
 				{
-					"name": "Get Tag",
+					"name": "Get Brand",
 					"request": {
 						"method": "GET",
 						"header": [
@@ -997,13 +997,13 @@
 							}
 						],
 						"url": {
-							"raw": "{{API_URL}}/product.v1.ProductService/GetTag?encoding=json&message={\"tag\":\"Baby\"}",
+							"raw": "{{API_URL}}/product.v1.ProductService/GetBrand?encoding=json&message={\"id\":\"1\"}",
 							"host": [
 								"{{API_URL}}"
 							],
 							"path": [
 								"product.v1.ProductService",
-								"GetTag"
+								"GetBrand"
 							],
 							"query": [
 								{
@@ -1012,7 +1012,7 @@
 								},
 								{
 									"key": "message",
-									"value": "{\"tag\":\"Baby\"}"
+									"value": "{\"id\":\"1\"}"
 								}
 							]
 						}
@@ -1020,7 +1020,7 @@
 					"response": []
 				},
 				{
-					"name": "Create Tag",
+					"name": "Create Brand",
 					"request": {
 						"method": "POST",
 						"header": [
@@ -1032,23 +1032,23 @@
 						],
 						"body": {
 							"mode": "raw",
-							"raw": "{\n    \"serial_id\": \"PROD-12345\",\n    \"product_model_id\": 1\n}"
+							"raw": "{\n    \"name\": \"Adidas\",\n    \"description\": \"Best brand ever!\",\n    \"resources\": []\n}"
 						},
 						"url": {
-							"raw": "{{API_URL}}/product.v1.ProductService/CreateTag",
+							"raw": "{{API_URL}}/product.v1.ProductService/CreateBrand",
 							"host": [
 								"{{API_URL}}"
 							],
 							"path": [
 								"product.v1.ProductService",
-								"CreateTag"
+								"CreateBrand"
 							]
 						}
 					},
 					"response": []
 				},
 				{
-					"name": "Update Tag",
+					"name": "Update Brand",
 					"request": {
 						"method": "POST",
 						"header": [
@@ -1060,23 +1060,23 @@
 						],
 						"body": {
 							"mode": "raw",
-							"raw": "{\n    \"id\": 1,\n    \"serial_id\": \"PROD-12345-UPDATED\",\n    \"product_model_id\": 1\n}"
+							"raw": "{\n    \"id\": \"1\",\n    \"name\": \"Adidas\",\n    \"description\": \"Best brand ever!\",\n    \"resources\": []\n}"
 						},
 						"url": {
-							"raw": "{{API_URL}}/product.v1.ProductService/UpdateTag",
+							"raw": "{{API_URL}}/product.v1.ProductService/UpdateBrand",
 							"host": [
 								"{{API_URL}}"
 							],
 							"path": [
 								"product.v1.ProductService",
-								"UpdateTag"
+								"UpdateBrand"
 							]
 						}
 					},
 					"response": []
 				},
 				{
-					"name": "Delete Tag",
+					"name": "Delete Brand",
 					"request": {
 						"method": "POST",
 						"header": [
@@ -1091,13 +1091,13 @@
 							"raw": "{\n    \"id\": 1\n}"
 						},
 						"url": {
-							"raw": "{{API_URL}}/product.v1.ProductService/DeleteTag",
+							"raw": "{{API_URL}}/product.v1.ProductService/DeleteBrand",
 							"host": [
 								"{{API_URL}}"
 							],
 							"path": [
 								"product.v1.ProductService",
-								"DeleteTag"
+								"DeleteBrand"
 							]
 						}
 					},
@@ -1189,7 +1189,7 @@
 						],
 						"body": {
 							"mode": "raw",
-							"raw": "{\n    \"request_id\": 1, \n    \"method\": \"PAYMENT_METHOD_VNPAY\",\n    \"address\": \"123 Main St, City, Country\"\n}"
+							"raw": "{\n    \"request_id2\": 1, \n    \"method\": \"PAYMENT_METHOD_VNPAY\",\n    \"address\": \"123 Main St, City, Country\"\n}"
 						},
 						"url": {
 							"raw": "{{API_URL}}/payment.v1.PaymentService/CreatePayment",
@@ -1217,7 +1217,7 @@
 						],
 						"body": {
 							"mode": "raw",
-							"raw": "{\n    \"requestId\": 1, \n    \"method\": \"PAYMENT_METHOD_VNPAY\",\n    \"address\": \"123 Main St, City, Country\"\n}"
+							"raw": "{\n    \"id\": \"1\", \n    \"method\": \"PAYMENT_METHOD_VNPAY\",\n    \"address\": \"123 Main St, City, Country\"\n}"
 						},
 						"url": {
 							"raw": "{{API_URL}}/payment.v1.PaymentService/UpdatePayment",
@@ -1233,7 +1233,7 @@
 					"response": []
 				},
 				{
-					"name": "Delete Payment",
+					"name": "Cancel Payment",
 					"request": {
 						"method": "POST",
 						"header": [
@@ -1245,7 +1245,7 @@
 						],
 						"body": {
 							"mode": "raw",
-							"raw": "{\n    \"requestId\": 1, \n    \"method\": \"PAYMENT_METHOD_VNPAY\",\n    \"address\": \"123 Main St, City, Country\"\n}"
+							"raw": "{\n    \"id\": \"1\"\n}"
 						},
 						"url": {
 							"raw": "{{API_URL}}/payment.v1.PaymentService/DeletePayment",
@@ -1346,7 +1346,7 @@
 						],
 						"body": {
 							"mode": "raw",
-							"raw": "{\n    \"payment_id\": 19,\n    \"method\": \"REFUND_METHOD_DROP_OFF\",\n    \"reason\": \"Product damaged\",\n    \"address\": \"\"\n}"
+							"raw": "{\n    \"payment_id\": 19,\n    \"method\": \"REFUND_METHOD_DROP_OFF\",\n    \"reason\": \"Product damaged\",\n    \"address\": \"\",\n    \"resources\": []\n}"
 						},
 						"url": {
 							"raw": "{{API_URL}}/payment.v1.PaymentService/CreateRefund",
@@ -1374,7 +1374,7 @@
 						],
 						"body": {
 							"mode": "raw",
-							"raw": "{\n    \"payment_id\": 19,\n    \"method\": \"REFUND_METHOD_DROP_OFF\",\n    \"reason\": \"Product damaged\",\n    \"address\": null\n}"
+							"raw": "{\n    \"payment_id\": 19,\n    \"method\": \"REFUND_METHOD_DROP_OFF\",\n    \"status\": \"REFUND_STATUS_SUCCESS\", // Admin only\n    \"reason\": \"Product damaged\",\n    \"address\": null\n}"
 						},
 						"url": {
 							"raw": "{{API_URL}}/payment.v1.PaymentService/UpdateRefund",
@@ -1390,7 +1390,7 @@
 					"response": []
 				},
 				{
-					"name": "Delete Refund",
+					"name": "Cancel Refund",
 					"request": {
 						"method": "POST",
 						"header": [
@@ -1402,7 +1402,7 @@
 						],
 						"body": {
 							"mode": "raw",
-							"raw": "{\n    \"payment_id\": 1,\n    \"method\": \"DROP_OFF\",\n    \"reason\": \"Product damaged\",\n    \"address\": null\n}"
+							"raw": "{\n    \"id\": \"1\"\n}"
 						},
 						"url": {
 							"raw": "{{API_URL}}/payment.v1.PaymentService/CreateRefund",
@@ -1414,19 +1414,6 @@
 								"CreateRefund"
 							]
 						}
-					},
-					"response": []
-				}
-			]
-		},
-		{
-			"name": "File",
-			"item": [
-				{
-					"name": "New Request",
-					"request": {
-						"method": "GET",
-						"header": []
 					},
 					"response": []
 				}
@@ -1475,7 +1462,7 @@
 	"variable": [
 		{
 			"key": "API_URL",
-			"value": "http://localhost:8080/api",
+			"value": "http://khoakomlem-internal.ddns.net:50051",
 			"type": "string"
 		},
 		{
