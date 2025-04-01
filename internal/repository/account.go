@@ -11,7 +11,7 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
-func (r *Repository) GetAccountBase(ctx context.Context, accountID int64) (model.AccountBase, error) {
+func (r *RepositoryImpl) GetAccountBase(ctx context.Context, accountID int64) (model.AccountBase, error) {
 	baseRow, err := r.sqlc.GetAccountBase(ctx, accountID)
 	if err != nil {
 		return model.AccountBase{}, err
@@ -32,7 +32,7 @@ type GetAccountUserParams struct {
 	Phone     *string
 }
 
-func (r *Repository) GetAccountUser(ctx context.Context, params GetAccountUserParams) (model.AccountUser, error) {
+func (r *RepositoryImpl) GetAccountUser(ctx context.Context, params GetAccountUserParams) (model.AccountUser, error) {
 	userRow, err := r.sqlc.GetAccountUser(ctx, sqlc.GetAccountUserParams{
 		ID:       *pgxutil.PtrToPgtype(&pgtype.Int8{}, params.AccountID),
 		Username: *pgxutil.PtrToPgtype(&pgtype.Text{}, params.Username),
@@ -63,7 +63,7 @@ type GetAccountAdminParams struct {
 	Username  *string
 }
 
-func (r *Repository) GetAccountAdmin(ctx context.Context, params GetAccountAdminParams) (model.AccountAdmin, error) {
+func (r *RepositoryImpl) GetAccountAdmin(ctx context.Context, params GetAccountAdminParams) (model.AccountAdmin, error) {
 	adminRow, err := r.sqlc.GetAccountAdmin(ctx, sqlc.GetAccountAdminParams{
 		ID:       *pgxutil.PtrToPgtype(&pgtype.Int8{}, params.AccountID),
 		Username: *pgxutil.PtrToPgtype(&pgtype.Text{}, params.Username),
@@ -82,7 +82,7 @@ func (r *Repository) GetAccountAdmin(ctx context.Context, params GetAccountAdmin
 	}, nil
 }
 
-func (r *Repository) GetAccount(ctx context.Context, find model.Account) (account model.Account, err error) {
+func (r *RepositoryImpl) GetAccount(ctx context.Context, find model.Account) (account model.Account, err error) {
 	switch find := find.(type) {
 	case model.AccountBase:
 		// Search by base account info (id && type)
@@ -144,7 +144,7 @@ func (r *Repository) GetAccount(ctx context.Context, find model.Account) (accoun
 	return account, nil
 }
 
-func (r *Repository) CreateAccount(ctx context.Context, account model.Account) (model.Account, error) {
+func (r *RepositoryImpl) CreateAccount(ctx context.Context, account model.Account) (model.Account, error) {
 	switch account := account.(type) {
 	case model.AccountUser:
 		id, err := r.sqlc.CreateAccountUser(ctx, sqlc.CreateAccountUserParams{
@@ -198,7 +198,7 @@ type GetPermissionsParams struct {
 	Role      model.Role
 }
 
-func (r *Repository) GetPermissions(ctx context.Context, params GetPermissionsParams) ([]model.Permission, error) {
+func (r *RepositoryImpl) GetPermissions(ctx context.Context, params GetPermissionsParams) ([]model.Permission, error) {
 	permissionBits, err := r.sqlc.GetRolePermissions(ctx, string(params.Role))
 	if err != nil {
 		return nil, err

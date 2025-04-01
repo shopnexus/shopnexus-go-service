@@ -16,7 +16,7 @@ type ExistsRefundParams struct {
 	UserID    int64
 }
 
-func (r *Repository) ExistsRefund(ctx context.Context, params ExistsRefundParams) (bool, error) {
+func (r *RepositoryImpl) ExistsRefund(ctx context.Context, params ExistsRefundParams) (bool, error) {
 	return r.sqlc.ExistsRefund(ctx, sqlc.ExistsRefundParams{
 		PaymentID: params.PaymentID,
 		UserID:    params.UserID,
@@ -28,7 +28,7 @@ type GetRefundParams struct {
 	UserID *int64
 }
 
-func (r *Repository) GetRefund(ctx context.Context, params GetRefundParams) (model.Refund, error) {
+func (r *RepositoryImpl) GetRefund(ctx context.Context, params GetRefundParams) (model.Refund, error) {
 	row, err := r.sqlc.GetRefund(ctx, sqlc.GetRefundParams{
 		ID:     params.ID,
 		UserID: *pgxutil.PtrToPgtype(&pgtype.Int8{}, params.UserID),
@@ -62,7 +62,7 @@ type ListRefundsParams struct {
 	DateCreatedTo   *int64
 }
 
-func (r *Repository) CountRefunds(ctx context.Context, params ListRefundsParams) (int64, error) {
+func (r *RepositoryImpl) CountRefunds(ctx context.Context, params ListRefundsParams) (int64, error) {
 	return r.sqlc.CountRefunds(ctx, sqlc.CountRefundsParams{
 		UserID:          *pgxutil.PtrToPgtype(&pgtype.Int8{}, params.UserID),
 		PaymentID:       *pgxutil.PtrToPgtype(&pgtype.Int8{}, params.PaymentID),
@@ -75,7 +75,7 @@ func (r *Repository) CountRefunds(ctx context.Context, params ListRefundsParams)
 	})
 }
 
-func (r *Repository) ListRefunds(ctx context.Context, params ListRefundsParams) ([]model.Refund, error) {
+func (r *RepositoryImpl) ListRefunds(ctx context.Context, params ListRefundsParams) ([]model.Refund, error) {
 	rows, err := r.sqlc.ListRefunds(ctx, sqlc.ListRefundsParams{
 		Offset:          params.Offset(),
 		Limit:           params.Limit,
@@ -110,7 +110,7 @@ func (r *Repository) ListRefunds(ctx context.Context, params ListRefundsParams) 
 	return refunds, nil
 }
 
-func (r *Repository) CreateRefund(ctx context.Context, refund model.Refund) (model.Refund, error) {
+func (r *RepositoryImpl) CreateRefund(ctx context.Context, refund model.Refund) (model.Refund, error) {
 	row, err := r.sqlc.CreateRefund(ctx, sqlc.CreateRefundParams{
 		PaymentID: refund.PaymentID,
 		Method:    sqlc.PaymentRefundMethod(refund.Method),
@@ -145,7 +145,7 @@ type UpdateRefundParams struct {
 	Address *string
 }
 
-func (r *Repository) UpdateRefund(ctx context.Context, params UpdateRefundParams) error {
+func (r *RepositoryImpl) UpdateRefund(ctx context.Context, params UpdateRefundParams) error {
 	err := r.sqlc.UpdateRefund(ctx, sqlc.UpdateRefundParams{
 		ID:      params.ID,
 		Method:  *pgxutil.PtrBrandedToPgType(&sqlc.NullPaymentRefundMethod{}, params.Method),
@@ -158,6 +158,6 @@ func (r *Repository) UpdateRefund(ctx context.Context, params UpdateRefundParams
 	return err
 }
 
-func (r *Repository) DeleteRefund(ctx context.Context, id int64) error {
+func (r *RepositoryImpl) DeleteRefund(ctx context.Context, id int64) error {
 	return r.sqlc.DeleteRefund(ctx, id)
 }

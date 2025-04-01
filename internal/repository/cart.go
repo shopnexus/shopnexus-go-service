@@ -7,17 +7,17 @@ import (
 )
 
 // ExistsCart checks if a cart exists for the given user ID
-func (r *Repository) ExistsCart(ctx context.Context, userID int64) (bool, error) {
+func (r *RepositoryImpl) ExistsCart(ctx context.Context, userID int64) (bool, error) {
 	return r.sqlc.ExistsCart(ctx, userID)
 }
 
 // CreateCart creates a new cart for the user
-func (r *Repository) CreateCart(ctx context.Context, userID int64) error {
+func (r *RepositoryImpl) CreateCart(ctx context.Context, userID int64) error {
 	return r.sqlc.CreateCart(ctx, userID)
 }
 
 // GetCart retrieves the cart with the given ID
-func (r *Repository) GetCart(ctx context.Context, cartID int64) (model.Cart, error) {
+func (r *RepositoryImpl) GetCart(ctx context.Context, cartID int64) (model.Cart, error) {
 	itemRows, err := r.sqlc.GetCartItems(ctx, cartID)
 	if err != nil {
 		return model.Cart{}, err
@@ -47,7 +47,7 @@ type AddCartItemParams struct {
 }
 
 // AddCartItem adds a new item to the cart
-func (r *Repository) AddCartItem(ctx context.Context, params AddCartItemParams) (int64, error) {
+func (r *RepositoryImpl) AddCartItem(ctx context.Context, params AddCartItemParams) (int64, error) {
 	return r.sqlc.AddCartItem(ctx, sqlc.AddCartItemParams{
 		CartID:         params.CartID,
 		ProductModelID: params.ProductModelID,
@@ -61,7 +61,7 @@ type UpdateCartItemParams struct {
 	Quantity       int64
 }
 
-func (r *Repository) UpdateCartItem(ctx context.Context, params UpdateCartItemParams) (int64, error) {
+func (r *RepositoryImpl) UpdateCartItem(ctx context.Context, params UpdateCartItemParams) (int64, error) {
 	return r.sqlc.UpdateCartItem(ctx, sqlc.UpdateCartItemParams{
 		CartID:         params.CartID,
 		ProductModelID: params.ProductModelID,
@@ -69,13 +69,13 @@ func (r *Repository) UpdateCartItem(ctx context.Context, params UpdateCartItemPa
 	})
 }
 
-func (r *Repository) RemoveCartItem(ctx context.Context, cartID, productModelID int64) error {
+func (r *RepositoryImpl) RemoveCartItem(ctx context.Context, cartID, productModelID int64) error {
 	return r.sqlc.RemoveCartItem(ctx, sqlc.RemoveCartItemParams{
 		CartID:         cartID,
 		ProductModelID: productModelID,
 	})
 }
 
-func (r *Repository) ClearCart(ctx context.Context, cartID int64) error {
+func (r *RepositoryImpl) ClearCart(ctx context.Context, cartID int64) error {
 	return r.sqlc.ClearCart(ctx, cartID)
 }

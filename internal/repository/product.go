@@ -23,7 +23,7 @@ func ToPgtype(p model.ProductIdentifier) ProductIdentifierPg {
 	}
 }
 
-func (r *Repository) GetProduct(ctx context.Context, id model.ProductIdentifier) (model.Product, error) {
+func (r *RepositoryImpl) GetProduct(ctx context.Context, id model.ProductIdentifier) (model.Product, error) {
 	row, err := r.sqlc.GetProduct(ctx, sqlc.GetProductParams(ToPgtype(id)))
 	if err != nil {
 		return model.Product{}, err
@@ -44,7 +44,7 @@ func (r *Repository) GetProduct(ctx context.Context, id model.ProductIdentifier)
 	}, nil
 }
 
-func (r *Repository) GetAvailableProducts(ctx context.Context, productModelID, amount int64) ([]model.Product, error) {
+func (r *RepositoryImpl) GetAvailableProducts(ctx context.Context, productModelID, amount int64) ([]model.Product, error) {
 	rows, err := r.sqlc.GetAvailableProducts(ctx, sqlc.GetAvailableProductsParams{
 		ProductModelID: productModelID,
 		Amount:         int32(amount),
@@ -87,7 +87,7 @@ type ListProductsParams struct {
 	DateCreatedTo   *int64
 }
 
-func (r *Repository) CountProducts(ctx context.Context, params ListProductsParams) (int64, error) {
+func (r *RepositoryImpl) CountProducts(ctx context.Context, params ListProductsParams) (int64, error) {
 	return r.sqlc.CountProducts(ctx, sqlc.CountProductsParams{
 		ProductModelID:  *pgxutil.PtrToPgtype(&pgtype.Int8{}, params.ProductModelID),
 		QuantityFrom:    *pgxutil.PtrToPgtype(&pgtype.Int8{}, params.QuantityFrom),
@@ -103,7 +103,7 @@ func (r *Repository) CountProducts(ctx context.Context, params ListProductsParam
 	})
 }
 
-func (r *Repository) ListProducts(ctx context.Context, params ListProductsParams) ([]model.Product, error) {
+func (r *RepositoryImpl) ListProducts(ctx context.Context, params ListProductsParams) ([]model.Product, error) {
 	products, err := r.sqlc.ListProducts(ctx, sqlc.ListProductsParams{
 		Offset:          params.Offset(),
 		Limit:           params.Limit,
@@ -143,7 +143,7 @@ func (r *Repository) ListProducts(ctx context.Context, params ListProductsParams
 	return result, nil
 }
 
-func (r *Repository) CreateProduct(ctx context.Context, product model.Product) (model.Product, error) {
+func (r *RepositoryImpl) CreateProduct(ctx context.Context, product model.Product) (model.Product, error) {
 	row, err := r.sqlc.CreateProduct(ctx, sqlc.CreateProductParams{
 		SerialID:       product.SerialID,
 		ProductModelID: product.ProductModelID,
@@ -184,7 +184,7 @@ type UpdateProductParams struct {
 	Metadata       []byte
 }
 
-func (r *Repository) UpdateProduct(ctx context.Context, params UpdateProductParams) error {
+func (r *RepositoryImpl) UpdateProduct(ctx context.Context, params UpdateProductParams) error {
 	return r.sqlc.UpdateProduct(ctx, sqlc.UpdateProductParams{
 		ID:             params.ID,
 		SerialID:       *pgxutil.PtrToPgtype(&pgtype.Text{}, params.SerialID),
@@ -197,29 +197,29 @@ func (r *Repository) UpdateProduct(ctx context.Context, params UpdateProductPara
 	})
 }
 
-func (r *Repository) UpdateProductSold(ctx context.Context, ids []int64, amount int64) error {
+func (r *RepositoryImpl) UpdateProductSold(ctx context.Context, ids []int64, amount int64) error {
 	return r.sqlc.UpdateProductSold(ctx, sqlc.UpdateProductSoldParams{
 		Ids:    ids,
 		Amount: amount,
 	})
 }
 
-func (r *Repository) DeleteProduct(ctx context.Context, id model.ProductIdentifier) error {
+func (r *RepositoryImpl) DeleteProduct(ctx context.Context, id model.ProductIdentifier) error {
 	return r.sqlc.DeleteProduct(ctx, sqlc.DeleteProductParams(ToPgtype(id)))
 }
 
-func (r *Repository) GetResources(ctx context.Context, ownerID int64) ([]string, error) {
+func (r *RepositoryImpl) GetResources(ctx context.Context, ownerID int64) ([]string, error) {
 	return r.sqlc.GetResources(ctx, ownerID)
 }
 
-func (r *Repository) AddResources(ctx context.Context, ownerID int64, resouces []string) error {
+func (r *RepositoryImpl) AddResources(ctx context.Context, ownerID int64, resouces []string) error {
 	return r.sqlc.AddResources(ctx, sqlc.AddResourcesParams{
 		OwnerID:   ownerID,
 		Resources: resouces,
 	})
 }
 
-func (r *Repository) RemoveResources(ctx context.Context, ownerID int64, resources []string) error {
+func (r *RepositoryImpl) RemoveResources(ctx context.Context, ownerID int64, resources []string) error {
 	return r.sqlc.RemoveResources(ctx, sqlc.RemoveResourcesParams{
 		OwnerID:   ownerID,
 		Resources: resources,

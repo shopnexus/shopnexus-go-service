@@ -11,7 +11,7 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
-func (r *Repository) GetSale(ctx context.Context, id int64) (model.Sale, error) {
+func (r *RepositoryImpl) GetSale(ctx context.Context, id int64) (model.Sale, error) {
 	row, err := r.sqlc.GetSale(ctx, id)
 	if err != nil {
 		return model.Sale{}, err
@@ -45,7 +45,7 @@ type GetLatestSaleParams struct {
 	Tags           []string
 }
 
-func (r *Repository) GetAvailableSales(ctx context.Context, params GetLatestSaleParams) ([]model.Sale, error) {
+func (r *RepositoryImpl) GetAvailableSales(ctx context.Context, params GetLatestSaleParams) ([]model.Sale, error) {
 	rows, err := r.sqlc.GetAvailableSales(ctx, sqlc.GetAvailableSalesParams{
 		ProductModelID: params.ProductModelID,
 		BrandID:        params.BrandID,
@@ -94,7 +94,7 @@ type ListSalesParams struct {
 	IsActive        *bool
 }
 
-func (r *Repository) CountSales(ctx context.Context, params ListSalesParams) (int64, error) {
+func (r *RepositoryImpl) CountSales(ctx context.Context, params ListSalesParams) (int64, error) {
 	return r.sqlc.CountSales(ctx, sqlc.CountSalesParams{
 		Tag:             *pgxutil.PtrToPgtype(&pgtype.Text{}, params.Tag),
 		ProductModelID:  *pgxutil.PtrToPgtype(&pgtype.Int8{}, params.ProductModelID),
@@ -107,7 +107,7 @@ func (r *Repository) CountSales(ctx context.Context, params ListSalesParams) (in
 	})
 }
 
-func (r *Repository) ListSales(ctx context.Context, params ListSalesParams) ([]model.Sale, error) {
+func (r *RepositoryImpl) ListSales(ctx context.Context, params ListSalesParams) ([]model.Sale, error) {
 	rows, err := r.sqlc.ListSales(ctx, sqlc.ListSalesParams{
 		Limit:           params.Limit,
 		Offset:          params.Offset(),
@@ -151,7 +151,7 @@ func (r *Repository) ListSales(ctx context.Context, params ListSalesParams) ([]m
 	return sales, nil
 }
 
-func (r *Repository) CreateSale(ctx context.Context, sale model.Sale) (model.Sale, error) {
+func (r *RepositoryImpl) CreateSale(ctx context.Context, sale model.Sale) (model.Sale, error) {
 	row, err := r.sqlc.CreateSale(ctx, sqlc.CreateSaleParams{
 		Tag:              *pgxutil.PtrToPgtype(&pgtype.Text{}, sale.Tag),
 		ProductModelID:   *pgxutil.PtrToPgtype(&pgtype.Int8{}, &sale.ProductModelID),
@@ -206,7 +206,7 @@ type UpdateSaleParams struct {
 	MaxDiscountPrice *int64
 }
 
-func (r *Repository) UpdateSale(ctx context.Context, params UpdateSaleParams) error {
+func (r *RepositoryImpl) UpdateSale(ctx context.Context, params UpdateSaleParams) error {
 	return r.sqlc.UpdateSale(ctx, sqlc.UpdateSaleParams{
 		ID:               params.ID,
 		Tag:              *pgxutil.PtrToPgtype(&pgtype.Text{}, params.Tag),
@@ -223,6 +223,6 @@ func (r *Repository) UpdateSale(ctx context.Context, params UpdateSaleParams) er
 	})
 }
 
-func (r *Repository) DeleteSale(ctx context.Context, id int64) error {
+func (r *RepositoryImpl) DeleteSale(ctx context.Context, id int64) error {
 	return r.sqlc.DeleteSale(ctx, id)
 }

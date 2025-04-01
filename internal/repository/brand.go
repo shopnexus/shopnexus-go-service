@@ -9,7 +9,7 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
-func (r *Repository) GetBrand(ctx context.Context, id int64) (model.Brand, error) {
+func (r *RepositoryImpl) GetBrand(ctx context.Context, id int64) (model.Brand, error) {
 	brand, err := r.sqlc.GetBrand(ctx, id)
 	if err != nil {
 		return model.Brand{}, err
@@ -29,14 +29,14 @@ type ListBrandsParams struct {
 	Description *string
 }
 
-func (r *Repository) CountBrands(ctx context.Context, params ListBrandsParams) (int64, error) {
+func (r *RepositoryImpl) CountBrands(ctx context.Context, params ListBrandsParams) (int64, error) {
 	return r.sqlc.CountBrands(ctx, sqlc.CountBrandsParams{
 		Name:        *pgxutil.PtrToPgtype(&pgtype.Text{}, params.Name),
 		Description: *pgxutil.PtrToPgtype(&pgtype.Text{}, params.Description),
 	})
 }
 
-func (r *Repository) ListBrands(ctx context.Context, params ListBrandsParams) ([]model.Brand, error) {
+func (r *RepositoryImpl) ListBrands(ctx context.Context, params ListBrandsParams) ([]model.Brand, error) {
 	brands, err := r.sqlc.ListBrands(ctx, sqlc.ListBrandsParams{
 		Offset:      params.Offset(),
 		Limit:       params.Limit,
@@ -59,7 +59,7 @@ func (r *Repository) ListBrands(ctx context.Context, params ListBrandsParams) ([
 	return result, nil
 }
 
-func (r *Repository) CreateBrand(ctx context.Context, brand model.Brand) (model.Brand, error) {
+func (r *RepositoryImpl) CreateBrand(ctx context.Context, brand model.Brand) (model.Brand, error) {
 	row, err := r.sqlc.CreateBrand(ctx, sqlc.CreateBrandParams{
 		Name:        brand.Name,
 		Description: brand.Description,
@@ -83,7 +83,7 @@ type UpdateBrandParams struct {
 	Description *string
 }
 
-func (r *Repository) UpdateBrand(ctx context.Context, params UpdateBrandParams) error {
+func (r *RepositoryImpl) UpdateBrand(ctx context.Context, params UpdateBrandParams) error {
 	return r.sqlc.UpdateBrand(ctx, sqlc.UpdateBrandParams{
 		ID:          params.ID,
 		Name:        *pgxutil.PtrToPgtype(&pgtype.Text{}, &params.Name),
@@ -91,6 +91,6 @@ func (r *Repository) UpdateBrand(ctx context.Context, params UpdateBrandParams) 
 	})
 }
 
-func (r *Repository) DeleteBrand(ctx context.Context, id int64) error {
+func (r *RepositoryImpl) DeleteBrand(ctx context.Context, id int64) error {
 	return r.sqlc.DeleteBrand(ctx, id)
 }

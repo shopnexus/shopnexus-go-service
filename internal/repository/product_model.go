@@ -10,7 +10,7 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
-func (r *Repository) GetProductModel(ctx context.Context, id int64) (model.ProductModel, error) {
+func (r *RepositoryImpl) GetProductModel(ctx context.Context, id int64) (model.ProductModel, error) {
 	productModel, err := r.sqlc.GetProductModel(ctx, id)
 	if err != nil {
 		return model.ProductModel{}, err
@@ -29,7 +29,7 @@ func (r *Repository) GetProductModel(ctx context.Context, id int64) (model.Produ
 	}, nil
 }
 
-func (r *Repository) GetProductSerialIDs(ctx context.Context, productModelID int64) ([]string, error) {
+func (r *RepositoryImpl) GetProductSerialIDs(ctx context.Context, productModelID int64) ([]string, error) {
 	return r.sqlc.GetProductSerialIDs(ctx, productModelID)
 }
 
@@ -45,7 +45,7 @@ type ListProductModelsParams struct {
 	DateManufacturedTo   *int64
 }
 
-func (r *Repository) CountProductModels(ctx context.Context, params ListProductModelsParams) (int64, error) {
+func (r *RepositoryImpl) CountProductModels(ctx context.Context, params ListProductModelsParams) (int64, error) {
 	return r.sqlc.CountProductModels(ctx, sqlc.CountProductModelsParams{
 		Type:                 *pgxutil.PtrToPgtype(&pgtype.Int8{}, params.Type),
 		BrandID:              *pgxutil.PtrToPgtype(&pgtype.Int8{}, params.BrandID),
@@ -58,7 +58,7 @@ func (r *Repository) CountProductModels(ctx context.Context, params ListProductM
 	})
 }
 
-func (r *Repository) ListProductModels(ctx context.Context, params ListProductModelsParams) ([]model.ProductModel, error) {
+func (r *RepositoryImpl) ListProductModels(ctx context.Context, params ListProductModelsParams) ([]model.ProductModel, error) {
 	productModels, err := r.sqlc.ListProductModels(ctx, sqlc.ListProductModelsParams{
 		Offset:               params.Offset(),
 		Limit:                params.Limit,
@@ -93,7 +93,7 @@ func (r *Repository) ListProductModels(ctx context.Context, params ListProductMo
 	return result, nil
 }
 
-func (r *Repository) CreateProductModel(ctx context.Context, productModel model.ProductModel) (model.ProductModel, error) {
+func (r *RepositoryImpl) CreateProductModel(ctx context.Context, productModel model.ProductModel) (model.ProductModel, error) {
 	row, err := r.sqlc.CreateProductModel(ctx, sqlc.CreateProductModelParams{
 		Type:             productModel.Type,
 		BrandID:          productModel.BrandID,
@@ -131,7 +131,7 @@ type UpdateProductModelParams struct {
 	DateManufactured *int64
 }
 
-func (r *Repository) UpdateProductModel(ctx context.Context, params UpdateProductModelParams) error {
+func (r *RepositoryImpl) UpdateProductModel(ctx context.Context, params UpdateProductModelParams) error {
 	return r.sqlc.UpdateProductModel(ctx, sqlc.UpdateProductModelParams{
 		ID:               params.ID,
 		Type:             *pgxutil.PtrToPgtype(&pgtype.Int8{}, params.Type),
@@ -143,7 +143,7 @@ func (r *Repository) UpdateProductModel(ctx context.Context, params UpdateProduc
 	})
 }
 
-func (r *Repository) DeleteProductModel(ctx context.Context, id int64) error {
+func (r *RepositoryImpl) DeleteProductModel(ctx context.Context, id int64) error {
 	return r.sqlc.DeleteProductModel(ctx, id)
 }
 
@@ -152,11 +152,11 @@ type ListProductTypesParams struct {
 	Name *string
 }
 
-func (r *Repository) CountProductTypes(ctx context.Context, params ListProductTypesParams) (int64, error) {
+func (r *RepositoryImpl) CountProductTypes(ctx context.Context, params ListProductTypesParams) (int64, error) {
 	return r.sqlc.CountProductTypes(ctx, *pgxutil.PtrToPgtype(&pgtype.Text{}, params.Name))
 }
 
-func (r *Repository) ListProductTypes(ctx context.Context, params ListProductTypesParams) ([]model.ProductType, error) {
+func (r *RepositoryImpl) ListProductTypes(ctx context.Context, params ListProductTypesParams) ([]model.ProductType, error) {
 	productTypes, err := r.sqlc.ListProductTypes(ctx, sqlc.ListProductTypesParams{
 		Offset: params.Offset(),
 		Limit:  params.Limit,

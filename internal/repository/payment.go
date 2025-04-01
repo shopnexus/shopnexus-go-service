@@ -16,7 +16,7 @@ type GetPaymentParams struct {
 	Status *model.Status
 }
 
-func (r *Repository) ExistsPayment(ctx context.Context, params GetPaymentParams) (bool, error) {
+func (r *RepositoryImpl) ExistsPayment(ctx context.Context, params GetPaymentParams) (bool, error) {
 	return r.sqlc.ExistsPayment(ctx, sqlc.ExistsPaymentParams{
 		ID:     params.ID,
 		UserID: *pgxutil.PtrToPgtype(&pgtype.Int8{}, params.UserID),
@@ -26,7 +26,7 @@ func (r *Repository) ExistsPayment(ctx context.Context, params GetPaymentParams)
 
 // GetPayment retrieves a payment by its ID, and optionally the user ID.
 // If the user ID is provided, the payment must belong to the user.
-func (r *Repository) GetPayment(ctx context.Context, params GetPaymentParams) (model.Payment, error) {
+func (r *RepositoryImpl) GetPayment(ctx context.Context, params GetPaymentParams) (model.Payment, error) {
 	row, err := r.sqlc.GetPayment(ctx, sqlc.GetPaymentParams{
 		ID:     params.ID,
 		UserID: *pgxutil.PtrToPgtype(&pgtype.Int8{}, params.UserID),
@@ -52,7 +52,7 @@ func (r *Repository) GetPayment(ctx context.Context, params GetPaymentParams) (m
 	}, nil
 }
 
-func (r *Repository) GetPaymentProducts(ctx context.Context, paymentID int64) ([]model.ProductOnPayment, error) {
+func (r *RepositoryImpl) GetPaymentProducts(ctx context.Context, paymentID int64) ([]model.ProductOnPayment, error) {
 	rows, err := r.sqlc.GetPaymentProducts(ctx, paymentID)
 	if err != nil {
 		return nil, err
@@ -98,7 +98,7 @@ type ListPaymentsParams struct {
 	DateCreatedTo   *int64
 }
 
-func (r Repository) CountPayments(ctx context.Context, params ListPaymentsParams) (int64, error) {
+func (r RepositoryImpl) CountPayments(ctx context.Context, params ListPaymentsParams) (int64, error) {
 	return r.sqlc.CountPayments(ctx, sqlc.CountPaymentsParams{
 		UserID:          *pgxutil.PtrToPgtype(&pgtype.Int8{}, params.UserID),
 		Method:          *pgxutil.PtrToPgtype(&sqlc.NullPaymentPaymentMethod{}, params.Method),
@@ -111,7 +111,7 @@ func (r Repository) CountPayments(ctx context.Context, params ListPaymentsParams
 	})
 }
 
-func (r *Repository) ListPayments(ctx context.Context, params ListPaymentsParams) ([]model.Payment, error) {
+func (r *RepositoryImpl) ListPayments(ctx context.Context, params ListPaymentsParams) ([]model.Payment, error) {
 	rows, err := r.sqlc.ListPayments(ctx, sqlc.ListPaymentsParams{
 		Offset:          params.Offset(),
 		Limit:           params.Limit,
@@ -150,7 +150,7 @@ func (r *Repository) ListPayments(ctx context.Context, params ListPaymentsParams
 	return payments, nil
 }
 
-func (r *Repository) CreatePayment(ctx context.Context, payment model.Payment) (model.Payment, error) {
+func (r *RepositoryImpl) CreatePayment(ctx context.Context, payment model.Payment) (model.Payment, error) {
 	row, err := r.sqlc.CreatePayment(ctx, sqlc.CreatePaymentParams{
 		UserID:  payment.UserID,
 		Method:  sqlc.PaymentPaymentMethod(payment.Method),
@@ -200,7 +200,7 @@ type UpdatePaymentParams struct {
 	Total   *int64
 }
 
-func (r *Repository) UpdatePayment(ctx context.Context, params UpdatePaymentParams) error {
+func (r *RepositoryImpl) UpdatePayment(ctx context.Context, params UpdatePaymentParams) error {
 	err := r.sqlc.UpdatePayment(ctx, sqlc.UpdatePaymentParams{
 		ID:      params.ID,
 		Method:  *pgxutil.PtrToPgtype(&sqlc.NullPaymentPaymentMethod{}, params.Method),
@@ -215,6 +215,6 @@ func (r *Repository) UpdatePayment(ctx context.Context, params UpdatePaymentPara
 	return nil
 }
 
-func (r *Repository) DeletePayment(ctx context.Context, paymentID int64) error {
+func (r *RepositoryImpl) DeletePayment(ctx context.Context, paymentID int64) error {
 	return r.sqlc.DeletePayment(ctx, paymentID)
 }
