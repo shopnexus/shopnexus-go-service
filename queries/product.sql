@@ -97,6 +97,14 @@ SET
     metadata = COALESCE(sqlc.narg('metadata'), metadata)
 WHERE id = $1;
 
+-- name: UpdateProductSold :exec
+UPDATE product.base
+SET
+    sold = sold + sqlc.arg('amount')
+WHERE
+id = ANY(sqlc.arg('ids')::bigint[]) AND 
+sold + sqlc.arg('amount') <= quantity;
+
 -- name: DeleteProduct :exec
 DELETE FROM product.base WHERE (
     id = sqlc.narg('id') OR 
