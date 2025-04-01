@@ -7,6 +7,7 @@ Table Account {
   username String [unique, not null]
   password String [not null]
   role String [not null]
+  custom_permission String
 }
 
 Table Role {
@@ -37,7 +38,6 @@ Table AdminAccount {
 
 Table StaffAccount {
   id BigInt [pk]
-  custom_permission String
 }
 
 Table Address {

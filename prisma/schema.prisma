@@ -20,6 +20,7 @@ model Account {
   username String @unique @db.VarChar(50)
   password String @db.VarChar(100)
   role     String @db.VarChar(50)
+  custom_permission String? @db.VarBit(100) // Only available in admin account TODO: Extend if need more permissions
 
   user_account  UserAccount?
   admin_account AdminAccount?
@@ -80,7 +81,6 @@ model AdminAccount {
 
 model StaffAccount {
   id                BigInt  @id
-  custom_permission String? @db.VarBit(100) // TODO: Extend if need more permissions
 
   account Account @relation(fields: [id], references: [id], onDelete: Cascade, onUpdate: Cascade)
 

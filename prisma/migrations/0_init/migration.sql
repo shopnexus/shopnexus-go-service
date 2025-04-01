@@ -25,6 +25,7 @@ CREATE TABLE "account"."base" (
     "username" VARCHAR(50) NOT NULL,
     "password" VARCHAR(100) NOT NULL,
     "role" VARCHAR(50) NOT NULL,
+    "custom_permission" VARBIT(100),
 
     CONSTRAINT "base_pkey" PRIMARY KEY ("id")
 );
@@ -66,7 +67,6 @@ CREATE TABLE "account"."admin" (
 -- CreateTable
 CREATE TABLE "account"."staff" (
     "id" BIGINT NOT NULL,
-    "custom_permission" VARBIT(100),
 
     CONSTRAINT "staff_pkey" PRIMARY KEY ("id")
 );
