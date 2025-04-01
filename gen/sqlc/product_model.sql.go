@@ -12,22 +12,18 @@ import (
 )
 
 const countProductModels = `-- name: CountProductModels :one
-WITH filtered_models AS (
-    SELECT pm.id
-    FROM product.model pm
-    WHERE (
-        (pm.type = $1 OR $1 IS NULL) AND
-        (pm.brand_id = $2 OR $2 IS NULL) AND
-        (pm.name ILIKE '%' || $3 || '%' OR $3 IS NULL) AND
-        (pm.description ILIKE '%' || $4 || '%' OR $4 IS NULL) AND
-        (pm.list_price >= $5 OR $5 IS NULL) AND
-        (pm.list_price <= $6 OR $6 IS NULL) AND
-        (pm.date_manufactured >= $7 OR $7 IS NULL) AND
-        (pm.date_manufactured <= $8 OR $8 IS NULL)
-    )
-)
 SELECT COUNT(id)
-FROM filtered_models
+FROM product.model pm
+WHERE (
+    (pm.type = $1 OR $1 IS NULL) AND
+    (pm.brand_id = $2 OR $2 IS NULL) AND
+    (pm.name ILIKE '%' || $3 || '%' OR $3 IS NULL) AND
+    (pm.description ILIKE '%' || $4 || '%' OR $4 IS NULL) AND
+    (pm.list_price >= $5 OR $5 IS NULL) AND
+    (pm.list_price <= $6 OR $6 IS NULL) AND
+    (pm.date_manufactured >= $7 OR $7 IS NULL) AND
+    (pm.date_manufactured <= $8 OR $8 IS NULL)
+)
 `
 
 type CountProductModelsParams struct {
@@ -41,7 +37,6 @@ type CountProductModelsParams struct {
 	DateManufacturedTo   pgtype.Timestamptz
 }
 
-// TODO: đổi hết WITH SELECT về dạng SELECT * FROM.. bình thường
 func (q *Queries) CountProductModels(ctx context.Context, arg CountProductModelsParams) (int64, error) {
 	row := q.db.QueryRow(ctx, countProductModels,
 		arg.Type,
@@ -93,8 +88,8 @@ inserted_tags AS (
 )
 SELECT 
     m.id,
-    COALESCE(array_agg(res.url), '{}')::text[] as resources,
-    COALESCE(array_agg(t.tag), '{}')::text[] as tags
+    COALESCE(array_agg(DISTINCT res.url) FILTER (WHERE res.url IS NOT NULL), '{}')::text[] as resources,
+    COALESCE(array_agg(DISTINCT t.tag) FILTER (WHERE t.tag IS NOT NULL), '{}')::text[] as tags
 FROM inserted_model m
 LEFT JOIN inserted_resources res ON true
 LEFT JOIN inserted_tags t ON true

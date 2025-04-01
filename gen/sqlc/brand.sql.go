@@ -49,8 +49,7 @@ inserted_resources AS (
 )
 SELECT 
     b.id,
-    -- TODO: add the filter to all queries to avoid null values
-    COALESCE(array_agg(res.url) FILTER (WHERE res.url IS NOT NULL), '{}')::text[] as resources
+    COALESCE(array_agg(DISTINCT res.url) FILTER (WHERE res.url IS NOT NULL), '{}')::text[] as resources
 FROM inserted_brand b
 LEFT JOIN inserted_resources res ON true
 GROUP BY b.id
@@ -86,7 +85,7 @@ func (q *Queries) DeleteBrand(ctx context.Context, id int64) error {
 const getBrand = `-- name: GetBrand :one
 SELECT 
     b.id, b.name, b.description,
-    COALESCE(array_agg(res.url) FILTER (WHERE res.url IS NOT NULL), '{}')::TEXT[] as resources
+    COALESCE(array_agg(DISTINCT res.url) FILTER (WHERE res.url IS NOT NULL), '{}')::text[] as resources
 FROM product.brand b
 LEFT JOIN product.resource res ON res.owner_id = b.id
 WHERE b.id = $1
@@ -113,29 +112,25 @@ func (q *Queries) GetBrand(ctx context.Context, id int64) (GetBrandRow, error) {
 }
 
 const listBrands = `-- name: ListBrands :many
-WITH filtered_brands AS (
-  SELECT
-    b.id, b.name, b.description, 
-    COALESCE(array_agg(res.url) FILTER (WHERE res.url IS NOT NULL), '{}')::TEXT[] as resources
-  FROM product.brand b
-  LEFT JOIN product.resource res ON res.owner_id = b.id
-  WHERE (
-    (name ILIKE '%' || $3 || '%' OR $3 IS NULL) AND
-    (description ILIKE '%' || $4 || '%' OR $4 IS NULL)
-  )
-  GROUP BY b.id
+SELECT
+  b.id, b.name, b.description, 
+  COALESCE(array_agg(DISTINCT res.url) FILTER (WHERE res.url IS NOT NULL), '{}')::text[] as resources
+FROM product.brand b
+LEFT JOIN product.resource res ON res.owner_id = b.id
+WHERE (
+  (name ILIKE '%' || $1 || '%' OR $1 IS NULL) AND
+  (description ILIKE '%' || $2 || '%' OR $2 IS NULL)
 )
-SELECT id, name, description, resources
-FROM filtered_brands
-LIMIT $2
-OFFSET $1
+GROUP BY b.id
+LIMIT $4
+OFFSET $3
 `
 
 type ListBrandsParams struct {
-	Offset      int32
-	Limit       int32
 	Name        pgtype.Text
 	Description pgtype.Text
+	Offset      int32
+	Limit       int32
 }
 
 type ListBrandsRow struct {
@@ -147,10 +142,10 @@ type ListBrandsRow struct {
 
 func (q *Queries) ListBrands(ctx context.Context, arg ListBrandsParams) ([]ListBrandsRow, error) {
 	rows, err := q.db.Query(ctx, listBrands,
-		arg.Offset,
-		arg.Limit,
 		arg.Name,
 		arg.Description,
+		arg.Offset,
+		arg.Limit,
 	)
 	if err != nil {
 		return nil, err

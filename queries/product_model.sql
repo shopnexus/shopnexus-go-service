@@ -33,23 +33,18 @@ OFFSET sqlc.arg('offset');
 
 
 -- name: CountProductModels :one
--- TODO: đổi hết WITH SELECT về dạng SELECT * FROM.. bình thường
-WITH filtered_models AS (
-    SELECT pm.id
-    FROM product.model pm
-    WHERE (
-        (pm.type = sqlc.narg('type') OR sqlc.narg('type') IS NULL) AND
-        (pm.brand_id = sqlc.narg('brand_id') OR sqlc.narg('brand_id') IS NULL) AND
-        (pm.name ILIKE '%' || sqlc.narg('name') || '%' OR sqlc.narg('name') IS NULL) AND
-        (pm.description ILIKE '%' || sqlc.narg('description') || '%' OR sqlc.narg('description') IS NULL) AND
-        (pm.list_price >= sqlc.narg('list_price_from') OR sqlc.narg('list_price_from') IS NULL) AND
-        (pm.list_price <= sqlc.narg('list_price_to') OR sqlc.narg('list_price_to') IS NULL) AND
-        (pm.date_manufactured >= sqlc.narg('date_manufactured_from') OR sqlc.narg('date_manufactured_from') IS NULL) AND
-        (pm.date_manufactured <= sqlc.narg('date_manufactured_to') OR sqlc.narg('date_manufactured_to') IS NULL)
-    )
-)
 SELECT COUNT(id)
-FROM filtered_models;
+FROM product.model pm
+WHERE (
+    (pm.type = sqlc.narg('type') OR sqlc.narg('type') IS NULL) AND
+    (pm.brand_id = sqlc.narg('brand_id') OR sqlc.narg('brand_id') IS NULL) AND
+    (pm.name ILIKE '%' || sqlc.narg('name') || '%' OR sqlc.narg('name') IS NULL) AND
+    (pm.description ILIKE '%' || sqlc.narg('description') || '%' OR sqlc.narg('description') IS NULL) AND
+    (pm.list_price >= sqlc.narg('list_price_from') OR sqlc.narg('list_price_from') IS NULL) AND
+    (pm.list_price <= sqlc.narg('list_price_to') OR sqlc.narg('list_price_to') IS NULL) AND
+    (pm.date_manufactured >= sqlc.narg('date_manufactured_from') OR sqlc.narg('date_manufactured_from') IS NULL) AND
+    (pm.date_manufactured <= sqlc.narg('date_manufactured_to') OR sqlc.narg('date_manufactured_to') IS NULL)
+);
 
 -- name: ListProductModels :many
 SELECT 
@@ -94,8 +89,8 @@ inserted_tags AS (
 )
 SELECT 
     m.id,
-    COALESCE(array_agg(res.url), '{}')::text[] as resources,
-    COALESCE(array_agg(t.tag), '{}')::text[] as tags
+    COALESCE(array_agg(DISTINCT res.url) FILTER (WHERE res.url IS NOT NULL), '{}')::text[] as resources,
+    COALESCE(array_agg(DISTINCT t.tag) FILTER (WHERE t.tag IS NOT NULL), '{}')::text[] as tags
 FROM inserted_model m
 LEFT JOIN inserted_resources res ON true
 LEFT JOIN inserted_tags t ON true

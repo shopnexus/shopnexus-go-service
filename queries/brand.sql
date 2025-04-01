@@ -1,7 +1,7 @@
 -- name: GetBrand :one
 SELECT 
     b.*,
-    COALESCE(array_agg(res.url) FILTER (WHERE res.url IS NOT NULL), '{}')::TEXT[] as resources
+    COALESCE(array_agg(DISTINCT res.url) FILTER (WHERE res.url IS NOT NULL), '{}')::text[] as resources
 FROM product.brand b
 LEFT JOIN product.resource res ON res.owner_id = b.id
 WHERE b.id = $1
@@ -20,20 +20,16 @@ SELECT COUNT(id)
 FROM filtered_brands;
 
 -- name: ListBrands :many
-WITH filtered_brands AS (
-  SELECT
-    b.*, 
-    COALESCE(array_agg(res.url) FILTER (WHERE res.url IS NOT NULL), '{}')::TEXT[] as resources
-  FROM product.brand b
-  LEFT JOIN product.resource res ON res.owner_id = b.id
-  WHERE (
-    (name ILIKE '%' || sqlc.narg('name') || '%' OR sqlc.narg('name') IS NULL) AND
-    (description ILIKE '%' || sqlc.narg('description') || '%' OR sqlc.narg('description') IS NULL)
-  )
-  GROUP BY b.id
+SELECT
+  b.*, 
+  COALESCE(array_agg(DISTINCT res.url) FILTER (WHERE res.url IS NOT NULL), '{}')::text[] as resources
+FROM product.brand b
+LEFT JOIN product.resource res ON res.owner_id = b.id
+WHERE (
+  (name ILIKE '%' || sqlc.narg('name') || '%' OR sqlc.narg('name') IS NULL) AND
+  (description ILIKE '%' || sqlc.narg('description') || '%' OR sqlc.narg('description') IS NULL)
 )
-SELECT *
-FROM filtered_brands
+GROUP BY b.id
 LIMIT sqlc.arg('limit')
 OFFSET sqlc.arg('offset');
 
@@ -50,8 +46,7 @@ inserted_resources AS (
 )
 SELECT 
     b.id,
-    -- TODO: add the filter to all queries to avoid null values
-    COALESCE(array_agg(res.url) FILTER (WHERE res.url IS NOT NULL), '{}')::text[] as resources
+    COALESCE(array_agg(DISTINCT res.url) FILTER (WHERE res.url IS NOT NULL), '{}')::text[] as resources
 FROM inserted_brand b
 LEFT JOIN inserted_resources res ON true
 GROUP BY b.id;
