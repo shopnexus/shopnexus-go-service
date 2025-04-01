@@ -429,3 +429,22 @@ func (q *Queries) UpdateProduct(ctx context.Context, arg UpdateProductParams) er
 	)
 	return err
 }
+
+const updateProductSold = `-- name: UpdateProductSold :exec
+UPDATE product.base
+SET
+    sold = sold + $1
+WHERE
+id = ANY($2::bigint[]) AND 
+sold + $1 <= quantity
+`
+
+type UpdateProductSoldParams struct {
+	Amount int64
+	Ids    []int64
+}
+
+func (q *Queries) UpdateProductSold(ctx context.Context, arg UpdateProductSoldParams) error {
+	_, err := q.db.Exec(ctx, updateProductSold, arg.Amount, arg.Ids)
+	return err
+}

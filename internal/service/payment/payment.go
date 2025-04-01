@@ -226,6 +226,7 @@ func (s *PaymentService) CreatePayment(ctx context.Context, params CreatePayment
 	}
 
 	// TODO: big refactor to use txService instead of txRepo, because currently cannot share tx state between 2 services (payment & product like below)
+	// TODO: move this update product sold to cron job check success payment (because currently we don't know if payment is success or not)
 	if err = s.productSvc.UpdateProductSold(ctx, product.UpdateProductSoldParams{
 		IDs: func() []int64 {
 			ids := make([]int64, 0, len(productOnPayments))

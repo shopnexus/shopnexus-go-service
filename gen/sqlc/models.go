@@ -197,10 +197,11 @@ type AccountAdmin struct {
 }
 
 type AccountBase struct {
-	ID       int64
-	Username string
-	Password string
-	Role     string
+	ID               int64
+	Username         string
+	Password         string
+	Role             string
+	CustomPermission pgtype.Bits
 }
 
 type AccountCart struct {
@@ -223,8 +224,7 @@ type AccountRole struct {
 }
 
 type AccountStaff struct {
-	ID               int64
-	CustomPermission pgtype.Bits
+	ID int64
 }
 
 type AccountUser struct {

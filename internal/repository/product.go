@@ -87,7 +87,6 @@ type ListProductsParams struct {
 	DateCreatedTo   *int64
 }
 
-// TODO: fix list pagination product (missing fields in sqlc)
 func (r *Repository) CountProducts(ctx context.Context, params ListProductsParams) (int64, error) {
 	return r.sqlc.CountProducts(ctx, sqlc.CountProductsParams{
 		ProductModelID:  *pgxutil.PtrToPgtype(&pgtype.Int8{}, params.ProductModelID),
@@ -195,6 +194,13 @@ func (r *Repository) UpdateProduct(ctx context.Context, params UpdateProductPara
 		AddPrice:       *pgxutil.PtrToPgtype(&pgtype.Int8{}, params.AddPrice),
 		IsActive:       *pgxutil.PtrToPgtype(&pgtype.Bool{}, params.IsActive),
 		Metadata:       params.Metadata,
+	})
+}
+
+func (r *Repository) UpdateProductSold(ctx context.Context, ids []int64, amount int64) error {
+	return r.sqlc.UpdateProductSold(ctx, sqlc.UpdateProductSoldParams{
+		Ids:    ids,
+		Amount: amount,
 	})
 }
 

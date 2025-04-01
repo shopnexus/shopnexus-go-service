@@ -71,7 +71,7 @@ func (q *Queries) CreateAccountUser(ctx context.Context, arg CreateAccountUserPa
 }
 
 const getAccountAdmin = `-- name: GetAccountAdmin :one
-SELECT a.id, b.id, b.username, b.password, b.role
+SELECT a.id, b.id, b.username, b.password, b.role, b.custom_permission
 FROM "account".admin a
 INNER JOIN "account".base b ON a.id = b.id
 WHERE (
@@ -86,11 +86,12 @@ type GetAccountAdminParams struct {
 }
 
 type GetAccountAdminRow struct {
-	ID       int64
-	ID_2     int64
-	Username string
-	Password string
-	Role     string
+	ID               int64
+	ID_2             int64
+	Username         string
+	Password         string
+	Role             string
+	CustomPermission pgtype.Bits
 }
 
 func (q *Queries) GetAccountAdmin(ctx context.Context, arg GetAccountAdminParams) (GetAccountAdminRow, error) {
@@ -102,12 +103,13 @@ func (q *Queries) GetAccountAdmin(ctx context.Context, arg GetAccountAdminParams
 		&i.Username,
 		&i.Password,
 		&i.Role,
+		&i.CustomPermission,
 	)
 	return i, err
 }
 
 const getAccountBase = `-- name: GetAccountBase :one
-SELECT id, username, password, role FROM "account".base
+SELECT id, username, password, role, custom_permission FROM "account".base
 WHERE id = $1
 `
 
@@ -119,12 +121,13 @@ func (q *Queries) GetAccountBase(ctx context.Context, id int64) (AccountBase, er
 		&i.Username,
 		&i.Password,
 		&i.Role,
+		&i.CustomPermission,
 	)
 	return i, err
 }
 
 const getAccountStaff = `-- name: GetAccountStaff :one
-SELECT s.id, s.custom_permission, b.id, b.username, b.password, b.role
+SELECT s.id, b.id, b.username, b.password, b.role, b.custom_permission
 FROM "account".staff s
 INNER JOIN "account".base b ON s.id = b.id
 WHERE (
@@ -140,11 +143,11 @@ type GetAccountStaffParams struct {
 
 type GetAccountStaffRow struct {
 	ID               int64
-	CustomPermission pgtype.Bits
 	ID_2             int64
 	Username         string
 	Password         string
 	Role             string
+	CustomPermission pgtype.Bits
 }
 
 func (q *Queries) GetAccountStaff(ctx context.Context, arg GetAccountStaffParams) (GetAccountStaffRow, error) {
@@ -152,17 +155,17 @@ func (q *Queries) GetAccountStaff(ctx context.Context, arg GetAccountStaffParams
 	var i GetAccountStaffRow
 	err := row.Scan(
 		&i.ID,
-		&i.CustomPermission,
 		&i.ID_2,
 		&i.Username,
 		&i.Password,
 		&i.Role,
+		&i.CustomPermission,
 	)
 	return i, err
 }
 
 const getAccountUser = `-- name: GetAccountUser :one
-SELECT u.id, u.email, u.phone, u.gender, u.full_name, u.default_address_id, b.id, b.username, b.password, b.role
+SELECT u.id, u.email, u.phone, u.gender, u.full_name, u.default_address_id, b.id, b.username, b.password, b.role, b.custom_permission
 FROM "account".user u
 INNER JOIN "account".base b ON u.id = b.id
 WHERE (
@@ -191,6 +194,7 @@ type GetAccountUserRow struct {
 	Username         string
 	Password         string
 	Role             string
+	CustomPermission pgtype.Bits
 }
 
 func (q *Queries) GetAccountUser(ctx context.Context, arg GetAccountUserParams) (GetAccountUserRow, error) {
@@ -212,8 +216,22 @@ func (q *Queries) GetAccountUser(ctx context.Context, arg GetAccountUserParams) 
 		&i.Username,
 		&i.Password,
 		&i.Role,
+		&i.CustomPermission,
 	)
 	return i, err
+}
+
+const getCustomPermissions = `-- name: GetCustomPermissions :one
+SELECT custom_permission FROM "account".base
+WHERE 
+id = $1
+`
+
+func (q *Queries) GetCustomPermissions(ctx context.Context, id int64) (pgtype.Bits, error) {
+	row := q.db.QueryRow(ctx, getCustomPermissions, id)
+	var custom_permission pgtype.Bits
+	err := row.Scan(&custom_permission)
+	return custom_permission, err
 }
 
 const getRolePermissions = `-- name: GetRolePermissions :one

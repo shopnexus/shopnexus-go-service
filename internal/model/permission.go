@@ -24,6 +24,9 @@ const (
 	PermissionCreateBrand
 	PermissionUpdateBrand
 	PermissionDeleteBrand
+
+	PermissionUpdateRefundStatus
+	PermissionUpdatePaymentStatus
 )
 
 func GetAllPermissions() []Permission {
@@ -43,5 +46,7 @@ func GetAllPermissions() []Permission {
 		PermissionCreateBrand,
 		PermissionUpdateBrand,
 		PermissionDeleteBrand,
+		PermissionUpdateRefundStatus,
+		PermissionUpdatePaymentStatus,
 	}
 }

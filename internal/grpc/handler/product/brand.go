@@ -54,7 +54,6 @@ func (s *ImplementedProductServiceHandler) CreateBrand(ctx context.Context, req 
 		return nil, err
 	}
 
-	// TODO: make all create function need UserID in its params, not naked model params
 	data, err := s.service.CreateBrand(ctx, product.CreateBrandParams{
 		UserID: claims.UserID,
 		Brand: model.Brand{
