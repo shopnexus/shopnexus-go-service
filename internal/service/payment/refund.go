@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"shopnexus-go-service/internal/model"
 	repository "shopnexus-go-service/internal/repository"
+	"shopnexus-go-service/internal/service/account"
 	"shopnexus-go-service/internal/util"
 )
 
@@ -136,6 +137,18 @@ func (s *PaymentService) UpdateRefund(ctx context.Context, params UpdateRefundPa
 	// Method drop_off must not contains address
 	if *params.Method == model.RefundMethodDropOff {
 		params.Address = nil
+	}
+
+	if params.Status != nil {
+		// Check if account has permission to update refund status
+		if ok, err := s.accountSvc.HasPermission(ctx, account.HasPermissionParams{
+			AccountID: params.UserID,
+			Permissions: []model.Permission{
+				model.PermissionUpdateRefundStatus,
+			},
+		}); !ok {
+			return fmt.Errorf("account %d has no permission to update refund status: %w", params.UserID, err)
+		}
 	}
 
 	if err = txRepo.UpdateRefund(ctx, repository.UpdateRefundParams{
