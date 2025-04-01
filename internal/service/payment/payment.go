@@ -13,13 +13,13 @@ import (
 var _ PaymentServiceInterface = (*PaymentService)(nil)
 
 type PaymentService struct {
-	Repo       *repository.Repository
+	Repo       repository.Repository
 	accountSvc *account.AccountService
 	productSvc *product.ProductService
 	platforms  map[Platform]PaymentPlatform
 }
 
-func NewPaymentService(repo *repository.Repository, productSvc *product.ProductService) *PaymentService {
+func NewPaymentService(repo repository.Repository, productSvc *product.ProductService) *PaymentService {
 	s := &PaymentService{
 		Repo:       repo,
 		productSvc: productSvc,
@@ -47,6 +47,10 @@ type PaymentServiceInterface interface {
 	CreateRefund(ctx context.Context, params CreateRefundParams) (model.Refund, error)
 	UpdateRefund(ctx context.Context, params UpdateRefundParams) error
 	CancelRefund(ctx context.Context, params CancelRefundParams) error
+}
+
+func (s *PaymentService) WithTx(txRepo *repository.TxRepository) *PaymentService {
+	return NewPaymentService(txRepo, s.productSvc)
 }
 
 type GetPaymentParams = struct {
@@ -225,9 +229,8 @@ func (s *PaymentService) CreatePayment(ctx context.Context, params CreatePayment
 		return CreatePaymentResult{}, err
 	}
 
-	// TODO: big refactor to use txService instead of txRepo, because currently cannot share tx state between 2 services (payment & product like below)
 	// TODO: move this update product sold to cron job check success payment (because currently we don't know if payment is success or not)
-	if err = s.productSvc.UpdateProductSold(ctx, product.UpdateProductSoldParams{
+	if err = s.productSvc.WithTx(txRepo).UpdateProductSold(ctx, product.UpdateProductSoldParams{
 		IDs: func() []int64 {
 			ids := make([]int64, 0, len(productOnPayments))
 			for _, pop := range productOnPayments {

@@ -12,7 +12,7 @@ import (
 )
 
 type AccountService struct {
-	repo *repository.Repository
+	repo repository.Repository
 }
 
 type AccountServiceInterface interface {
@@ -30,10 +30,14 @@ type AccountServiceInterface interface {
 	ClearCart(ctx context.Context, userID int64) error
 }
 
-func NewAccountService(repo *repository.Repository) *AccountService {
+func NewAccountService(repo repository.Repository) *AccountService {
 	return &AccountService{
 		repo: repo,
 	}
+}
+
+func (s *AccountService) WithTx(txRepo repository.Repository) *AccountService {
+	return NewAccountService(txRepo)
 }
 
 func (s *AccountService) CheckPassword(hashedPassword, password string) bool {
@@ -145,6 +149,7 @@ func (s *AccountService) Register(ctx context.Context, account model.Account) (s
 	if err != nil {
 		return "", err
 	}
+	defer txRepo.Rollback(ctx)
 
 	newAccount, err := txRepo.CreateAccount(ctx, account)
 	if err != nil {

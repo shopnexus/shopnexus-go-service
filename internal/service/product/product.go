@@ -8,15 +8,19 @@ import (
 )
 
 type ProductService struct {
-	repo *repository.Repository
+	repo repository.Repository
 }
 
 var _ ProductServiceInterface = (*ProductService)(nil)
 
-func NewProductService(repo *repository.Repository) *ProductService {
+func NewProductService(repo repository.Repository) *ProductService {
 	return &ProductService{
 		repo: repo,
 	}
+}
+
+func (s *ProductService) WithTx(txRepo repository.Repository) *ProductService {
+	return NewProductService(txRepo)
 }
 
 func (s *ProductService) GetProduct(ctx context.Context, params model.ProductIdentifier) (model.Product, error) {
