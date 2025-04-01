@@ -102,7 +102,7 @@ func checkUserPermissions(
 ) error {
 	permissions, err := accountSvc.GetPermissions(ctx, account.GetPermissionsParams{
 		AccountID: claims.UserID,
-		Role:      claims.Role,
+		Role:      &claims.Role,
 	})
 	if err != nil {
 		return err

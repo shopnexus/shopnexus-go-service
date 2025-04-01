@@ -6,6 +6,7 @@ import (
 	"shopnexus-go-service/internal/model"
 	repository "shopnexus-go-service/internal/repository"
 	"shopnexus-go-service/internal/util"
+	"slices"
 
 	"golang.org/x/crypto/bcrypt"
 )
@@ -167,21 +168,63 @@ func (s *AccountService) Register(ctx context.Context, account model.Account) (s
 
 type GetPermissionsParams struct {
 	AccountID int64
-	Role      model.Role
+	Role      *model.Role
 }
 
 func (s *AccountService) GetPermissions(ctx context.Context, params GetPermissionsParams) ([]model.Permission, error) {
-	switch params.Role {
+	var role model.Role
+
+	if params.Role == nil {
+		account, err := s.repo.GetAccount(ctx, model.AccountBase{
+			ID: params.AccountID,
+		})
+		if err != nil {
+			return nil, err
+		}
+		role = account.GetBase().Role
+	} else {
+		role = *params.Role
+	}
+
+	switch role {
 	case model.RoleAdmin:
 		return model.GetAllPermissions(), nil
 	case model.RoleStaff:
 		return s.repo.GetPermissions(ctx, repository.GetPermissionsParams{
 			AccountID: params.AccountID,
-			Role:      params.Role,
+			Role:      role,
 		})
 	case model.RoleUser:
 		return nil, fmt.Errorf("no permissions")
 	default:
-		return nil, fmt.Errorf("unknown role: %s", params.Role)
+		return nil, fmt.Errorf("unknown role: %s", role)
 	}
+}
+
+type HasPermissionParams struct {
+	AccountID   int64
+	Role        *model.Role
+	Permissions []model.Permission
+}
+
+func (s *AccountService) HasPermission(ctx context.Context, params HasPermissionParams) (bool, error) {
+	permissions, err := s.GetPermissions(ctx, GetPermissionsParams{
+		AccountID: params.AccountID,
+		Role:      params.Role,
+	})
+	if err != nil {
+		return false, err
+	}
+
+	if len(permissions) == 0 {
+		return false, fmt.Errorf("no permissions")
+	}
+
+	for _, permission := range params.Permissions {
+		if !slices.Contains(permissions, permission) {
+			return false, nil
+		}
+	}
+
+	return true, nil
 }

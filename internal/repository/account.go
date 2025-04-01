@@ -6,6 +6,7 @@ import (
 	"shopnexus-go-service/gen/sqlc"
 	pgxutil "shopnexus-go-service/internal/db/pgx"
 	"shopnexus-go-service/internal/model"
+	"shopnexus-go-service/internal/util"
 
 	"github.com/jackc/pgx/v5/pgtype"
 )
@@ -205,6 +206,16 @@ func (r *Repository) GetPermissions(ctx context.Context, params GetPermissionsPa
 
 	if !permissionBits.Valid {
 		return nil, fmt.Errorf("role %s does not have any permissions", params.Role)
+	}
+
+	// Get custom permissions
+	customPermissions, err := r.sqlc.GetCustomPermissions(ctx, params.AccountID)
+	if err != nil {
+		return nil, err
+	}
+	if customPermissions.Valid {
+		// Merge custom permissions with role permissions
+		permissionBits.Bytes = util.MergeBitArray(permissionBits.Bytes, customPermissions.Bytes)
 	}
 
 	// Convert bit array to permissions slice
