@@ -1,12 +1,12 @@
-package grpc
+package connect
 
 import (
-	"shopnexus-go-service/internal/grpc/interceptor/permission"
 	"shopnexus-go-service/internal/model"
+	"shopnexus-go-service/internal/server/connect/interceptor/permission"
 )
 
-var permissionRoutes = map[string]permission.Options{
-	// OTHER will skip validate roles & permissions
+var PermissionRoutes = map[string]permission.Options{
+	// OTHER will always return permission denied
 
 	// ACCOUNT
 	"/account.v1.AccountService/GetUser":        permission.UseOptions(permission.NeedRoles(model.RoleUser)),

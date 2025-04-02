@@ -2,12 +2,12 @@ package payment
 
 import (
 	"context"
-	"shopnexus-go-service/internal/grpc/interceptor/auth"
 	"shopnexus-go-service/internal/model"
+	"shopnexus-go-service/internal/server/connect/interceptor/auth"
 	"shopnexus-go-service/internal/service/payment"
 	"shopnexus-go-service/internal/util"
 
-	common_grpc "shopnexus-go-service/internal/grpc/handler/common"
+	common_grpc "shopnexus-go-service/internal/server/connect/handler/common"
 
 	"connectrpc.com/connect"
 	common_pb "github.com/shopnexus/shopnexus-protobuf-gen-go/pb/common"

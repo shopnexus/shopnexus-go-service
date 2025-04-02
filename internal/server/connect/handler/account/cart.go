@@ -2,7 +2,7 @@ package account
 
 import (
 	"context"
-	"shopnexus-go-service/internal/grpc/interceptor/auth"
+	"shopnexus-go-service/internal/server/connect/interceptor/auth"
 	"shopnexus-go-service/internal/service/account"
 
 	"connectrpc.com/connect"

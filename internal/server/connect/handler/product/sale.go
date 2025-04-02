@@ -5,8 +5,8 @@ import (
 	"shopnexus-go-service/internal/model"
 	"shopnexus-go-service/internal/service/product"
 
-	common_grpc "shopnexus-go-service/internal/grpc/handler/common"
-	"shopnexus-go-service/internal/grpc/interceptor/auth"
+	common_grpc "shopnexus-go-service/internal/server/connect/handler/common"
+	"shopnexus-go-service/internal/server/connect/interceptor/auth"
 
 	"connectrpc.com/connect"
 	productv1 "github.com/shopnexus/shopnexus-protobuf-gen-go/pb/product/v1"

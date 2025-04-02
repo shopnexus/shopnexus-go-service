@@ -3,8 +3,8 @@ package permission
 import (
 	"context"
 	"errors"
-	"shopnexus-go-service/internal/grpc/interceptor/auth"
 	"shopnexus-go-service/internal/model"
+	"shopnexus-go-service/internal/server/connect/interceptor/auth"
 	"shopnexus-go-service/internal/service/account"
 
 	"slices"

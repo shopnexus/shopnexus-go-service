@@ -2,8 +2,9 @@ package account
 
 import (
 	"context"
-	"shopnexus-go-service/internal/grpc/interceptor/auth"
+	"net/http"
 	"shopnexus-go-service/internal/model"
+	"shopnexus-go-service/internal/server/connect/interceptor/auth"
 	"shopnexus-go-service/internal/service/account"
 
 	"connectrpc.com/connect"
@@ -16,8 +17,11 @@ type ImplementedAccountServiceHandler struct {
 	service *account.AccountService
 }
 
-func NewAccountServiceHandler(service *account.AccountService) accountv1connect.AccountServiceHandler {
-	return &ImplementedAccountServiceHandler{service: service}
+func NewAccountServiceHandler(service *account.AccountService, opts ...connect.HandlerOption) (string, http.Handler) {
+	return accountv1connect.NewAccountServiceHandler(
+		&ImplementedAccountServiceHandler{service: service},
+		opts...,
+	)
 }
 
 func (s *ImplementedAccountServiceHandler) GetUser(ctx context.Context, req *connect.Request[accountv1.GetUserRequest]) (*connect.Response[accountv1.GetUserResponse], error) {
