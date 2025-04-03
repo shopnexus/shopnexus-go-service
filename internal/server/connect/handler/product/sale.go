@@ -54,7 +54,7 @@ func (s *ImplementedProductServiceHandler) ListSales(ctx context.Context, req *c
 }
 
 func (s *ImplementedProductServiceHandler) CreateSale(ctx context.Context, req *connect.Request[productv1.CreateSaleRequest]) (*connect.Response[productv1.CreateSaleResponse], error) {
-	claims, err := auth.GetAccount(req)
+	claims, err := auth.GetClaims(req)
 	if err != nil {
 		return nil, err
 	}

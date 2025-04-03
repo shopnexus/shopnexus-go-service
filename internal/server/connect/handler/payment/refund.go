@@ -14,7 +14,7 @@ import (
 
 // GetRefund implements the GetRefund method from PaymentServiceHandler
 func (s *ImplementedPaymentServiceHandler) GetRefund(ctx context.Context, req *connect.Request[paymentv1.GetRefundRequest]) (*connect.Response[paymentv1.GetRefundResponse], error) {
-	claims, err := auth.GetAccount(req)
+	claims, err := auth.GetClaims(req)
 	if err != nil {
 		return nil, err
 	}
@@ -34,7 +34,7 @@ func (s *ImplementedPaymentServiceHandler) GetRefund(ctx context.Context, req *c
 
 // ListRefunds implements the ListRefunds method from PaymentServiceHandler
 func (s *ImplementedPaymentServiceHandler) ListRefunds(ctx context.Context, req *connect.Request[paymentv1.ListRefundsRequest]) (*connect.Response[paymentv1.ListRefundsResponse], error) {
-	claims, err := auth.GetAccount(req)
+	claims, err := auth.GetClaims(req)
 	if err != nil {
 		return nil, err
 	}
@@ -81,7 +81,7 @@ func (s *ImplementedPaymentServiceHandler) ListRefunds(ctx context.Context, req 
 
 // CreateRefund implements the CreateRefund method from PaymentServiceHandler
 func (s *ImplementedPaymentServiceHandler) CreateRefund(ctx context.Context, req *connect.Request[paymentv1.CreateRefundRequest]) (*connect.Response[paymentv1.CreateRefundResponse], error) {
-	claims, err := auth.GetAccount(req)
+	claims, err := auth.GetClaims(req)
 	if err != nil {
 		return nil, err
 	}
@@ -105,7 +105,7 @@ func (s *ImplementedPaymentServiceHandler) CreateRefund(ctx context.Context, req
 
 // UpdateRefund implements the UpdateRefund method from PaymentServiceHandler
 func (s *ImplementedPaymentServiceHandler) UpdateRefund(ctx context.Context, req *connect.Request[paymentv1.UpdateRefundRequest]) (*connect.Response[paymentv1.UpdateRefundResponse], error) {
-	claims, err := auth.GetAccount(req)
+	claims, err := auth.GetClaims(req)
 	if err != nil {
 		return nil, err
 	}
@@ -140,7 +140,7 @@ func (s *ImplementedPaymentServiceHandler) UpdateRefund(ctx context.Context, req
 
 // CancelRefund implements the CancelRefund method from PaymentServiceHandler
 func (s *ImplementedPaymentServiceHandler) CancelRefund(ctx context.Context, req *connect.Request[paymentv1.CancelRefundRequest]) (*connect.Response[paymentv1.CancelRefundResponse], error) {
-	claims, err := auth.GetAccount(req)
+	claims, err := auth.GetClaims(req)
 	if err != nil {
 		return nil, err
 	}

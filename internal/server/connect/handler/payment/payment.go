@@ -28,7 +28,7 @@ func NewPaymentServiceHandler(paymentService *payment.PaymentService) *Implement
 
 // GetPayment implements the GetPayment method from PaymentServiceHandler
 func (s *ImplementedPaymentServiceHandler) GetPayment(ctx context.Context, req *connect.Request[paymentv1.GetPaymentRequest]) (*connect.Response[paymentv1.GetPaymentResponse], error) {
-	claims, err := auth.GetAccount(req)
+	claims, err := auth.GetClaims(req)
 	if err != nil {
 		return nil, err
 	}
@@ -48,7 +48,7 @@ func (s *ImplementedPaymentServiceHandler) GetPayment(ctx context.Context, req *
 
 // ListPayments implements the ListPayments method from PaymentServiceHandler
 func (s *ImplementedPaymentServiceHandler) ListPayments(ctx context.Context, req *connect.Request[paymentv1.ListPaymentsRequest]) (*connect.Response[paymentv1.ListPaymentsResponse], error) {
-	claims, err := auth.GetAccount(req)
+	claims, err := auth.GetClaims(req)
 	if err != nil {
 		return nil, err
 	}
@@ -97,7 +97,7 @@ func (s *ImplementedPaymentServiceHandler) ListPayments(ctx context.Context, req
 
 // CreatePayment implements the CreatePayment method from PaymentServiceHandler
 func (s *ImplementedPaymentServiceHandler) CreatePayment(ctx context.Context, req *connect.Request[paymentv1.CreatePaymentRequest]) (*connect.Response[paymentv1.CreatePaymentResponse], error) {
-	claims, err := auth.GetAccount(req)
+	claims, err := auth.GetClaims(req)
 	if err != nil {
 		return nil, err
 	}
@@ -120,7 +120,7 @@ func (s *ImplementedPaymentServiceHandler) CreatePayment(ctx context.Context, re
 
 // UpdatePayment implements the UpdatePayment method from PaymentServiceHandler
 func (s *ImplementedPaymentServiceHandler) UpdatePayment(ctx context.Context, req *connect.Request[paymentv1.UpdatePaymentRequest]) (*connect.Response[paymentv1.UpdatePaymentResponse], error) {
-	claims, err := auth.GetAccount(req)
+	claims, err := auth.GetClaims(req)
 	if err != nil {
 		return nil, err
 	}
@@ -145,7 +145,7 @@ func (s *ImplementedPaymentServiceHandler) UpdatePayment(ctx context.Context, re
 
 // CancelPayment implements the CancelPayment method from PaymentServiceHandler
 func (s *ImplementedPaymentServiceHandler) CancelPayment(ctx context.Context, req *connect.Request[paymentv1.CancelPaymentRequest]) (*connect.Response[paymentv1.CancelPaymentResponse], error) {
-	claims, err := auth.GetAccount(req)
+	claims, err := auth.GetClaims(req)
 	if err != nil {
 		return nil, err
 	}

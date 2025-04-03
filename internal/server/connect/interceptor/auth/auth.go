@@ -14,15 +14,12 @@ import (
 	"connectrpc.com/connect"
 )
 
-type (
-	ctxServerKey string
-	ctxClientKey string
-)
+type ctxKey string
 
 const (
-	tokenHeader                   = "authorization"
-	CtxServerAccount ctxServerKey = "server-account" // Storing model.Claims in context
-	CtxToken         ctxClientKey = "client-account" // Storing token in context
+	tokenHeader        = "authorization"
+	CtxClaims   ctxKey = "ctx-claims" // Storing model.Claims in context
+	CtxToken    ctxKey = "ctx-token"  // Storing token in context
 )
 
 var (
@@ -67,9 +64,9 @@ func NewAuthInterceptor(methods ...string) connect.UnaryInterceptorFunc {
 
 				// Check token in headers.
 				token := strings.TrimPrefix(req.Header().Get(tokenHeader), "Bearer ")
-				accountClaim, err := util.ValidateAccessToken(token)
+				claims, err := util.ValidateAccessToken(token)
 				if err == nil {
-					ctx = context.WithValue(ctx, CtxServerAccount, accountClaim)
+					ctx = context.WithValue(ctx, CtxClaims, claims)
 				}
 			}
 			return next(ctx, req)
@@ -79,7 +76,7 @@ func NewAuthInterceptor(methods ...string) connect.UnaryInterceptorFunc {
 	return connect.UnaryInterceptorFunc(interceptor)
 }
 
-func GetAccount(req connect.AnyRequest) (claims model.Claims, err error) {
+func GetClaims(req connect.AnyRequest) (claims model.Claims, err error) {
 	token := req.Header().Get(tokenHeader)
 
 	claims, ok := claimsCache.Get(token)

@@ -25,7 +25,7 @@ func NewAccountServiceHandler(service *account.AccountService, opts ...connect.H
 }
 
 func (s *ImplementedAccountServiceHandler) GetUser(ctx context.Context, req *connect.Request[accountv1.GetUserRequest]) (*connect.Response[accountv1.GetUserResponse], error) {
-	claims, err := auth.GetAccount(req)
+	claims, err := auth.GetClaims(req)
 	if err != nil {
 		return nil, err
 	}

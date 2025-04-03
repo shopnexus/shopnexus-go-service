@@ -49,7 +49,7 @@ func (s *ImplementedProductServiceHandler) ListBrands(ctx context.Context, req *
 }
 
 func (s *ImplementedProductServiceHandler) CreateBrand(ctx context.Context, req *connect.Request[productv1.CreateBrandRequest]) (*connect.Response[productv1.CreateBrandResponse], error) {
-	claims, err := auth.GetAccount(req)
+	claims, err := auth.GetClaims(req)
 	if err != nil {
 		return nil, err
 	}

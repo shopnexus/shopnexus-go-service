@@ -24,7 +24,7 @@ func NewFileServiceHandler(s3Service *s3.S3Service) filev1connect.FileServiceHan
 }
 
 func (s *ImplementedFileServiceHandler) Upload(ctx context.Context, req *connect.Request[filev1.UploadRequest]) (*connect.Response[filev1.UploadResponse], error) {
-	claims, err := auth.GetAccount(req)
+	claims, err := auth.GetClaims(req)
 	if err != nil {
 		return nil, err
 	}

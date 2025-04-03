@@ -11,7 +11,7 @@ import (
 )
 
 func (s *ImplementedAccountServiceHandler) GetCart(ctx context.Context, req *connect.Request[accountv1.GetCartRequest]) (*connect.Response[accountv1.GetCartResponse], error) {
-	claims, err := auth.GetAccount(req)
+	claims, err := auth.GetClaims(req)
 	if err != nil {
 		return nil, err
 	}
@@ -35,7 +35,7 @@ func (s *ImplementedAccountServiceHandler) GetCart(ctx context.Context, req *con
 }
 
 func (s *ImplementedAccountServiceHandler) AddCartItem(ctx context.Context, req *connect.Request[accountv1.AddCartItemRequest]) (*connect.Response[accountv1.AddCartItemResponse], error) {
-	claims, err := auth.GetAccount(req)
+	claims, err := auth.GetClaims(req)
 	if err != nil {
 		return nil, err
 	}
@@ -55,7 +55,7 @@ func (s *ImplementedAccountServiceHandler) AddCartItem(ctx context.Context, req 
 }
 
 func (s *ImplementedAccountServiceHandler) UpdateCartItem(ctx context.Context, req *connect.Request[accountv1.UpdateCartItemRequest]) (*connect.Response[accountv1.UpdateCartItemResponse], error) {
-	claims, err := auth.GetAccount(req)
+	claims, err := auth.GetClaims(req)
 	if err != nil {
 		return nil, err
 	}
@@ -75,7 +75,7 @@ func (s *ImplementedAccountServiceHandler) UpdateCartItem(ctx context.Context, r
 }
 
 func (s *ImplementedAccountServiceHandler) ClearCart(ctx context.Context, req *connect.Request[accountv1.ClearCartRequest]) (*connect.Response[accountv1.ClearCartResponse], error) {
-	claims, err := auth.GetAccount(req)
+	claims, err := auth.GetClaims(req)
 	if err != nil {
 		return nil, err
 	}

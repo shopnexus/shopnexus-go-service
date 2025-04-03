@@ -2,6 +2,7 @@ package connect
 
 import (
 	"net/http"
+	"shopnexus-go-service/internal/logger"
 	"shopnexus-go-service/internal/server/connect/handler/account"
 	"shopnexus-go-service/internal/server/connect/handler/file"
 	"shopnexus-go-service/internal/server/connect/handler/payment"
@@ -18,6 +19,7 @@ import (
 func Init(mux *http.ServeMux, services *service.Services, withReflector bool) error {
 	if withReflector {
 		InitReflector(mux)
+		logger.Log.Info("Connect reflector enabled")
 	}
 
 	connectOpts := []connect.HandlerOption{
@@ -53,6 +55,8 @@ func Init(mux *http.ServeMux, services *service.Services, withReflector bool) er
 		connectOpts...,
 	)
 	mux.Handle(paymentPath, paymentHandler)
+
+	logger.Log.Info("Connect server initialized")
 
 	return nil
 }
