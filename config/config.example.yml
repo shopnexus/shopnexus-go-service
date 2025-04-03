@@ -5,6 +5,7 @@ app:
   decimals: 9 # Max decimals for handling float number
   accessTokenDuration: 86400 # 1 day
   refreshTokenDuration: 604800 # 7 days
+  tusUrl: "http://localhost:50051/files/" # tus server url
 
 httpServer:
   port: 9005
