@@ -28,7 +28,6 @@ func NewServer(address string) (*server, error) {
 	if err != nil {
 		return nil, err
 	}
-	defer pgpool.Close()
 
 	// Check if the connection pool is valid
 	if err = pgpool.Ping(context.Background()); err != nil {
