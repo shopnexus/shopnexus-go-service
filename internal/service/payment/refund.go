@@ -144,7 +144,7 @@ func (s *PaymentService) UpdateRefund(ctx context.Context, params UpdateRefundPa
 		if ok, err := s.accountSvc.HasPermission(ctx, account.HasPermissionParams{
 			AccountID: params.UserID,
 			Permissions: []model.Permission{
-				model.PermissionUpdateRefundStatus,
+				model.PermissionUpdateRefund,
 			},
 		}); !ok {
 			return fmt.Errorf("account %d has no permission to update refund status: %w", params.UserID, err)
