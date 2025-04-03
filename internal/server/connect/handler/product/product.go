@@ -2,6 +2,7 @@ package product
 
 import (
 	"context"
+	"net/http"
 	"shopnexus-go-service/internal/model"
 	"shopnexus-go-service/internal/repository"
 	"shopnexus-go-service/internal/service/product"
@@ -20,8 +21,8 @@ type ImplementedProductServiceHandler struct {
 	service *product.ProductService
 }
 
-func NewProductServiceHandler(service *product.ProductService) productv1connect.ProductServiceHandler {
-	return &ImplementedProductServiceHandler{service: service}
+func NewProductServiceHandler(service *product.ProductService, opts ...connect.HandlerOption) (string, http.Handler) {
+	return productv1connect.NewProductServiceHandler(&ImplementedProductServiceHandler{service: service}, opts...)
 }
 
 func (s *ImplementedProductServiceHandler) GetProduct(ctx context.Context, req *connect.Request[productv1.GetProductRequest]) (*connect.Response[productv1.GetProductResponse], error) {

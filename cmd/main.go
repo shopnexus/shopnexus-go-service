@@ -26,16 +26,19 @@ func main() {
 	setUpConfig()
 	setupLogger()
 	setupSentry()
-	setupGrpcServer()
+	setupServer()
 }
 
 func setUpConfig() {
-	fmt.Println("APP_STAGE", os.Getenv("APP_STAGE"))
+	appStage := os.Getenv("APP_STAGE")
 
-	if os.Getenv("APP_STAGE") == "production" {
-		configFile = productionConfigFile
-	} else {
+	if appStage == "" {
+		fmt.Println("APP_STAGE is not set, using default config file")
 		configFile = defaultConfigFile
+	}
+
+	if appStage == "production" {
+		configFile = productionConfigFile
 	}
 
 	log.Default().Printf("Using config file: %s", configFile)
@@ -47,7 +50,7 @@ func setupLogger() {
 	logger.InitLogger("zap")
 }
 
-func setupGrpcServer() {
+func setupServer() {
 	logger.Log.Info("Starting gRPC server at port " + fmt.Sprintf("%d", *port))
 	server, err := grpc.NewServer(fmt.Sprintf(":%d", *port))
 	if err != nil {
@@ -71,6 +74,4 @@ func setupSentry() {
 	}
 	// Flush buffered events before the program terminates.
 	defer sentry.Flush(2 * time.Second)
-
-	sentry.CaptureMessage("It works!")
 }

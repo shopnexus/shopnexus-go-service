@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+	"net/http"
 	"shopnexus-go-service/internal/server/connect/interceptor/auth"
 	"shopnexus-go-service/internal/service/s3"
 
@@ -17,10 +18,10 @@ type ImplementedFileServiceHandler struct {
 	service *s3.S3Service
 }
 
-func NewFileServiceHandler(s3Service *s3.S3Service) filev1connect.FileServiceHandler {
-	return &ImplementedFileServiceHandler{
+func NewFileServiceHandler(s3Service *s3.S3Service, opts ...connect.HandlerOption) (string, http.Handler) {
+	return filev1connect.NewFileServiceHandler(&ImplementedFileServiceHandler{
 		service: s3Service,
-	}
+	}, opts...)
 }
 
 func (s *ImplementedFileServiceHandler) Upload(ctx context.Context, req *connect.Request[filev1.UploadRequest]) (*connect.Response[filev1.UploadResponse], error) {

@@ -11,9 +11,6 @@ import (
 	"shopnexus-go-service/internal/service"
 
 	"connectrpc.com/connect"
-	"github.com/shopnexus/shopnexus-protobuf-gen-go/pb/file/v1/filev1connect"
-	"github.com/shopnexus/shopnexus-protobuf-gen-go/pb/payment/v1/paymentv1connect"
-	"github.com/shopnexus/shopnexus-protobuf-gen-go/pb/product/v1/productv1connect"
 )
 
 func Init(mux *http.ServeMux, services *service.Services, withReflector bool) error {
@@ -29,8 +26,8 @@ func Init(mux *http.ServeMux, services *service.Services, withReflector bool) er
 	}
 
 	// File
-	filePath, fileHandler := filev1connect.NewFileServiceHandler(
-		file.NewFileServiceHandler(services.S3),
+	filePath, fileHandler := file.NewFileServiceHandler(
+		services.S3,
 		connectOpts...,
 	)
 	mux.Handle(filePath, fileHandler)
@@ -43,15 +40,15 @@ func Init(mux *http.ServeMux, services *service.Services, withReflector bool) er
 	mux.Handle(accountPath, accountHandler)
 
 	// Product
-	productPath, productHandler := productv1connect.NewProductServiceHandler(
-		product.NewProductServiceHandler(services.Product),
+	productPath, productHandler := product.NewProductServiceHandler(
+		services.Product,
 		connectOpts...,
 	)
 	mux.Handle(productPath, productHandler)
 
 	// Payment
-	paymentPath, paymentHandler := paymentv1connect.NewPaymentServiceHandler(
-		payment.NewPaymentServiceHandler(services.Payment),
+	paymentPath, paymentHandler := payment.NewPaymentServiceHandler(
+		services.Payment,
 		connectOpts...,
 	)
 	mux.Handle(paymentPath, paymentHandler)

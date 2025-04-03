@@ -2,6 +2,7 @@ package payment
 
 import (
 	"context"
+	"net/http"
 	"shopnexus-go-service/internal/model"
 	"shopnexus-go-service/internal/server/connect/interceptor/auth"
 	"shopnexus-go-service/internal/service/payment"
@@ -20,10 +21,10 @@ type ImplementedPaymentServiceHandler struct {
 	service *payment.PaymentService
 }
 
-func NewPaymentServiceHandler(paymentService *payment.PaymentService) *ImplementedPaymentServiceHandler {
-	return &ImplementedPaymentServiceHandler{
+func NewPaymentServiceHandler(paymentService *payment.PaymentService, opts ...connect.HandlerOption) (string, http.Handler) {
+	return paymentv1connect.NewPaymentServiceHandler(&ImplementedPaymentServiceHandler{
 		service: paymentService,
-	}
+	}, opts...)
 }
 
 // GetPayment implements the GetPayment method from PaymentServiceHandler

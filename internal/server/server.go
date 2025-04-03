@@ -1,10 +1,12 @@
 package server
 
 import (
+	"context"
 	"fmt"
 	"log"
 	"net/http"
 	pgxutil "shopnexus-go-service/internal/db/pgx"
+	"shopnexus-go-service/internal/logger"
 	"shopnexus-go-service/internal/repository"
 	"shopnexus-go-service/internal/server/connect"
 	serverHttp "shopnexus-go-service/internal/server/http"
@@ -15,29 +17,37 @@ import (
 	"golang.org/x/net/http2/h2c"
 )
 
-type serverImpl struct {
+type server struct {
 	mux      *http.ServeMux
 	services *service.Services
 }
 
-func NewServer(address string) (*serverImpl, error) {
+func NewServer(address string) (*server, error) {
+	// Initialize the database connection pool
 	pgpool, err := pgxutil.GetPgxPool()
 	if err != nil {
 		return nil, err
 	}
+	defer pgpool.Close()
+
+	// Check if the connection pool is valid
+	if err = pgpool.Ping(context.Background()); err != nil {
+		return nil, fmt.Errorf("failed to ping database: %w", err)
+	}
+	logger.Log.Info("Connected to PostgreSQL database")
 
 	repo := repository.NewRepository(pgpool)
 	services := service.NewServices(repo)
 
 	mux := http.NewServeMux()
 
-	return &serverImpl{
+	return &server{
 		mux:      mux,
 		services: services,
 	}, nil
 }
 
-func (s *serverImpl) Start(port int) {
+func (s *server) Start(port int) {
 	var err error
 
 	// Register server components
