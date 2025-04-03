@@ -64,6 +64,10 @@ func NewPermissionInterceptor(
 
 // validatePermissions performs the complete permission validation process
 func validatePermissions(ctx context.Context, req connect.AnyRequest, accountSvc *account.AccountService, opts Options) error {
+	if opts.Roles == nil && opts.Permissions == nil {
+		return nil // No roles or permissions needed, public access
+	}
+
 	claims, err := auth.GetClaims(req)
 	if err != nil {
 		return err
