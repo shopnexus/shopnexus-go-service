@@ -47,10 +47,10 @@ func NewPermissionInterceptor(
 		return func(ctx context.Context, req connect.AnyRequest) (connect.AnyResponse, error) {
 			method := req.Spec().Procedure
 
-			// Check if method requires permission validation
+			// Deny access if no roles or permissions are specified
 			opts, exists := routes[method]
 			if !exists || len(opts.Roles) == 0 {
-				return next(ctx, req)
+				return nil, connect.NewError(connect.CodePermissionDenied, errors.New("permission denied"))
 			}
 
 			// Perform permission validation
@@ -65,7 +65,7 @@ func NewPermissionInterceptor(
 
 // validatePermissions performs the complete permission validation process
 func validatePermissions(ctx context.Context, req connect.AnyRequest, accountSvc *account.AccountService, opts Options) error {
-	claims, err := auth.GetAccount(req)
+	claims, err := auth.GetClaims(req)
 	if err != nil {
 		return err
 	}
