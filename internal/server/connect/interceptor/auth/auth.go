@@ -18,6 +18,7 @@ type ctxKey string
 
 const (
 	tokenHeader        = "authorization"
+	tokenPrefix        = "Bearer "
 	CtxClaims   ctxKey = "ctx-claims" // Storing model.Claims in context
 	CtxToken    ctxKey = "ctx-token"  // Storing token in context
 )
@@ -51,7 +52,7 @@ func NewAuthInterceptor(methods ...string) connect.UnaryInterceptorFunc {
 						errors.New("no token provided"),
 					)
 				}
-				req.Header().Set(tokenHeader, "Bearer "+token)
+				req.Header().Set(tokenHeader, tokenPrefix+token)
 			} else {
 				// Check token in handlers.
 				if req.Header().Get(tokenHeader) == "" {
@@ -63,7 +64,7 @@ func NewAuthInterceptor(methods ...string) connect.UnaryInterceptorFunc {
 				}
 
 				// Check token in headers.
-				token := strings.TrimPrefix(req.Header().Get(tokenHeader), "Bearer ")
+				token := strings.TrimPrefix(req.Header().Get(tokenHeader), tokenPrefix)
 				claims, err := util.ValidateAccessToken(token)
 				if err == nil {
 					ctx = context.WithValue(ctx, CtxClaims, claims)
@@ -84,7 +85,7 @@ func GetClaims(req connect.AnyRequest) (claims model.Claims, err error) {
 		return claims, nil
 	}
 
-	claims, err = util.ValidateAccessToken(strings.TrimPrefix(token, "Bearer "))
+	claims, err = util.ValidateAccessToken(strings.TrimPrefix(token, tokenPrefix))
 	if err != nil {
 		return model.Claims{}, connect.NewError(connect.CodeUnauthenticated, err)
 	}

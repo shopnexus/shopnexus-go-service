@@ -9,13 +9,28 @@ var PermissionRoutes = map[string]permission.Options{
 	// OTHER will always return permission denied
 
 	// ACCOUNT
-	"/account.v1.AccountService/GetUser":        permission.UseOptions(permission.NeedRoles(model.RoleUser)),
+	"/account.v1.AccountService/GetUser":       permission.UseOptions(permission.NeedRoles(model.RoleUser, model.RoleStaff, model.RoleAdmin)),
+	"/account.v1.AccountService/LoginUser":     permission.UseOptions(permission.NeedRoles()),
+	"/account.v1.AccountService/RegisterUser":  permission.UseOptions(permission.NeedRoles()),
+	"/account.v1.AccountService/LoginAdmin":    permission.UseOptions(permission.NeedRoles()),
+	"/account.v1.AccountService/RegisterAdmin": permission.UseOptions(permission.NeedRoles()),
+
+	// CART
 	"/account.v1.AccountService/GetCart":        permission.UseOptions(permission.NeedRoles(model.RoleUser)),
 	"/account.v1.AccountService/AddCartItem":    permission.UseOptions(permission.NeedRoles(model.RoleUser)),
 	"/account.v1.AccountService/UpdateCartItem": permission.UseOptions(permission.NeedRoles(model.RoleUser)),
 	"/account.v1.AccountService/ClearCart":      permission.UseOptions(permission.NeedRoles(model.RoleUser)),
 
 	// PRODUCT MODEL
+	"/product.v1.ProductService/ListProductModels": permission.UseOptions(
+		permission.NeedRoles(model.RoleUser, model.RoleStaff, model.RoleAdmin),
+	),
+	"/product.v1.ProductService/ListProductTypes": permission.UseOptions(
+		permission.NeedRoles(model.RoleUser, model.RoleStaff, model.RoleAdmin),
+	),
+	"/product.v1.ProductService/GetProductModel": permission.UseOptions(
+		permission.NeedRoles(model.RoleUser, model.RoleStaff, model.RoleAdmin),
+	),
 	"/product.v1.ProductService/CreateProductModel": permission.UseOptions(
 		permission.NeedRoles(model.RoleAdmin, model.RoleStaff),
 		permission.NeedPermissions(model.PermissionCreateProductModel),
@@ -30,6 +45,12 @@ var PermissionRoutes = map[string]permission.Options{
 	),
 
 	// PRODUCT
+	"/product.v1.ProductService/ListProducts": permission.UseOptions(
+		permission.NeedRoles(model.RoleUser, model.RoleStaff, model.RoleAdmin),
+	),
+	"/product.v1.ProductService/GetProduct": permission.UseOptions(
+		permission.NeedRoles(model.RoleUser, model.RoleStaff, model.RoleAdmin),
+	),
 	"/product.v1.ProductService/CreateProduct": permission.UseOptions(
 		permission.NeedRoles(model.RoleAdmin, model.RoleStaff),
 		permission.NeedPermissions(model.PermissionCreateProduct),
@@ -44,6 +65,12 @@ var PermissionRoutes = map[string]permission.Options{
 	),
 
 	// SALE
+	"/product.v1.ProductService/ListSales": permission.UseOptions(
+		permission.NeedRoles(model.RoleUser, model.RoleStaff, model.RoleAdmin),
+	),
+	"/product.v1.ProductService/GetSale": permission.UseOptions(
+		permission.NeedRoles(model.RoleUser, model.RoleStaff, model.RoleAdmin),
+	),
 	"/product.v1.ProductService/CreateSale": permission.UseOptions(
 		permission.NeedRoles(model.RoleAdmin, model.RoleStaff),
 		permission.NeedPermissions(model.PermissionCreateSale),
@@ -58,6 +85,12 @@ var PermissionRoutes = map[string]permission.Options{
 	),
 
 	// TAG
+	"/product.v1.ProductService/ListTags": permission.UseOptions(
+		permission.NeedRoles(model.RoleUser, model.RoleStaff, model.RoleAdmin),
+	),
+	"/product.v1.ProductService/GetTag": permission.UseOptions(
+		permission.NeedRoles(model.RoleUser, model.RoleStaff, model.RoleAdmin),
+	),
 	"/product.v1.ProductService/CreateTag": permission.UseOptions(
 		permission.NeedRoles(model.RoleAdmin, model.RoleStaff),
 		permission.NeedPermissions(model.PermissionCreateTag),
@@ -72,6 +105,12 @@ var PermissionRoutes = map[string]permission.Options{
 	),
 
 	// BRAND
+	"/product.v1.ProductService/ListBrands": permission.UseOptions(
+		permission.NeedRoles(model.RoleUser, model.RoleStaff, model.RoleAdmin),
+	),
+	"/product.v1.ProductService/GetBrand": permission.UseOptions(
+		permission.NeedRoles(model.RoleUser, model.RoleStaff, model.RoleAdmin),
+	),
 	"/product.v1.ProductService/CreateBrand": permission.UseOptions(
 		permission.NeedRoles(model.RoleAdmin, model.RoleStaff),
 		permission.NeedPermissions(model.PermissionCreateBrand),
@@ -83,5 +122,44 @@ var PermissionRoutes = map[string]permission.Options{
 	"/product.v1.ProductService/DeleteBrand": permission.UseOptions(
 		permission.NeedRoles(model.RoleAdmin, model.RoleStaff),
 		permission.NeedPermissions(model.PermissionDeleteBrand),
+	),
+
+	// PAYMENT
+	"/payment.v1.PaymentService/ListPayments": permission.UseOptions(
+		permission.NeedRoles(model.RoleUser, model.RoleStaff, model.RoleAdmin),
+	),
+	"/payment.v1.PaymentService/GetPayment": permission.UseOptions(
+		permission.NeedRoles(model.RoleUser, model.RoleStaff, model.RoleAdmin),
+	),
+	"/payment.v1.PaymentService/CreatePayment": permission.UseOptions(
+		permission.NeedRoles(model.RoleUser),
+	),
+	"/payment.v1.PaymentService/UpdatePayment": permission.UseOptions(
+		permission.NeedRoles(model.RoleUser, model.RoleStaff, model.RoleAdmin),
+		permission.NeedPermissions(model.PermissionUpdatePayment),
+	),
+	"/payment.v1.PaymentService/DeletePayment": permission.UseOptions(
+		permission.NeedRoles(model.RoleUser, model.RoleStaff, model.RoleAdmin),
+		permission.NeedPermissions(model.PermissionDeletePayment),
+	),
+
+	// REFUND
+	"/refund.v1.RefundService/ListRefunds": permission.UseOptions(
+		permission.NeedRoles(model.RoleUser, model.RoleStaff, model.RoleAdmin),
+	),
+	"/refund.v1.RefundService/GetRefund": permission.UseOptions(
+		permission.NeedRoles(model.RoleUser, model.RoleStaff, model.RoleAdmin),
+	),
+	"/refund.v1.RefundService/CreateRefund": permission.UseOptions(
+		permission.NeedRoles(model.RoleUser),
+	),
+
+	"/refund.v1.RefundService/UpdateRefund": permission.UseOptions(
+		permission.NeedRoles(model.RoleUser, model.RoleStaff, model.RoleAdmin),
+		permission.NeedPermissions(model.PermissionUpdateRefund),
+	),
+	"/refund.v1.RefundService/DeleteRefund": permission.UseOptions(
+		permission.NeedRoles(model.RoleUser, model.RoleStaff, model.RoleAdmin),
+		permission.NeedPermissions(model.PermissionDeleteRefund),
 	),
 }

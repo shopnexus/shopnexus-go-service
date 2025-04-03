@@ -2,7 +2,6 @@ package permission
 
 import (
 	"context"
-	"errors"
 	"shopnexus-go-service/internal/model"
 	"shopnexus-go-service/internal/server/connect/interceptor/auth"
 	"shopnexus-go-service/internal/service/account"
@@ -49,8 +48,8 @@ func NewPermissionInterceptor(
 
 			// Deny access if no roles or permissions are specified
 			opts, exists := routes[method]
-			if !exists || len(opts.Roles) == 0 {
-				return nil, connect.NewError(connect.CodePermissionDenied, errors.New("permission denied"))
+			if !exists {
+				return nil, connect.NewError(connect.CodePermissionDenied, model.ErrPermissionDenied)
 			}
 
 			// Perform permission validation
@@ -70,9 +69,11 @@ func validatePermissions(ctx context.Context, req connect.AnyRequest, accountSvc
 		return err
 	}
 
-	// Check roles
-	if err := checkUserRole(claims, opts.Roles); err != nil {
-		return err
+	// Check roles if needed
+	if len(opts.Roles) > 0 {
+		if err := checkUserRole(claims, opts.Roles); err != nil {
+			return err
+		}
 	}
 
 	// Check permissions if needed
@@ -88,7 +89,7 @@ func validatePermissions(ctx context.Context, req connect.AnyRequest, accountSvc
 // checkUserRole verifies if the user has one of the required roles
 func checkUserRole(claims model.Claims, requiredRoles []model.Role) error {
 	if !slices.Contains(requiredRoles, claims.Role) {
-		return connect.NewError(connect.CodePermissionDenied, errors.New("permission denied"))
+		return connect.NewError(connect.CodePermissionDenied, model.ErrPermissionDenied)
 	}
 	return nil
 }
@@ -110,7 +111,7 @@ func checkUserPermissions(
 
 	for _, permission := range requiredPermissions {
 		if !slices.Contains(permissions, permission) {
-			return connect.NewError(connect.CodePermissionDenied, errors.New("permission denied"))
+			return connect.NewError(connect.CodePermissionDenied, model.ErrPermissionDenied)
 		}
 	}
 
