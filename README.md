@@ -33,29 +33,34 @@ A gRPC-based microservice for handling e-commerce operations including user acco
 ## Technology Stack
 
 - Go
-- gRPC
+- gRPC/Connect
 - PostgreSQL
-- Prisma (for database schema management)
 - Protocol Buffers
 - SQLC (for type-safe SQL)
+- Sentry (for error tracking)
+- AWS SDK v2
+- JWT v5
+- Zap Logger
 
 ## Project Structure
 
 ```
 .
-├── cmd/
-│ ├── main.go # Service entry point
-│ └── client/ # gRPC client examples
+├─ cmd/
+│ └── main.go # Service entry point
 ├── config/ # Configuration management
-├── gen/ # Generated code (protobuf, sqlc)
+│ ├── config.dev.yml
+│ ├── config.example.yml
+│ └── config.production.yml
+├── gen/ # Generated code
+│ └── sqlc/ # Generated sqlc code
 ├── internal/
+│ ├── logger/ # Logging configuration
 │ ├── model/ # Domain models
 │ ├── repository/ # Database operations
-│ ├── server/ # gRPC server implementation
-│ ├── service/ # Business logic
-│ └── util/ # Utility functions
-├── prisma/ # Database schema and migrations
-└── proto/ # Protocol buffer definitions
+│ ├── server/ # Server implementation
+│ └── service/ # Business logic
+└── Makefile # Build and development commands
 
 ```
 
@@ -63,7 +68,7 @@ A gRPC-based microservice for handling e-commerce operations including user acco
 
 ### Prerequisites
 
-- Go 1.21 or later
+- Go 1.24 or later
 - PostgreSQL
 - Node.js (for Prisma)
 - Protocol Buffer Compiler
@@ -130,7 +135,7 @@ The service exposes gRPC endpoints for:
 - Cart Service: Shopping cart operations
 - Payment Service: Payment processing
 
-For detailed API documentation, refer to the proto files in the `proto/` directory.
+For detailed API documentation, refer to the proto files in the <https://github.com/shopnexus/shopnexus-protobuf>
 
 ## License
 
