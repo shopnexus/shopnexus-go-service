@@ -8,13 +8,13 @@ import (
 	"shopnexus-go-service/internal/logger"
 
 	"github.com/tus/tusd/v2/pkg/filelocker"
-	"github.com/tus/tusd/v2/pkg/filestore"
 	tusd "github.com/tus/tusd/v2/pkg/handler"
+	"github.com/tus/tusd/v2/pkg/s3store"
 )
 
-func Init(mux *http.ServeMux) error {
-	// store := s3store.New(config.GetConfig().S3.Bucket, s.Services.S3.Client)
-	store := filestore.New("./uploads")
+func Init(mux *http.ServeMux, s3API s3store.S3API) error {
+	store := s3store.New(config.GetConfig().S3.Bucket, s3API)
+	// store := filestore.New("./uploads")
 
 	// A locking mechanism helps preventing data loss or corruption from
 	// parallel requests to a upload resource. A good match for the disk-based
@@ -35,18 +35,11 @@ func Init(mux *http.ServeMux) error {
 	// The StoreComposer property must be set to allow the handler to function.
 	logger.Log.Info(fmt.Sprintf("Tus url: %s", config.GetConfig().App.TusUrl))
 	handler, err := tusd.NewHandler(tusd.Config{
-		BasePath:              config.GetConfig().App.TusUrl,
-		StoreComposer:         composer,
-		NotifyCompleteUploads: true,
-		// Cors: &tusd.CorsConfig{
-		// 	Disable:          false,
-		// 	AllowOrigin:      regexp.MustCompile(".*"),
-		// 	AllowMethods:     "GET, POST, PUT, DELETE, HEAD, PATCH, OPTIONS",
-		// 	AllowHeaders:     "Accept, Content-Type, Content-Length, Accept-Encoding, Authorization, Upload-Length, Upload-Offset, Tus-Resumable, Upload-Metadata, Connect-Protocol-Version, Tus-Version, Tus-Max-Size, Tus-Extension, X-HTTP-Method-Override, X-Requested-With",
-		// 	ExposeHeaders:    "Upload-Offset, Location, Upload-Length, Tus-Version, Tus-Resumable, Tus-Max-Size, Tus-Extension, Upload-Metadata",
-		// 	MaxAge:           "3600",
-		// 	AllowCredentials: true,
-		// },
+		BasePath:                config.GetConfig().App.TusUrl,
+		StoreComposer:           composer,
+		NotifyCompleteUploads:   true,
+		NotifyUploadProgress:    true,
+		NotifyTerminatedUploads: true,
 	})
 	if err != nil {
 		log.Fatalf("unable to create handler: %s", err)
@@ -57,8 +50,14 @@ func Init(mux *http.ServeMux) error {
 	// itself and the relevant HTTP request.
 	go func() {
 		for {
-			event := <-handler.CompleteUploads
-			log.Printf("Upload %s finished\n", event.Upload.ID)
+			select {
+			case event := <-handler.CompleteUploads:
+				log.Printf("✅ Upload %s finished\n", event.Upload.ID)
+			case progress := <-handler.UploadProgress:
+				log.Printf("🔄 Upload %s progress: %d\n", progress.Upload.ID, progress.Upload.Offset)
+			case fail := <-handler.TerminatedUploads:
+				log.Printf("❌ Upload %s failed: %v\n", fail.Upload.ID, fail.Upload.ID)
+			}
 		}
 	}()
 
@@ -72,7 +71,7 @@ func Init(mux *http.ServeMux) error {
 	// 	log.Fatalf("unable to listen: %s", err)
 	// }
 	mux.Handle("/files/", http.StripPrefix("/files/", handler))
-	mux.Handle("/files", http.StripPrefix("/files", handler))
+	// mux.Handle("/files", http.StripPrefix("/files", handler))
 	logger.Log.Info(fmt.Sprintf("Tus server started on %s", config.GetConfig().App.TusUrl))
 
 	return nil

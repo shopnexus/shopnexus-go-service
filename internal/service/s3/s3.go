@@ -15,11 +15,12 @@ import (
 	awsConfig "github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/credentials"
 	"github.com/aws/aws-sdk-go-v2/service/s3"
+	awsS3 "github.com/aws/aws-sdk-go-v2/service/s3"
 	"github.com/google/uuid"
 )
 
 type S3Service struct {
-	Client        *s3.Client
+	Client        *awsS3.Client
 	bucket        string
 	cloudfrontURL string
 }

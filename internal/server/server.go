@@ -54,7 +54,7 @@ func (s *server) Start(port int) {
 		log.Fatalf("failed to initialize connect server: %v", err)
 	}
 
-	if err = tus.Init(s.mux); err != nil {
+	if err = tus.Init(s.mux, s.services.S3.Client); err != nil {
 		log.Fatalf("failed to initialize tus server: %v", err)
 	}
 
