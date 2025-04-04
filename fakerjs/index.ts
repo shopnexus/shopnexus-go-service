@@ -236,11 +236,11 @@ async function createProducts(
 		sold: BigInt(Math.floor(Math.random() * 5)),
 		add_price: BigInt(Math.floor(Math.random() * 50000)),
 		is_active: Math.random() < 0.9, // 90% chance of being active
-		metadata: JSON.stringify({
+		metadata: {
 			color: faker.color.human(),
 			size: Math.floor(Math.random() * 5) + 1,
 			// Add any other metadata fields you need
-		}),
+		},
 		date_created: faker.date.recent(),
 		date_updated: faker.date.recent(),
 	}))
@@ -333,10 +333,11 @@ async function createSales(
 		const saleType = Math.random()
 		const startDate = faker.date.recent()
 		const endDate = faker.date.future({ refDate: startDate })
+		const ran = Math.random()
 		const discountPercent =
-			Math.random() < 0.7 ? Math.floor(Math.random() * 50) + 5 : null
+			ran < 0.7 ? Math.floor(Math.random() * 50) + 5 : null
 		const discountPrice =
-			Math.random() < 0.3
+			ran < 0.3
 				? BigInt(Math.floor(Math.random() * 100000) + 10000)
 				: null
 
@@ -533,6 +534,73 @@ async function createRefunds(prisma: TxPrisma, payments: any[], count: number) {
 	return await prisma.refund.findMany({ take: count })
 }
 
+// Generate Resources for brands, productModels, products, and refunds
+async function createResources(
+	prisma: TxPrisma,
+	brands: Brand[],
+	productModels: ProductModel[],
+	products: Product[],
+	refunds: any[],
+	count: number
+) {
+	const resourcesData: any[] = []
+
+	// Add resources for brands
+	for (const brand of brands) {
+		// Add 1-3 resources per brand
+		const resourceCount = Math.floor(Math.random() * 3) + 1
+		for (let i = 0; i < resourceCount; i++) {
+			resourcesData.push({
+				owner_id: brand.id,
+				url: faker.image.url({ width: 800, height: 600 }),
+			})
+		}
+	}
+
+	// Add resources for product models
+	for (const productModel of productModels) {
+		// Add 2-5 resources per product model
+		const resourceCount = Math.floor(Math.random() * 4) + 2
+		for (let i = 0; i < resourceCount; i++) {
+			resourcesData.push({
+				owner_id: productModel.id,
+				url: faker.image.urlPicsumPhotos({ width: 800, height: 600 }),
+			})
+		}
+	}
+
+	// Add resources for products
+	for (const product of products) {
+		// Add 1-3 resources per product
+		const resourceCount = Math.floor(Math.random() * 3) + 1
+		for (let i = 0; i < resourceCount; i++) {
+			resourcesData.push({
+				owner_id: product.id,
+				url: faker.image.urlPicsumPhotos({ width: 800, height: 600 }),
+			})
+		}
+	}
+
+	// Add resources for refunds
+	for (const refund of refunds) {
+		// Add 0-2 resources per refund (some refunds might not have resources)
+		const resourceCount = Math.floor(Math.random() * 3)
+		for (let i = 0; i < resourceCount; i++) {
+			resourcesData.push({
+				owner_id: refund.id,
+				url: faker.image.urlPicsumPhotos({ width: 800, height: 600 }),
+			})
+		}
+	}
+
+	await prisma.resource.createMany({
+		data: resourcesData,
+		skipDuplicates: true,
+	})
+
+	return await prisma.resource.findMany({ take: resourcesData.length })
+}
+
 // Main seeding function
 async function main() {
 	const prisma = new PrismaClient()
@@ -562,6 +630,9 @@ async function main() {
 			const sales = await createSales(tx, productModels, tags, brands, 10)
 			const payments = await createPayments(tx, userAccounts, products, 15)
 			const refunds = await createRefunds(tx, payments, 5)
+			
+			// Create resources for brands, productModels, products, and refunds
+			const resources = await createResources(tx, brands, productModels, products, refunds, 0)
 
 			console.log("Seeding completed successfully!")
 		})
