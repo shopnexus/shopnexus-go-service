@@ -144,21 +144,20 @@ var PermissionRoutes = map[string]permission.Options{
 	),
 
 	// REFUND
-	"/refund.v1.RefundService/ListRefunds": permission.UseOptions(
+	"/payment.v1.PaymentService/ListRefunds": permission.UseOptions(
 		permission.NeedRoles(model.RoleUser, model.RoleStaff, model.RoleAdmin),
 	),
-	"/refund.v1.RefundService/GetRefund": permission.UseOptions(
+	"/payment.v1.PaymentService/GetRefund": permission.UseOptions(
 		permission.NeedRoles(model.RoleUser, model.RoleStaff, model.RoleAdmin),
 	),
-	"/refund.v1.RefundService/CreateRefund": permission.UseOptions(
+	"/payment.v1.PaymentService/CreateRefund": permission.UseOptions(
 		permission.NeedRoles(model.RoleUser),
 	),
-
-	"/refund.v1.RefundService/UpdateRefund": permission.UseOptions(
+	"/payment.v1.PaymentService/UpdateRefund": permission.UseOptions(
 		permission.NeedRoles(model.RoleUser, model.RoleStaff, model.RoleAdmin),
 		permission.NeedPermissions(model.PermissionUpdateRefund),
 	),
-	"/refund.v1.RefundService/DeleteRefund": permission.UseOptions(
+	"/payment.v1.PaymentService/DeleteRefund": permission.UseOptions(
 		permission.NeedRoles(model.RoleUser, model.RoleStaff, model.RoleAdmin),
 		permission.NeedPermissions(model.PermissionDeleteRefund),
 	),
