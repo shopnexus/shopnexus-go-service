@@ -200,7 +200,7 @@ func (s *AccountService) GetPermissions(ctx context.Context, params GetPermissio
 			Role:      role,
 		})
 	case model.RoleUser:
-		return nil, fmt.Errorf("no permissions")
+		return nil, model.ErrPermissionDenied
 	default:
 		return nil, fmt.Errorf("unknown role: %s", role)
 	}
@@ -222,7 +222,7 @@ func (s *AccountService) HasPermission(ctx context.Context, params HasPermission
 	}
 
 	if len(permissions) == 0 {
-		return false, fmt.Errorf("no permissions")
+		return false, model.ErrPermissionDenied
 	}
 
 	for _, permission := range params.Permissions {
