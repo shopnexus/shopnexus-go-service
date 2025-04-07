@@ -61,7 +61,7 @@ require (
 
 require (
 	github.com/aws/aws-sdk-go-v2/config v1.29.12
-	github.com/aws/aws-sdk-go-v2/service/s3 v1.79.0
+	github.com/aws/aws-sdk-go-v2/service/s3 v1.79.1
 	github.com/getsentry/sentry-go v0.31.1
 	github.com/spf13/viper v1.20.1
 	go.uber.org/zap v1.27.0
