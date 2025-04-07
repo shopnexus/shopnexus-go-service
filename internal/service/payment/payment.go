@@ -19,9 +19,14 @@ type PaymentService struct {
 	platforms  map[Platform]PaymentPlatform
 }
 
-func NewPaymentService(repo repository.Repository, productSvc *product.ProductService) *PaymentService {
+func NewPaymentService(
+	repo repository.Repository,
+	accountSvc *account.AccountService,
+	productSvc *product.ProductService,
+) *PaymentService {
 	s := &PaymentService{
 		Repo:       repo,
+		accountSvc: accountSvc,
 		productSvc: productSvc,
 		platforms:  map[Platform]PaymentPlatform{},
 	}
@@ -50,30 +55,63 @@ type PaymentServiceInterface interface {
 }
 
 func (s *PaymentService) WithTx(txRepo *repository.TxRepository) *PaymentService {
-	return NewPaymentService(txRepo, s.productSvc)
+	return NewPaymentService(txRepo, s.accountSvc, s.productSvc)
 }
 
 type GetPaymentParams = struct {
-	UserID    int64
+	AccountID int64
+	Role      model.Role
 	PaymentID int64
 }
 
 func (s *PaymentService) GetPayment(ctx context.Context, params GetPaymentParams) (model.Payment, error) {
-	return s.Repo.GetPayment(ctx, repository.GetPaymentParams{
-		ID:     params.PaymentID,
-		UserID: &params.UserID,
-	})
+	repoParams := repository.GetPaymentParams{
+		ID: params.PaymentID,
+	}
+
+	if params.Role == model.RoleUser {
+		repoParams.UserID = &params.AccountID
+	}
+
+	return s.Repo.GetPayment(ctx, repoParams)
 }
 
-type ListPaymentsParams = repository.ListPaymentsParams
+type ListPaymentsParams struct {
+	model.PaginationParams
+	AccountID       int64
+	Role            model.Role
+	Method          *model.PaymentMethod
+	Status          *model.Status
+	Address         *string
+	TotalFrom       *int64
+	TotalTo         *int64
+	DateCreatedFrom *int64
+	DateCreatedTo   *int64
+}
 
 func (s *PaymentService) ListPayments(ctx context.Context, params ListPaymentsParams) (result model.PaginateResult[model.Payment], err error) {
-	total, err := s.Repo.CountPayments(ctx, params)
+	repoParams := repository.ListPaymentsParams{
+		PaginationParams: params.PaginationParams,
+		Method:           params.Method,
+		Status:           params.Status,
+		Address:          params.Address,
+		TotalFrom:        params.TotalFrom,
+		TotalTo:          params.TotalTo,
+		DateCreatedFrom:  params.DateCreatedFrom,
+		DateCreatedTo:    params.DateCreatedTo,
+	}
+
+	// User only see their own payments
+	if params.Role == model.RoleUser {
+		repoParams.UserID = &params.AccountID
+	}
+
+	total, err := s.Repo.CountPayments(ctx, repoParams)
 	if err != nil {
 		return result, err
 	}
 
-	payments, err := s.Repo.ListPayments(ctx, params)
+	payments, err := s.Repo.ListPayments(ctx, repoParams)
 	if err != nil {
 		return result, err
 	}
@@ -260,10 +298,12 @@ func (s *PaymentService) getPlatform(platform Platform) (PaymentPlatform, error)
 }
 
 type UpdatePaymentParams struct {
-	ID      int64
-	UserID  int64
-	Method  *model.PaymentMethod
-	Address *string
+	ID        int64
+	AccountID int64
+	Role      model.Role
+	Method    *model.PaymentMethod
+	Address   *string
+	Status    *model.Status
 }
 
 func (s *PaymentService) UpdatePayment(ctx context.Context, params UpdatePaymentParams) error {
@@ -273,12 +313,18 @@ func (s *PaymentService) UpdatePayment(ctx context.Context, params UpdatePayment
 	}
 	defer txRepo.Rollback(ctx)
 
-	// Payment must be pending
-	payment, err := txRepo.GetPayment(ctx, repository.GetPaymentParams{
+	getPaymentParams := repository.GetPaymentParams{
 		ID:     params.ID,
-		UserID: &params.UserID,
 		Status: util.ToPtr(model.StatusPending),
-	})
+	}
+
+	// User only see their own payments
+	if params.Role == model.RoleUser {
+		getPaymentParams.UserID = &params.AccountID
+	}
+
+	// Payment must be pending
+	payment, err := txRepo.GetPayment(ctx, getPaymentParams)
 	if err != nil {
 		return err
 	}
@@ -289,10 +335,25 @@ func (s *PaymentService) UpdatePayment(ctx context.Context, params UpdatePayment
 		return fmt.Errorf("address is required for payment method %s", *params.Method)
 	}
 
+	// If params.Status is not nil, check if account has permission to update status
+	if params.Status != nil {
+		if ok, err := s.accountSvc.HasPermission(ctx, account.HasPermissionParams{
+			AccountID: params.AccountID,
+			Permissions: []model.Permission{
+				model.PermissionUpdatePayment,
+			},
+		}); err != nil {
+			return err
+		} else if !ok {
+			return fmt.Errorf("account %d does not have permission to update payment status", params.AccountID)
+		}
+	}
+
 	if err = txRepo.UpdatePayment(ctx, repository.UpdatePaymentParams{
 		ID:      params.ID,
 		Method:  params.Method,
 		Address: params.Address,
+		Status:  params.Status,
 	}); err != nil {
 		return err
 	}

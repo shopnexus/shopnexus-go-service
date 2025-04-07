@@ -35,7 +35,8 @@ func (s *ImplementedPaymentServiceHandler) GetPayment(ctx context.Context, req *
 	}
 
 	payment, err := s.service.GetPayment(ctx, payment.GetPaymentParams{
-		UserID:    claims.UserID,
+		AccountID: claims.UserID,
+		Role:      claims.Role,
 		PaymentID: req.Msg.Id,
 	})
 	if err != nil {
@@ -72,7 +73,8 @@ func (s *ImplementedPaymentServiceHandler) ListPayments(ctx context.Context, req
 			Page:  req.Msg.GetPagination().GetPage(),
 			Limit: req.Msg.GetPagination().GetLimit(),
 		},
-		UserID:          &claims.UserID,
+		AccountID:       claims.UserID,
+		Role:            claims.Role,
 		Method:          method,
 		Status:          status,
 		Address:         req.Msg.Address,
@@ -126,16 +128,24 @@ func (s *ImplementedPaymentServiceHandler) UpdatePayment(ctx context.Context, re
 		return nil, err
 	}
 
-	var method *model.PaymentMethod
+	var (
+		method *model.PaymentMethod
+		status *model.Status
+	)
 	if req.Msg.Method != nil {
 		method = util.ToPtr(convertPaymentMethod(*req.Msg.Method))
 	}
+	if req.Msg.Status != nil {
+		status = util.ToPtr(convertStatus(*req.Msg.Status))
+	}
 
 	err = s.service.UpdatePayment(ctx, payment.UpdatePaymentParams{
-		ID:      req.Msg.Id,
-		UserID:  claims.UserID,
-		Method:  method,
-		Address: req.Msg.Address,
+		ID:        req.Msg.Id,
+		AccountID: claims.UserID,
+		Role:      claims.Role,
+		Method:    method,
+		Address:   req.Msg.Address,
+		Status:    status,
 	})
 	if err != nil {
 		return nil, err

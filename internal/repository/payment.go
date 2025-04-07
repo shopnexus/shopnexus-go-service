@@ -203,8 +203,8 @@ type UpdatePaymentParams struct {
 func (r *RepositoryImpl) UpdatePayment(ctx context.Context, params UpdatePaymentParams) error {
 	err := r.sqlc.UpdatePayment(ctx, sqlc.UpdatePaymentParams{
 		ID:      params.ID,
-		Method:  *pgxutil.PtrToPgtype(&sqlc.NullPaymentPaymentMethod{}, params.Method),
-		Status:  *pgxutil.PtrToPgtype(&sqlc.NullPaymentStatus{}, params.Status),
+		Method:  *pgxutil.PtrBrandedToPgType(&sqlc.NullPaymentPaymentMethod{}, params.Method),
+		Status:  *pgxutil.PtrBrandedToPgType(&sqlc.NullPaymentStatus{}, params.Status),
 		Address: *pgxutil.PtrToPgtype(&pgtype.Text{}, params.Address),
 		Total:   *pgxutil.PtrToPgtype(&pgtype.Int8{}, params.Total),
 	})

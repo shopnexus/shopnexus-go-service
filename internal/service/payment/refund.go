@@ -26,15 +26,45 @@ func (s *PaymentService) GetRefund(ctx context.Context, params GetRefundParams) 
 	return refund, nil
 }
 
-type ListRefundsParams = repository.ListRefundsParams
+type ListRefundsParams struct {
+	model.PaginationParams
+	AccountID       int64
+	Role            model.Role
+	PaymentID       *int64
+	Method          *model.RefundMethod
+	Status          *model.Status
+	Reason          *string
+	Address         *string
+	DateCreatedFrom *int64
+	DateCreatedTo   *int64
+}
 
 func (s *PaymentService) ListRefunds(ctx context.Context, params ListRefundsParams) (result model.PaginateResult[model.Refund], err error) {
-	total, err := s.Repo.CountRefunds(ctx, params)
+	repoParams := repository.ListRefundsParams{
+		PaginationParams: model.PaginationParams{
+			Page:  params.Page,
+			Limit: params.Limit,
+		},
+		PaymentID:       params.PaymentID,
+		Method:          params.Method,
+		Status:          params.Status,
+		Reason:          params.Reason,
+		Address:         params.Address,
+		DateCreatedFrom: params.DateCreatedFrom,
+		DateCreatedTo:   params.DateCreatedTo,
+	}
+
+	// User only can see their own refunds
+	if params.Role == model.RoleUser {
+		repoParams.UserID = &params.AccountID
+	}
+
+	total, err := s.Repo.CountRefunds(ctx, repoParams)
 	if err != nil {
 		return result, err
 	}
 
-	refunds, err := s.Repo.ListRefunds(ctx, params)
+	refunds, err := s.Repo.ListRefunds(ctx, repoParams)
 	if err != nil {
 		return result, err
 	}
@@ -134,9 +164,18 @@ func (s *PaymentService) UpdateRefund(ctx context.Context, params UpdateRefundPa
 	}
 	defer txRepo.Rollback(ctx)
 
+	repoParams := repository.UpdateRefundParams{
+		ID:      params.ID,
+		UserID:  &params.UserID,
+		Method:  params.Method,
+		Status:  params.Status,
+		Reason:  params.Reason,
+		Address: params.Address,
+	}
+
 	// Method drop_off must not contains address
 	if *params.Method == model.RefundMethodDropOff {
-		params.Address = nil
+		repoParams.Address = nil
 	}
 
 	if params.Status != nil {
@@ -149,16 +188,12 @@ func (s *PaymentService) UpdateRefund(ctx context.Context, params UpdateRefundPa
 		}); !ok {
 			return fmt.Errorf("account %d has no permission to update refund status: %w", params.UserID, err)
 		}
+
+		// remove the repoParams.UserID
+		repoParams.UserID = nil
 	}
 
-	if err = txRepo.UpdateRefund(ctx, repository.UpdateRefundParams{
-		ID:      params.ID,
-		UserID:  &params.UserID,
-		Method:  params.Method,
-		Status:  params.Status,
-		Reason:  params.Reason,
-		Address: params.Address,
-	}); err != nil {
+	if err = txRepo.UpdateRefund(ctx, repoParams); err != nil {
 		return err
 	}
 
