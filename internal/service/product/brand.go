@@ -56,7 +56,11 @@ func (s *ProductService) CreateBrand(ctx context.Context, params CreateBrandPara
 		return model.Brand{}, err
 	}
 
-	if err := txRepo.Commit(ctx); err != nil {
+	if err = txRepo.AddResources(ctx, newBrand.ID, params.Brand.Resources); err != nil {
+		return model.Brand{}, err
+	}
+
+	if err = txRepo.Commit(ctx); err != nil {
 		return model.Brand{}, err
 	}
 

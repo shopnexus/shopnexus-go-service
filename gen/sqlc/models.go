@@ -295,13 +295,15 @@ type ProductBrand struct {
 }
 
 type ProductComment struct {
-	ID       int64
-	UserID   int64
-	DestID   int64
-	Body     string
-	Upvote   int64
-	Downvote int64
-	Score    int32
+	ID          int64
+	AccountID   int64
+	DestID      int64
+	Body        string
+	Upvote      int64
+	Downvote    int64
+	Score       int32
+	DateCreated pgtype.Timestamptz
+	DateUpdated pgtype.Timestamptz
 }
 
 type ProductModel struct {

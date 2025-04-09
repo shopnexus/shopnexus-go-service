@@ -105,6 +105,14 @@ type Repository interface {
 	GetTags(ctx context.Context, productModelID int64) ([]string, error)
 	AddTags(ctx context.Context, productModelID int64, tags []string) error
 	RemoveTags(ctx context.Context, productModelID int64, tags []string) error
+
+	// Comment methods
+	GetComment(ctx context.Context, id int64) (model.Comment, error)
+	CountComments(ctx context.Context, params ListCommentsParams) (int64, error)
+	ListComments(ctx context.Context, params ListCommentsParams) ([]model.Comment, error)
+	CreateComment(ctx context.Context, comment model.Comment) error
+	UpdateComment(ctx context.Context, params UpdateCommentParams) error
+	DeleteComment(ctx context.Context, params DeleteCommentParams) error
 }
 
 type RepositoryImpl struct {

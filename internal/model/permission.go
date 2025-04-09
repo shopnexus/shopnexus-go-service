@@ -29,6 +29,10 @@ const (
 	PermissionDeletePayment
 	PermissionUpdateRefund
 	PermissionDeleteRefund
+
+	PermissionCreateComment
+	PermissionUpdateComment
+	PermissionDeleteComment
 )
 
 func GetAllPermissions() []Permission {
@@ -52,5 +56,8 @@ func GetAllPermissions() []Permission {
 		PermissionDeletePayment,
 		PermissionUpdateRefund,
 		PermissionDeleteRefund,
+		PermissionCreateComment,
+		PermissionUpdateComment,
+		PermissionDeleteComment,
 	}
 }

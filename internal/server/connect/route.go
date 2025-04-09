@@ -161,4 +161,23 @@ var PermissionRoutes = map[string]permission.Options{
 		permission.NeedRoles(model.RoleUser, model.RoleStaff, model.RoleAdmin),
 		permission.NeedPermissions(model.PermissionDeleteRefund),
 	),
+
+	// COMMENT
+	"/product.v1.ProductService/ListComments": permission.UseOptions(
+		permission.NeedRoles(model.RoleUser, model.RoleStaff, model.RoleAdmin),
+	),
+	"/product.v1.ProductService/GetComment": permission.UseOptions(
+		permission.NeedRoles(model.RoleUser, model.RoleStaff, model.RoleAdmin),
+	),
+	"/product.v1.ProductService/CreateComment": permission.UseOptions(
+		permission.NeedRoles(model.RoleUser),
+	),
+	"/product.v1.ProductService/UpdateComment": permission.UseOptions(
+		permission.NeedRoles(model.RoleUser, model.RoleStaff, model.RoleAdmin),
+		permission.NeedPermissions(model.PermissionUpdateComment),
+	),
+	"/product.v1.ProductService/DeleteComment": permission.UseOptions(
+		permission.NeedRoles(model.RoleUser, model.RoleStaff, model.RoleAdmin),
+		permission.NeedPermissions(model.PermissionDeleteComment),
+	),
 }

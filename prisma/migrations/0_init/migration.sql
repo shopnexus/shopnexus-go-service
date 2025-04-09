@@ -124,12 +124,14 @@ CREATE TABLE "product"."model" (
 -- CreateTable
 CREATE TABLE "product"."comment" (
     "id" BIGSERIAL NOT NULL,
-    "user_id" BIGINT NOT NULL,
+    "account_id" BIGINT NOT NULL,
     "dest_id" BIGINT NOT NULL,
     "body" TEXT NOT NULL,
     "upvote" BIGINT NOT NULL DEFAULT 0,
     "downvote" BIGINT NOT NULL DEFAULT 0,
     "score" INTEGER NOT NULL DEFAULT 0,
+    "date_created" TIMESTAMPTZ(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "date_updated" TIMESTAMPTZ(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
     CONSTRAINT "comment_pkey" PRIMARY KEY ("id")
 );
@@ -262,7 +264,7 @@ CREATE UNIQUE INDEX "user_email_key" ON "account"."user"("email");
 CREATE UNIQUE INDEX "user_phone_key" ON "account"."user"("phone");
 
 -- CreateIndex
-CREATE UNIQUE INDEX "comment_user_id_dest_id_key" ON "product"."comment"("user_id", "dest_id");
+CREATE UNIQUE INDEX "comment_account_id_dest_id_key" ON "product"."comment"("account_id", "dest_id");
 
 -- CreateIndex
 CREATE UNIQUE INDEX "base_serial_id_key" ON "product"."base"("serial_id");
@@ -307,7 +309,7 @@ ALTER TABLE "product"."model" ADD CONSTRAINT "model_type_fkey" FOREIGN KEY ("typ
 ALTER TABLE "product"."model" ADD CONSTRAINT "model_brand_id_fkey" FOREIGN KEY ("brand_id") REFERENCES "product"."brand"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "product"."comment" ADD CONSTRAINT "comment_user_id_fkey" FOREIGN KEY ("user_id") REFERENCES "account"."user"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+ALTER TABLE "product"."comment" ADD CONSTRAINT "comment_account_id_fkey" FOREIGN KEY ("account_id") REFERENCES "account"."base"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "product"."base" ADD CONSTRAINT "base_product_model_id_fkey" FOREIGN KEY ("product_model_id") REFERENCES "product"."model"("id") ON DELETE CASCADE ON UPDATE CASCADE;

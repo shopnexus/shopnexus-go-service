@@ -81,15 +81,17 @@ Table ProductModel {
 
 Table Comment {
   id BigInt [pk, increment]
-  user_id BigInt [not null]
+  account_id BigInt [not null]
   dest_id BigInt [not null]
   body String [not null]
   upvote BigInt [not null, default: 0]
   downvote BigInt [not null, default: 0]
   score Int [not null, default: 0]
+  date_created DateTime [default: `now()`, not null]
+  date_updated DateTime [default: `now()`, not null]
 
   indexes {
-    (user_id, dest_id) [unique]
+    (account_id, dest_id) [unique]
   }
 }
 
@@ -239,7 +241,7 @@ Ref: ProductModel.type > ProductType.id [delete: Cascade]
 
 Ref: ProductModel.brand_id > Brand.id [delete: Cascade]
 
-Ref: Comment.user_id > UserAccount.id [delete: Cascade]
+Ref: Comment.account_id > Account.id [delete: Cascade]
 
 Ref: Product.product_model_id > ProductModel.id [delete: Cascade]
 

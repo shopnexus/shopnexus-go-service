@@ -534,6 +534,53 @@ async function createRefunds(prisma: TxPrisma, payments: any[], count: number) {
 	return await prisma.refund.findMany({ take: count })
 }
 
+// Generate Comments and Resources
+async function createComments(prisma: TxPrisma, accounts: Account[], count: number) {
+	const commentsData: any[] = []
+	const resourcesData: any[] = []
+
+	for (let i = 0; i < count; i++) {
+		const account = accounts[Math.floor(Math.random() * accounts.length)]
+		const destId = BigInt(Math.floor(Math.random() * 1000) + 1) // Random destination ID
+		const commentId = BigInt(i + 1) // Simple incrementing ID
+
+		commentsData.push({
+			id: commentId,
+			account_id: account.id,
+			dest_id: destId,
+			body: faker.lorem.paragraph(),
+			upvote: BigInt(Math.floor(Math.random() * 100)),
+			downvote: BigInt(Math.floor(Math.random() * 50)),
+			score: Math.floor(Math.random() * 100) - 50, // Random score between -50 and 50
+			date_created: faker.date.past(),
+			date_updated: faker.date.recent(),
+		})
+
+		// Add 0-3 resources per comment
+		const resourceCount = Math.floor(Math.random() * 4)
+		for (let j = 0; j < resourceCount; j++) {
+			resourcesData.push({
+				owner_id: commentId,
+				url: faker.image.urlPicsumPhotos({ width: 800, height: 600 }),
+			})
+		}
+	}
+
+	await prisma.comment.createMany({
+		data: commentsData,
+		skipDuplicates: true,
+	})
+
+	if (resourcesData.length > 0) {
+		await prisma.resource.createMany({
+			data: resourcesData,
+			skipDuplicates: true,
+		})
+	}
+
+	return await prisma.comment.findMany({ take: count })
+}
+
 // Generate Resources for brands, productModels, products, and refunds
 async function createResources(
 	prisma: TxPrisma,
@@ -630,6 +677,7 @@ async function main() {
 			const sales = await createSales(tx, productModels, tags, brands, 10)
 			const payments = await createPayments(tx, userAccounts, products, 15)
 			const refunds = await createRefunds(tx, payments, 5)
+			const comments = await createComments(tx, accounts, 20)
 			
 			// Create resources for brands, productModels, products, and refunds
 			const resources = await createResources(tx, brands, productModels, products, refunds, 0)

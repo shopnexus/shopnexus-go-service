@@ -26,6 +26,7 @@ model Account {
   admin_account AdminAccount?
   staff_account StaffAccount?
   role_relation Role          @relation(fields: [role], references: [name], onUpdate: Cascade)
+  comments     Comment[]
 
   @@map("base")
   @@schema("account")
@@ -64,7 +65,6 @@ model UserAccount {
   addresses Address[]
   cart      Cart?
   payments  Payment[]
-  comments  Comment[]
 
   @@map("user")
   @@schema("account")
@@ -171,16 +171,18 @@ model ProductModel {
 
 model Comment {
   id       BigInt @id @default(autoincrement())
-  user_id  BigInt
+  account_id  BigInt
   dest_id  BigInt
   body     String
   upvote   BigInt @default(0)
   downvote BigInt @default(0)
   score    Int    @default(0)
+  date_created DateTime @default(now()) @db.Timestamptz(3)
+  date_updated DateTime @default(now()) @db.Timestamptz(3)
 
-  user UserAccount @relation(fields: [user_id], references: [id], onUpdate: Cascade, onDelete: Cascade)
+  account Account @relation(fields: [account_id], references: [id], onUpdate: Cascade, onDelete: Cascade)
 
-  @@unique([user_id, dest_id])
+  @@unique([account_id, dest_id])
   @@map("comment")
   @@schema("product")
 }
@@ -364,7 +366,7 @@ enum Status {
 
 // TODO: should catch "remove" event and remove them in s3; https://chatgpt.com/c/67bea496-7388-800f-a564-9641dc54c520
 model Resource {
-  owner_id BigInt // Link to brand, productModel, product and refund
+  owner_id BigInt // Link to brand, productModel, product, refund, comment, ...
   url      String
 
   @@id([owner_id, url])
