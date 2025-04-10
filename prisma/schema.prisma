@@ -16,17 +16,17 @@ datasource db {
 }
 
 model Account {
-  id       BigInt @id @default(autoincrement())
-  username String @unique @db.VarChar(50)
-  password String @db.VarChar(100)
-  role     String @db.VarChar(50)
+  id                BigInt  @id @default(autoincrement())
+  username          String  @unique @db.VarChar(50)
+  password          String  @db.VarChar(100)
+  role              String  @db.VarChar(50)
   custom_permission String? @db.VarBit(100) // Only available in admin account TODO: Extend if need more permissions
 
   user_account  UserAccount?
   admin_account AdminAccount?
   staff_account StaffAccount?
   role_relation Role          @relation(fields: [role], references: [name], onUpdate: Cascade)
-  comments     Comment[]
+  comments      Comment[]
 
   @@map("base")
   @@schema("account")
@@ -80,7 +80,7 @@ model AdminAccount {
 }
 
 model StaffAccount {
-  id                BigInt  @id
+  id BigInt @id
 
   account Account @relation(fields: [id], references: [id], onDelete: Cascade, onUpdate: Cascade)
 
@@ -170,13 +170,13 @@ model ProductModel {
 }
 
 model Comment {
-  id       BigInt @id @default(autoincrement())
-  account_id  BigInt
-  dest_id  BigInt
-  body     String
-  upvote   BigInt @default(0)
-  downvote BigInt @default(0)
-  score    Int    @default(0)
+  id           BigInt   @id @default(autoincrement())
+  account_id   BigInt
+  dest_id      BigInt
+  body         String
+  upvote       BigInt   @default(0)
+  downvote     BigInt   @default(0)
+  score        Int      @default(0)
   date_created DateTime @default(now()) @db.Timestamptz(3)
   date_updated DateTime @default(now()) @db.Timestamptz(3)
 

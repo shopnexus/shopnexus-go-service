@@ -1,10 +1,11 @@
 networks:
-  shopnexus:
-    name: shopnexus
+  shopnexus-network:
+    name: shopnexus-network
     external: false
 
 services:
   postgres:
+    container_name: shopnexus-postgres
     image: postgres:latest
     ports:
       - "5432:5432"
@@ -15,8 +16,8 @@ services:
       POSTGRES_PASSWORD: peakshopnexuspassword
       POSTGRES_DB: shopnexus
     volumes:
-      - postgres-data:/var/lib/postgresql/data
+      - shopnexus-data:/var/lib/postgresql/data
     networks:
-      - shopnexus
+      - shopnexus-network
 volumes:
-  postgres-data:
+  shopnexus-data:
