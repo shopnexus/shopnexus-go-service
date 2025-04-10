@@ -1,10 +1,10 @@
 {
 	"info": {
-		"_postman_id": "23111293-1bd2-4d03-a434-6ed00beea1d9",
+		"_postman_id": "a667826e-7a51-4529-834b-2597ba613e5f",
 		"name": "shopnexus",
 		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
 		"_exporter_id": "34158645",
-		"_collection_link": "https://lively-crater-239797.postman.co/workspace/safe-trade~2d8fbe46-3fde-4ebc-9732-3789a9f6341f/collection/34158645-23111293-1bd2-4d03-a434-6ed00beea1d9?action=share&source=collection_link&creator=34158645"
+		"_collection_link": "https://lively-crater-239797.postman.co/workspace/safe-trade~2d8fbe46-3fde-4ebc-9732-3789a9f6341f/collection/34158645-a667826e-7a51-4529-834b-2597ba613e5f?action=share&source=collection_link&creator=34158645"
 	},
 	"item": [
 		{
@@ -635,6 +635,163 @@
 			]
 		},
 		{
+			"name": "Comment",
+			"item": [
+				{
+					"name": "Get Comment",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{API_URL}}/product.v1.ProductService/GetComment?encoding=json&message={\"id\":1}",
+							"host": [
+								"{{API_URL}}"
+							],
+							"path": [
+								"product.v1.ProductService",
+								"GetComment"
+							],
+							"query": [
+								{
+									"key": "encoding",
+									"value": "json"
+								},
+								{
+									"key": "message",
+									"value": "{\"id\":1}"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "List Comments",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{API_URL}}/product.v1.ProductService/ListComments?encoding=json&message={\"pagination\":{\"limit\":10,\"page\":1}}",
+							"host": [
+								"{{API_URL}}"
+							],
+							"path": [
+								"product.v1.ProductService",
+								"ListComments"
+							],
+							"query": [
+								{
+									"key": "encoding",
+									"value": "json"
+								},
+								{
+									"key": "message",
+									"value": "{\"pagination\":{\"limit\":10,\"page\":1}}"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Create Comment",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"dest_id\": \"1\",\n    \"body\": \"test\",\n    \"resources\": []\n}"
+						},
+						"url": {
+							"raw": "{{API_URL}}/product.v1.ProductService/CreateComment",
+							"host": [
+								"{{API_URL}}"
+							],
+							"path": [
+								"product.v1.ProductService",
+								"CreateComment"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Update Comment",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"id\": \"1\",\n    \"body\": \"test\",\n    \"resources\": []\n}"
+						},
+						"url": {
+							"raw": "{{API_URL}}/product.v1.ProductService/UpdateComment",
+							"host": [
+								"{{API_URL}}"
+							],
+							"path": [
+								"product.v1.ProductService",
+								"UpdateComment"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Delete Comment",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"id\": 1\n}"
+						},
+						"url": {
+							"raw": "{{API_URL}}/product.v1.ProductService/DeleteComment",
+							"host": [
+								"{{API_URL}}"
+							],
+							"path": [
+								"product.v1.ProductService",
+								"DeleteComment"
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
 			"name": "Sale",
 			"item": [
 				{
@@ -1120,7 +1277,7 @@
 							}
 						],
 						"url": {
-							"raw": "{{API_URL}}/payment.v1.PaymentService/GetPayment?encoding=json&message={\"id\":\"19\"}",
+							"raw": "{{API_URL}}/payment.v1.PaymentService/GetPayment?encoding=json&message={\"id\":\"17\"}",
 							"host": [
 								"{{API_URL}}"
 							],
@@ -1135,7 +1292,7 @@
 								},
 								{
 									"key": "message",
-									"value": "{\"id\":\"19\"}"
+									"value": "{\"id\":\"17\"}"
 								}
 							]
 						}
@@ -1217,7 +1374,7 @@
 						],
 						"body": {
 							"mode": "raw",
-							"raw": "{\n    \"id\": \"1\", \n    \"method\": \"PAYMENT_METHOD_VNPAY\",\n    \"address\": \"123 Main St, City, Country\"\n}"
+							"raw": "{\n    \"id\": \"17\", \n    // \"method\": \"PAYMENT_METHOD_VNPAY\",\n    // \"address\": \"123 Main St, City, Country\",\n    \"status\": \"STATUS_SUCCESS\"\n}"
 						},
 						"url": {
 							"raw": "{{API_URL}}/payment.v1.PaymentService/UpdatePayment",
@@ -1277,7 +1434,7 @@
 							}
 						],
 						"url": {
-							"raw": "{{API_URL}}/payment.v1.PaymentService/GetRefund?encoding=json&message={\"id\":12}",
+							"raw": "{{API_URL}}/payment.v1.PaymentService/GetRefund?encoding=json&message={\"id\":4}",
 							"host": [
 								"{{API_URL}}"
 							],
@@ -1292,7 +1449,7 @@
 								},
 								{
 									"key": "message",
-									"value": "{\"id\":12}"
+									"value": "{\"id\":4}"
 								}
 							]
 						}
