@@ -109,7 +109,7 @@ func (q *Queries) DeleteComment(ctx context.Context, arg DeleteCommentParams) er
 
 const getComment = `-- name: GetComment :one
 SELECT 
-    c.id, c.account_id, c.dest_id, c.body, c.upvote, c.downvote, c.score, c.date_created, c.date_updated,
+    c.id, c.type, c.account_id, c.dest_id, c.body, c.upvote, c.downvote, c.score, c.date_created, c.date_updated,
     COALESCE(array_agg(DISTINCT res.url) FILTER (WHERE res.url IS NOT NULL), '{}')::text[] as resources
 FROM product.comment c
 LEFT JOIN product.resource res ON c.id = res.owner_id
@@ -119,6 +119,7 @@ GROUP BY c.id
 
 type GetCommentRow struct {
 	ID          int64
+	Type        ProductCommentType
 	AccountID   int64
 	DestID      int64
 	Body        string
@@ -135,6 +136,7 @@ func (q *Queries) GetComment(ctx context.Context, id int64) (GetCommentRow, erro
 	var i GetCommentRow
 	err := row.Scan(
 		&i.ID,
+		&i.Type,
 		&i.AccountID,
 		&i.DestID,
 		&i.Body,
@@ -150,7 +152,7 @@ func (q *Queries) GetComment(ctx context.Context, id int64) (GetCommentRow, erro
 
 const listComments = `-- name: ListComments :many
 SELECT 
-    c.id, c.account_id, c.dest_id, c.body, c.upvote, c.downvote, c.score, c.date_created, c.date_updated,
+    c.id, c.type, c.account_id, c.dest_id, c.body, c.upvote, c.downvote, c.score, c.date_created, c.date_updated,
     COALESCE(array_agg(DISTINCT res.url) FILTER (WHERE res.url IS NOT NULL), '{}')::text[] as resources
 FROM product.comment c
 LEFT JOIN product.resource res ON c.id = res.owner_id
@@ -190,6 +192,7 @@ type ListCommentsParams struct {
 
 type ListCommentsRow struct {
 	ID          int64
+	Type        ProductCommentType
 	AccountID   int64
 	DestID      int64
 	Body        string
@@ -226,6 +229,7 @@ func (q *Queries) ListComments(ctx context.Context, arg ListCommentsParams) ([]L
 		var i ListCommentsRow
 		if err := rows.Scan(
 			&i.ID,
+			&i.Type,
 			&i.AccountID,
 			&i.DestID,
 			&i.Body,

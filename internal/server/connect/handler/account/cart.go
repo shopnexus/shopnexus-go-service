@@ -42,9 +42,9 @@ func (s *ImplementedAccountServiceHandler) AddCartItem(ctx context.Context, req 
 
 	for _, item := range req.Msg.GetItems() {
 		_, err := s.service.AddCartItem(ctx, account.AddCartItemParams{
-			UserID:         claims.UserID,
-			ProductModelID: item.GetItemId(),
-			Quantity:       item.GetQuantity(),
+			UserID:    claims.UserID,
+			ProductID: item.GetItemId(),
+			Quantity:  item.GetQuantity(),
 		})
 		if err != nil {
 			return nil, err

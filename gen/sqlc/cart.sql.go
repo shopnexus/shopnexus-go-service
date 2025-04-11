@@ -10,21 +10,21 @@ import (
 )
 
 const addCartItem = `-- name: AddCartItem :one
-INSERT INTO "account".item_on_cart (cart_id, product_model_id, quantity)
+INSERT INTO "account".item_on_cart (cart_id, product_id, quantity)
 VALUES ($1, $2, $3)
-ON CONFLICT (cart_id, product_model_id)
+ON CONFLICT (cart_id, product_id)
 DO UPDATE SET quantity = "account".item_on_cart.quantity + $3
 RETURNING quantity
 `
 
 type AddCartItemParams struct {
-	CartID         int64
-	ProductModelID int64
-	Quantity       int64
+	CartID    int64
+	ProductID int64
+	Quantity  int64
 }
 
 func (q *Queries) AddCartItem(ctx context.Context, arg AddCartItemParams) (int64, error) {
-	row := q.db.QueryRow(ctx, addCartItem, arg.CartID, arg.ProductModelID, arg.Quantity)
+	row := q.db.QueryRow(ctx, addCartItem, arg.CartID, arg.ProductID, arg.Quantity)
 	var quantity int64
 	err := row.Scan(&quantity)
 	return quantity, err
@@ -66,7 +66,7 @@ func (q *Queries) ExistsCart(ctx context.Context, id int64) (bool, error) {
 }
 
 const getCartItems = `-- name: GetCartItems :many
-SELECT cart_id, product_model_id, quantity FROM "account".item_on_cart
+SELECT cart_id, product_id, quantity FROM "account".item_on_cart
 WHERE cart_id = $1
 `
 
@@ -79,7 +79,7 @@ func (q *Queries) GetCartItems(ctx context.Context, cartID int64) ([]AccountItem
 	var items []AccountItemOnCart
 	for rows.Next() {
 		var i AccountItemOnCart
-		if err := rows.Scan(&i.CartID, &i.ProductModelID, &i.Quantity); err != nil {
+		if err := rows.Scan(&i.CartID, &i.ProductID, &i.Quantity); err != nil {
 			return nil, err
 		}
 		items = append(items, i)
@@ -92,34 +92,34 @@ func (q *Queries) GetCartItems(ctx context.Context, cartID int64) ([]AccountItem
 
 const removeCartItem = `-- name: RemoveCartItem :exec
 DELETE FROM "account".item_on_cart
-WHERE cart_id = $1 AND product_model_id = $2
+WHERE cart_id = $1 AND product_id = $2
 `
 
 type RemoveCartItemParams struct {
-	CartID         int64
-	ProductModelID int64
+	CartID    int64
+	ProductID int64
 }
 
 func (q *Queries) RemoveCartItem(ctx context.Context, arg RemoveCartItemParams) error {
-	_, err := q.db.Exec(ctx, removeCartItem, arg.CartID, arg.ProductModelID)
+	_, err := q.db.Exec(ctx, removeCartItem, arg.CartID, arg.ProductID)
 	return err
 }
 
 const updateCartItem = `-- name: UpdateCartItem :one
 UPDATE "account".item_on_cart
 SET quantity = $3
-WHERE cart_id = $1 AND product_model_id = $2
+WHERE cart_id = $1 AND product_id = $2
 RETURNING quantity
 `
 
 type UpdateCartItemParams struct {
-	CartID         int64
-	ProductModelID int64
-	Quantity       int64
+	CartID    int64
+	ProductID int64
+	Quantity  int64
 }
 
 func (q *Queries) UpdateCartItem(ctx context.Context, arg UpdateCartItemParams) (int64, error) {
-	row := q.db.QueryRow(ctx, updateCartItem, arg.CartID, arg.ProductModelID, arg.Quantity)
+	row := q.db.QueryRow(ctx, updateCartItem, arg.CartID, arg.ProductID, arg.Quantity)
 	var quantity int64
 	err := row.Scan(&quantity)
 	return quantity, err

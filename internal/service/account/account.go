@@ -233,3 +233,6 @@ func (s *AccountService) HasPermission(ctx context.Context, params HasPermission
 
 	return true, nil
 }
+
+// TODO: add update profile (update account)
+// TODO: Làm thêm, xoá sửa địa chỉ giao hàng (get, list, update, ... full)

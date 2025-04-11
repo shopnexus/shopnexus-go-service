@@ -183,6 +183,49 @@ func (ns NullPaymentStatus) Value() (driver.Value, error) {
 	return string(ns.PaymentStatus), nil
 }
 
+type ProductCommentType string
+
+const (
+	ProductCommentTypePRODUCTMODEL ProductCommentType = "PRODUCT_MODEL"
+	ProductCommentTypeBRAND        ProductCommentType = "BRAND"
+	ProductCommentTypeCOMMENT      ProductCommentType = "COMMENT"
+)
+
+func (e *ProductCommentType) Scan(src interface{}) error {
+	switch s := src.(type) {
+	case []byte:
+		*e = ProductCommentType(s)
+	case string:
+		*e = ProductCommentType(s)
+	default:
+		return fmt.Errorf("unsupported scan type for ProductCommentType: %T", src)
+	}
+	return nil
+}
+
+type NullProductCommentType struct {
+	ProductCommentType ProductCommentType
+	Valid              bool // Valid is true if ProductCommentType is not NULL
+}
+
+// Scan implements the Scanner interface.
+func (ns *NullProductCommentType) Scan(value interface{}) error {
+	if value == nil {
+		ns.ProductCommentType, ns.Valid = "", false
+		return nil
+	}
+	ns.Valid = true
+	return ns.ProductCommentType.Scan(value)
+}
+
+// Value implements the driver Valuer interface.
+func (ns NullProductCommentType) Value() (driver.Value, error) {
+	if !ns.Valid {
+		return nil, nil
+	}
+	return string(ns.ProductCommentType), nil
+}
+
 type AccountAddress struct {
 	ID       int64
 	UserID   int64
@@ -209,9 +252,9 @@ type AccountCart struct {
 }
 
 type AccountItemOnCart struct {
-	CartID         int64
-	ProductModelID int64
-	Quantity       int64
+	CartID    int64
+	ProductID int64
+	Quantity  int64
 }
 
 type AccountPermissionOnRole struct {
@@ -296,6 +339,7 @@ type ProductBrand struct {
 
 type ProductComment struct {
 	ID          int64
+	Type        ProductCommentType
 	AccountID   int64
 	DestID      int64
 	Body        string

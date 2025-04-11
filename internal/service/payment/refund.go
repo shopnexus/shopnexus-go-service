@@ -9,6 +9,8 @@ import (
 	"shopnexus-go-service/internal/util"
 )
 
+// TODO: sửa refund là trả hàng theo product_id trong payment, thay vì nguyên cả payment
+
 type GetRefundParams struct {
 	UserID   int64
 	RefundID int64

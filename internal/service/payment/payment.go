@@ -198,6 +198,7 @@ func (s *PaymentService) CreatePayment(ctx context.Context, params CreatePayment
 			return CreatePaymentResult{}, err
 		}
 
+		// TODO: sửa lại cách tính discount: sản phẩm đắt tiền nhất sẽ đc ưu tiên áp mã giảm giá (chỉ riêng sản phẩm đó thấu trừ)
 		for _, pickProduct := range pickProducts {
 			serialIDs = append(serialIDs, pickProduct.SerialID)
 			totalPrice += productModel.ListPrice + pickProduct.AddPrice

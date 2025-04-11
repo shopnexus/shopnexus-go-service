@@ -11,6 +11,9 @@ CREATE SCHEMA IF NOT EXISTS "product";
 CREATE TYPE "account"."gender" AS ENUM ('MALE', 'FEMALE', 'OTHER');
 
 -- CreateEnum
+CREATE TYPE "product"."comment_type" AS ENUM ('PRODUCT_MODEL', 'BRAND', 'COMMENT');
+
+-- CreateEnum
 CREATE TYPE "payment"."payment_method" AS ENUM ('CASH', 'VNPAY', 'MOMO');
 
 -- CreateEnum
@@ -93,10 +96,10 @@ CREATE TABLE "account"."cart" (
 -- CreateTable
 CREATE TABLE "account"."item_on_cart" (
     "cart_id" BIGINT NOT NULL,
-    "product_model_id" BIGINT NOT NULL,
+    "product_id" BIGINT NOT NULL,
     "quantity" BIGINT NOT NULL,
 
-    CONSTRAINT "item_on_cart_pkey" PRIMARY KEY ("cart_id","product_model_id")
+    CONSTRAINT "item_on_cart_pkey" PRIMARY KEY ("cart_id","product_id")
 );
 
 -- CreateTable
@@ -124,6 +127,7 @@ CREATE TABLE "product"."model" (
 -- CreateTable
 CREATE TABLE "product"."comment" (
     "id" BIGSERIAL NOT NULL,
+    "type" "product"."comment_type" NOT NULL,
     "account_id" BIGINT NOT NULL,
     "dest_id" BIGINT NOT NULL,
     "body" TEXT NOT NULL,
@@ -300,7 +304,7 @@ ALTER TABLE "account"."cart" ADD CONSTRAINT "cart_id_fkey" FOREIGN KEY ("id") RE
 ALTER TABLE "account"."item_on_cart" ADD CONSTRAINT "item_on_cart_cart_id_fkey" FOREIGN KEY ("cart_id") REFERENCES "account"."cart"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "account"."item_on_cart" ADD CONSTRAINT "item_on_cart_product_model_id_fkey" FOREIGN KEY ("product_model_id") REFERENCES "product"."model"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+ALTER TABLE "account"."item_on_cart" ADD CONSTRAINT "item_on_cart_product_id_fkey" FOREIGN KEY ("product_id") REFERENCES "product"."base"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "product"."model" ADD CONSTRAINT "model_type_fkey" FOREIGN KEY ("type") REFERENCES "product"."type"("id") ON DELETE CASCADE ON UPDATE CASCADE;
