@@ -193,6 +193,67 @@ func (r *RepositoryImpl) CreateAccount(ctx context.Context, account model.Accoun
 	}
 }
 
+type UpdateAccountParams struct {
+	ID                   int64
+	Username             *string
+	Password             *string
+	NullCustomPermission bool
+	CustomPermission     *string
+}
+
+func (r *RepositoryImpl) UpdateAccount(ctx context.Context, params UpdateAccountParams) (model.AccountBase, error) {
+	row, err := r.sqlc.UpdateAccount(ctx, sqlc.UpdateAccountParams{
+		ID:                   params.ID,
+		Username:             *pgxutil.PtrToPgtype(&pgtype.Text{}, params.Username),
+		Password:             *pgxutil.PtrToPgtype(&pgtype.Text{}, params.Password),
+		NullCustomPermission: params.NullCustomPermission,
+		CustomPermission:     *pgxutil.PtrToPgtype(&pgtype.Bits{}, params.CustomPermission),
+	})
+	if err != nil {
+		return model.AccountBase{}, err
+	}
+
+	return model.AccountBase{
+		ID:       row.ID,
+		Role:     model.Role(row.Role),
+		Username: row.Username,
+		Password: row.Password,
+	}, nil
+}
+
+type UpdateAccountUserParams struct {
+	ID                   int64
+	Email                *string
+	Phone                *string
+	Gender               *model.Gender
+	FullName             *string
+	DefaultAddressID     *int64
+	NullDefaultAddressID bool
+}
+
+func (r *RepositoryImpl) UpdateAccountUser(ctx context.Context, params UpdateAccountUserParams) (model.AccountUser, error) {
+	row, err := r.sqlc.UpdateAccountUser(ctx, sqlc.UpdateAccountUserParams{
+		ID:                   params.ID,
+		Email:                *pgxutil.PtrToPgtype(&pgtype.Text{}, params.Email),
+		Phone:                *pgxutil.PtrToPgtype(&pgtype.Text{}, params.Phone),
+		Gender:               *pgxutil.PtrBrandedToPgType(&sqlc.NullAccountGender{}, params.Gender),
+		FullName:             *pgxutil.PtrToPgtype(&pgtype.Text{}, params.FullName),
+		DefaultAddressID:     *pgxutil.PtrToPgtype(&pgtype.Int8{}, params.DefaultAddressID),
+		NullDefaultAddressID: params.NullDefaultAddressID,
+	})
+	if err != nil {
+		return model.AccountUser{}, err
+	}
+
+	return model.AccountUser{
+		Email:            row.Email,
+		Phone:            row.Phone,
+		Gender:           model.Gender(row.Gender),
+		FullName:         row.FullName,
+		DefaultAddressID: pgxutil.PgtypeToPtr[int64](row.DefaultAddressID),
+	}, nil
+}
+
 type GetPermissionsParams struct {
 	AccountID int64
 	Role      model.Role
