@@ -16,8 +16,8 @@ func (s *ProductService) GetProductModel(ctx context.Context, id int64) (model.P
 	return productModel, nil
 }
 
-func (s *ProductService) GetProductSerialIDs(ctx context.Context, productModelID int64) ([]string, error) {
-	return s.repo.GetProductSerialIDs(ctx, productModelID)
+func (s *ProductService) GetProductSerialIDs(ctx context.Context, productID int64) ([]string, error) {
+	return s.repo.GetProductSerialIDs(ctx, productID)
 }
 
 type ListProductModelsParams = repository.ListProductModelsParams

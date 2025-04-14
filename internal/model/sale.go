@@ -16,7 +16,7 @@ type Sale struct {
 	MaxDiscountPrice int64   `json:"max_discount_price"`
 }
 
-// Apply calculates the final sale discount
+// Apply calculates the final sale discount (not the final price)
 func (s Sale) Apply(price int64) int64 {
 	var discount int64
 

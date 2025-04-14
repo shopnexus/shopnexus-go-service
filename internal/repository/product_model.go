@@ -29,8 +29,8 @@ func (r *RepositoryImpl) GetProductModel(ctx context.Context, id int64) (model.P
 	}, nil
 }
 
-func (r *RepositoryImpl) GetProductSerialIDs(ctx context.Context, productModelID int64) ([]string, error) {
-	return r.sqlc.GetProductSerialIDs(ctx, productModelID)
+func (r *RepositoryImpl) GetProductSerialIDs(ctx context.Context, productID int64) ([]string, error) {
+	return r.sqlc.GetProductSerialIDs(ctx, productID)
 }
 
 type ListProductModelsParams struct {

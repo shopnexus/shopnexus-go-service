@@ -18,7 +18,7 @@ func (s *ImplementedProductServiceHandler) GetProductModel(ctx context.Context, 
 		return nil, err
 	}
 
-	serialIds, err := s.service.GetProductSerialIDs(ctx, req.Msg.Id)
+	serialIds, err := s.service.GetProductSerialIDs(ctx, data.ID)
 	if err != nil {
 		return nil, err
 	}
