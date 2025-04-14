@@ -23,24 +23,34 @@ type Repository interface {
 	GetAccountAdmin(ctx context.Context, params GetAccountAdminParams) (model.AccountAdmin, error)
 	GetAccount(ctx context.Context, find model.Account) (model.Account, error)
 	CreateAccount(ctx context.Context, account model.Account) (model.Account, error)
+	UpdateAccount(ctx context.Context, params UpdateAccountParams) (model.AccountBase, error)
+	UpdateAccountUser(ctx context.Context, params UpdateAccountUserParams) (model.AccountUser, error)
 	GetPermissions(ctx context.Context, params GetPermissionsParams) ([]model.Permission, error)
 
+	// Address methods
+	GetAddress(ctx context.Context, params GetAddressParams) (model.Address, error)
+	CountAddresses(ctx context.Context, params ListAddressesParams) (int64, error)
+	ListAddresses(ctx context.Context, params ListAddressesParams) ([]model.Address, error)
+	CreateAddress(ctx context.Context, address model.Address) (model.Address, error)
+	UpdateAddress(ctx context.Context, params UpdateAddressParams) (model.Address, error)
+	DeleteAddress(ctx context.Context, params DeleteAddressParams) error
+
 	// Product methods
-	GetProduct(ctx context.Context, id model.ProductIdentifier) (model.Product, error)
-	GetAvailableProducts(ctx context.Context, productModelID, amount int64) ([]model.Product, error)
+	GetProduct(ctx context.Context, id int64) (model.Product, error)
+	GetAvailableProducts(ctx context.Context, productID, amount int64) ([]model.ProductSerial, error)
 	CountProducts(ctx context.Context, params ListProductsParams) (int64, error)
 	ListProducts(ctx context.Context, params ListProductsParams) ([]model.Product, error)
 	CreateProduct(ctx context.Context, product model.Product) (model.Product, error)
 	UpdateProduct(ctx context.Context, params UpdateProductParams) error
 	UpdateProductSold(ctx context.Context, ids []int64, amount int64) error
-	DeleteProduct(ctx context.Context, id model.ProductIdentifier) error
+	DeleteProduct(ctx context.Context, id int64) error
 	GetResources(ctx context.Context, ownerID int64) ([]string, error)
 	AddResources(ctx context.Context, ownerID int64, resources []string) error
 	RemoveResources(ctx context.Context, ownerID int64, resources []string) error
 
 	// Product Model methods
 	GetProductModel(ctx context.Context, id int64) (model.ProductModel, error)
-	GetProductSerialIDs(ctx context.Context, productModelID int64) ([]string, error)
+	GetProductSerialIDs(ctx context.Context, productID int64) ([]string, error)
 	CountProductModels(ctx context.Context, params ListProductModelsParams) (int64, error)
 	ListProductModels(ctx context.Context, params ListProductModelsParams) ([]model.ProductModel, error)
 	CreateProductModel(ctx context.Context, productModel model.ProductModel) (model.ProductModel, error)
@@ -84,7 +94,7 @@ type Repository interface {
 	ListRefunds(ctx context.Context, params ListRefundsParams) ([]model.Refund, error)
 	CreateRefund(ctx context.Context, refund model.Refund) (model.Refund, error)
 	UpdateRefund(ctx context.Context, params UpdateRefundParams) error
-	DeleteRefund(ctx context.Context, id int64) error
+	DeleteRefund(ctx context.Context, params DeleteRefundParams) error
 
 	// Brand methods
 	GetBrand(ctx context.Context, id int64) (model.Brand, error)
@@ -113,6 +123,15 @@ type Repository interface {
 	CreateComment(ctx context.Context, comment model.Comment) error
 	UpdateComment(ctx context.Context, params UpdateCommentParams) error
 	DeleteComment(ctx context.Context, params DeleteCommentParams) error
+
+	// Product Serial methods
+	GetProductSerial(ctx context.Context, serialID string) (model.ProductSerial, error)
+	CountProductSerials(ctx context.Context, params ListProductSerialsParams) (int64, error)
+	ListProductSerials(ctx context.Context, params ListProductSerialsParams) ([]model.ProductSerial, error)
+	CreateProductSerial(ctx context.Context, serial model.ProductSerial) (model.ProductSerial, error)
+	UpdateProductSerial(ctx context.Context, params UpdateProductSerialParams) error
+	DeleteProductSerial(ctx context.Context, serialID string) error
+	MarkProductSerialsAsSold(ctx context.Context, serialIDs []string) error
 }
 
 type RepositoryImpl struct {
