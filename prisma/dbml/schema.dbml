@@ -47,6 +47,8 @@ Table Address {
   city String [not null]
   province String [not null]
   country String [not null]
+  date_created DateTime [default: `now()`, not null]
+  date_updated DateTime [default: `now()`, not null]
 }
 
 Table Cart {
@@ -55,11 +57,11 @@ Table Cart {
 
 Table ItemOnCart {
   cart_id BigInt [not null]
-  product_model_id BigInt [not null]
+  product_id BigInt [not null]
   quantity BigInt [not null]
 
   indexes {
-    (cart_id, product_model_id) [pk]
+    (cart_id, product_id) [pk]
   }
 }
 
@@ -81,6 +83,7 @@ Table ProductModel {
 
 Table Comment {
   id BigInt [pk, increment]
+  type CommentType [not null]
   account_id BigInt [not null]
   dest_id BigInt [not null]
   body String [not null]
@@ -97,13 +100,22 @@ Table Comment {
 
 Table Product {
   id BigInt [pk, increment]
-  serial_id String [unique, not null]
   product_model_id BigInt [not null]
   quantity BigInt [not null, default: 0]
   sold BigInt [not null, default: 0]
   add_price BigInt [not null, default: 0]
   is_active Boolean [not null, default: true]
+  can_combine Boolean [not null, default: false]
   metadata Json [not null, default: '{}']
+  date_created DateTime [default: `now()`, not null]
+  date_updated DateTime [default: `now()`, not null]
+}
+
+Table ProductSerial {
+  serial_id String [unique, not null]
+  product_id BigInt [not null]
+  is_sold Boolean [not null, default: false]
+  is_active Boolean [not null, default: true]
   date_created DateTime [default: `now()`, not null]
   date_updated DateTime [default: `now()`, not null]
 }
@@ -143,15 +155,25 @@ Table Tag {
   description String [not null, default: '']
 }
 
-Table ProductOnPayment {
-  payment_id BigInt [not null]
+Table ProductSerialOnProductOnPayment {
+  product_on_payment_id BigInt [not null]
   product_serial_id String [not null]
+
+  indexes {
+    (product_on_payment_id, product_serial_id) [pk]
+  }
+}
+
+Table ProductOnPayment {
+  id BigInt [pk, increment]
+  payment_id BigInt [not null]
+  product_id BigInt [not null]
   quantity BigInt [not null]
   price BigInt [not null]
   total_price BigInt [not null]
 
   indexes {
-    (payment_id, product_serial_id) [pk]
+    (payment_id, product_id) [unique]
   }
 }
 
@@ -177,7 +199,7 @@ Table PaymentVnpay {
 
 Table Refund {
   id BigInt [pk, increment]
-  payment_id BigInt [not null]
+  product_on_payment_id BigInt [not null]
   method RefundMethod [not null]
   status Status [not null]
   reason String [not null]
@@ -201,6 +223,12 @@ Enum Gender {
   OTHER
 }
 
+Enum CommentType {
+  PRODUCT_MODEL
+  BRAND
+  COMMENT
+}
+
 Enum PaymentMethod {
   CASH
   VNPAY
@@ -215,7 +243,7 @@ Enum RefundMethod {
 Enum Status {
   PENDING
   SUCCESS
-  CANCELLED
+  CANCELED
   FAILED
 }
 
@@ -235,7 +263,7 @@ Ref: Cart.id - UserAccount.id [delete: Cascade]
 
 Ref: ItemOnCart.cart_id > Cart.id [delete: Cascade]
 
-Ref: ItemOnCart.product_model_id > ProductModel.id [delete: Cascade]
+Ref: ItemOnCart.product_id > Product.id [delete: Cascade]
 
 Ref: ProductModel.type > ProductType.id [delete: Cascade]
 
@@ -244,6 +272,8 @@ Ref: ProductModel.brand_id > Brand.id [delete: Cascade]
 Ref: Comment.account_id > Account.id [delete: Cascade]
 
 Ref: Product.product_model_id > ProductModel.id [delete: Cascade]
+
+Ref: ProductSerial.product_id > Product.id [delete: Cascade]
 
 Ref: Sale.tag > Tag.tag [delete: Cascade]
 
@@ -255,12 +285,16 @@ Ref: TagOnProductModel.product_model_id > ProductModel.id [delete: Cascade]
 
 Ref: TagOnProductModel.tag > Tag.tag [delete: Cascade]
 
+Ref: ProductSerialOnProductOnPayment.product_on_payment_id > ProductOnPayment.id [delete: Cascade]
+
+Ref: ProductSerialOnProductOnPayment.product_serial_id > ProductSerial.serial_id [delete: Cascade]
+
 Ref: ProductOnPayment.payment_id > Payment.id [delete: Cascade]
 
-Ref: ProductOnPayment.product_serial_id > Product.serial_id [delete: No Action]
+Ref: ProductOnPayment.product_id > Product.id [delete: Cascade]
 
 Ref: Payment.user_id > UserAccount.id [delete: Cascade]
 
 Ref: PaymentVnpay.id - Payment.id [delete: Cascade]
 
-Ref: Refund.payment_id > Payment.id [delete: Cascade]
+Ref: Refund.product_on_payment_id > ProductOnPayment.id [delete: Cascade]

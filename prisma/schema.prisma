@@ -95,6 +95,8 @@ model Address {
   city     String
   province String
   country  String
+  date_created DateTime @default(now()) @db.Timestamptz(3)
+  date_updated DateTime @default(now()) @db.Timestamptz(3)
 
   user_account UserAccount? @relation(fields: [user_id], references: [id], onUpdate: Cascade, onDelete: Cascade)
 
@@ -113,14 +115,14 @@ model Cart {
 }
 
 model ItemOnCart {
-  cart_id          BigInt
-  product_model_id BigInt
-  quantity         BigInt
+  cart_id    BigInt
+  product_id BigInt
+  quantity   BigInt
 
-  cart         Cart         @relation(fields: [cart_id], references: [id], onUpdate: Cascade, onDelete: Cascade)
-  productModel ProductModel @relation(fields: [product_model_id], references: [id], onUpdate: Cascade, onDelete: Cascade)
+  cart    Cart    @relation(fields: [cart_id], references: [id], onUpdate: Cascade, onDelete: Cascade)
+  product Product @relation(fields: [product_id], references: [id], onUpdate: Cascade, onDelete: Cascade)
 
-  @@id([cart_id, product_model_id])
+  @@id([cart_id, product_id])
   @@map("item_on_cart")
   @@schema("account")
 }
@@ -163,22 +165,23 @@ model ProductModel {
   tags         TagOnProductModel[]
   products     Product[]
   sales        Sale[]
-  carts        ItemOnCart[]
 
   @@map("model")
   @@schema("product")
 }
 
+// TODO: sửa comment support comment type
 model Comment {
-  id           BigInt   @id @default(autoincrement())
+  id           BigInt      @id @default(autoincrement())
+  type         CommentType
   account_id   BigInt
   dest_id      BigInt
   body         String
-  upvote       BigInt   @default(0)
-  downvote     BigInt   @default(0)
-  score        Int      @default(0)
-  date_created DateTime @default(now()) @db.Timestamptz(3)
-  date_updated DateTime @default(now()) @db.Timestamptz(3)
+  upvote       BigInt      @default(0)
+  downvote     BigInt      @default(0)
+  score        Int         @default(0)
+  date_created DateTime    @default(now()) @db.Timestamptz(3)
+  date_updated DateTime    @default(now()) @db.Timestamptz(3)
 
   account Account @relation(fields: [account_id], references: [id], onUpdate: Cascade, onDelete: Cascade)
 
@@ -189,21 +192,38 @@ model Comment {
 
 model Product {
   id               BigInt   @id @default(autoincrement())
-  serial_id        String   @unique
   product_model_id BigInt
   quantity         BigInt   @default(0)
   sold             BigInt   @default(0)
   add_price        BigInt   @default(0)
   is_active        Boolean  @default(true)
+  can_combine      Boolean  @default(false)
   metadata         Json     @default("{}") @db.JsonB
   date_created     DateTime @default(now()) @db.Timestamptz(3)
   date_updated     DateTime @default(now()) @db.Timestamptz(3)
 
-  product_model ProductModel       @relation(fields: [product_model_id], references: [id], onUpdate: Cascade, onDelete: Cascade)
-  payments      ProductOnPayment[]
+  product_model    ProductModel       @relation(fields: [product_model_id], references: [id], onUpdate: Cascade, onDelete: Cascade)
+  productSerial    ProductSerial[]
+  carts            ItemOnCart[]
+  productOnPayment ProductOnPayment[]
 
   @@index([product_model_id, sold])
   @@map("base")
+  @@schema("product")
+}
+
+model ProductSerial {
+  serial_id    String   @unique
+  product_id   BigInt
+  is_sold      Boolean  @default(false)
+  is_active    Boolean  @default(true)
+  date_created DateTime @default(now()) @db.Timestamptz(3)
+  date_updated DateTime @default(now()) @db.Timestamptz(3)
+
+  product                              Product                           @relation(fields: [product_id], references: [id], onUpdate: Cascade, onDelete: Cascade)
+  product_serial_on_product_on_payment ProductSerialOnProductOnPayment[]
+
+  @@map("serial")
   @@schema("product")
 }
 
@@ -269,19 +289,43 @@ model Tag {
   @@schema("product")
 }
 
+enum CommentType {
+  PRODUCT_MODEL
+  BRAND
+  COMMENT
+
+  @@map("comment_type")
+  @@schema("product")
+}
+
 // ===== PAYMENT =====
 
+model ProductSerialOnProductOnPayment {
+  product_on_payment_id BigInt
+  product_serial_id     String
+
+  product_on_payment ProductOnPayment @relation(fields: [product_on_payment_id], references: [id], onUpdate: Cascade, onDelete: Cascade)
+  product_serial     ProductSerial    @relation(fields: [product_serial_id], references: [serial_id], onUpdate: Cascade, onDelete: Cascade)
+
+  @@id([product_on_payment_id, product_serial_id])
+  @@map("product_serial_on_product_on_payment")
+  @@schema("payment")
+}
+
 model ProductOnPayment {
-  payment_id        BigInt
-  product_serial_id String
-  quantity          BigInt
-  price             BigInt
-  total_price       BigInt
+  id          BigInt @id @default(autoincrement())
+  payment_id  BigInt
+  product_id  BigInt
+  quantity    BigInt
+  price       BigInt
+  total_price BigInt
 
-  payment Payment @relation(fields: [payment_id], references: [id], onUpdate: Cascade, onDelete: Cascade)
-  product Product @relation(fields: [product_serial_id], references: [serial_id], onUpdate: Cascade, onDelete: NoAction)
+  product_serial ProductSerialOnProductOnPayment[]
+  refund         Refund[]
+  payment        Payment                           @relation(fields: [payment_id], references: [id], onUpdate: Cascade, onDelete: Cascade)
+  product        Product                           @relation(fields: [product_id], references: [id], onUpdate: Cascade, onDelete: Cascade)
 
-  @@id([payment_id, product_serial_id])
+  @@unique([payment_id, product_id])
   @@map("product_on_payment")
   @@schema("payment")
 }
@@ -297,7 +341,6 @@ model Payment {
 
   user_account UserAccount        @relation(fields: [user_id], references: [id], onUpdate: Cascade, onDelete: Cascade)
   products     ProductOnPayment[]
-  refunds      Refund[]
   vnpay        PaymentVnpay?
 
   @@map("base")
@@ -321,7 +364,7 @@ model PaymentVnpay {
 
 model Refund {
   id           BigInt       @id @default(autoincrement())
-  payment_id   BigInt
+  product_on_payment_id   BigInt
   method       RefundMethod
   status       Status
   reason       String
@@ -329,7 +372,7 @@ model Refund {
   date_created DateTime     @default(now()) @db.Timestamptz(3)
   date_updated DateTime     @default(now()) @db.Timestamptz(3)
 
-  payment Payment @relation(fields: [payment_id], references: [id], onUpdate: Cascade, onDelete: Cascade)
+  product_on_payment ProductOnPayment @relation(fields: [product_on_payment_id], references: [id], onUpdate: Cascade, onDelete: Cascade)
 
   @@map("refund")
   @@schema("payment")
@@ -355,7 +398,7 @@ enum RefundMethod {
 enum Status {
   PENDING
   SUCCESS
-  CANCELLED
+  CANCELED
   FAILED
 
   @@map("status")
