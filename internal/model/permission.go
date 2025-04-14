@@ -13,6 +13,10 @@ const (
 	PermissionUpdateProductModel
 	PermissionDeleteProductModel
 
+	PermissionCreateProductSerial
+	PermissionUpdateProductSerial
+	PermissionDeleteProductSerial
+
 	PermissionCreateSale
 	PermissionUpdateSale
 	PermissionDeleteSale
@@ -43,6 +47,9 @@ func GetAllPermissions() []Permission {
 		PermissionCreateProductModel,
 		PermissionUpdateProductModel,
 		PermissionDeleteProductModel,
+		PermissionCreateProductSerial,
+		PermissionUpdateProductSerial,
+		PermissionDeleteProductSerial,
 		PermissionCreateSale,
 		PermissionUpdateSale,
 		PermissionDeleteSale,
