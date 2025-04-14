@@ -96,12 +96,17 @@ func (q *Queries) CreatePayment(ctx context.Context, arg CreatePaymentParams) (P
 	return i, err
 }
 
+type CreatePaymentProductSerialsParams struct {
+	ProductOnPaymentID int64
+	ProductSerialID    string
+}
+
 type CreatePaymentProductsParams struct {
-	PaymentID       int64
-	ProductSerialID string
-	Quantity        int64
-	Price           int64
-	TotalPrice      int64
+	PaymentID  int64
+	ProductID  int64
+	Quantity   int64
+	Price      int64
+	TotalPrice int64
 }
 
 const deletePayment = `-- name: DeletePayment :exec
@@ -167,39 +172,62 @@ func (q *Queries) GetPayment(ctx context.Context, arg GetPaymentParams) (Payment
 	return i, err
 }
 
+const getPaymentProductSerials = `-- name: GetPaymentProductSerials :many
+SELECT ps.serial_id, ps.product_id, ps.is_sold, ps.is_active, ps.date_created, ps.date_updated
+FROM payment.product_serial_on_product_on_payment psopop
+INNER JOIN product.serial ps ON ps.serial_id = psopop.product_serial_id
+WHERE psopop.product_on_payment_id = $1
+`
+
+func (q *Queries) GetPaymentProductSerials(ctx context.Context, productOnPaymentID int64) ([]ProductSerial, error) {
+	rows, err := q.db.Query(ctx, getPaymentProductSerials, productOnPaymentID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []ProductSerial
+	for rows.Next() {
+		var i ProductSerial
+		if err := rows.Scan(
+			&i.SerialID,
+			&i.ProductID,
+			&i.IsSold,
+			&i.IsActive,
+			&i.DateCreated,
+			&i.DateUpdated,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const getPaymentProducts = `-- name: GetPaymentProducts :many
-SELECT pop.payment_id, pop.product_serial_id, pop.quantity, pop.price, pop.total_price, pm.id as product_model_id
+SELECT pop.id, pop.payment_id, pop.product_id, pop.quantity, pop.price, pop.total_price
 FROM payment.product_on_payment pop
-INNER JOIN product.base p ON pop.product_serial_id = p.serial_id
-INNER JOIN product.model pm ON p.product_model_id = pm.id
 WHERE pop.payment_id = $1
 `
 
-type GetPaymentProductsRow struct {
-	PaymentID       int64
-	ProductSerialID string
-	Quantity        int64
-	Price           int64
-	TotalPrice      int64
-	ProductModelID  int64
-}
-
-func (q *Queries) GetPaymentProducts(ctx context.Context, paymentID int64) ([]GetPaymentProductsRow, error) {
+func (q *Queries) GetPaymentProducts(ctx context.Context, paymentID int64) ([]PaymentProductOnPayment, error) {
 	rows, err := q.db.Query(ctx, getPaymentProducts, paymentID)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	var items []GetPaymentProductsRow
+	var items []PaymentProductOnPayment
 	for rows.Next() {
-		var i GetPaymentProductsRow
+		var i PaymentProductOnPayment
 		if err := rows.Scan(
+			&i.ID,
 			&i.PaymentID,
-			&i.ProductSerialID,
+			&i.ProductID,
 			&i.Quantity,
 			&i.Price,
 			&i.TotalPrice,
-			&i.ProductModelID,
 		); err != nil {
 			return nil, err
 		}

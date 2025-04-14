@@ -31,21 +31,24 @@ const countProducts = `-- name: CountProducts :one
 SELECT COUNT(id)
 FROM product.base
 WHERE (
-    (product_model_id = $1 OR $1 IS NULL) AND
-    (quantity >= $2 OR $2 IS NULL) AND
-    (quantity <= $3 OR $3 IS NULL) AND
-    (sold >= $4 OR $4 IS NULL) AND
-    (sold <= $5 OR $5 IS NULL) AND
-    (add_price >= $6 OR $6 IS NULL) AND
-    (add_price <= $7 OR $7 IS NULL) AND
-    (is_active = $8 OR $8 IS NULL) AND
-    (metadata @> $9 OR $9 IS NULL) AND
-    (date_created >= $10 OR $10 IS NULL) AND
-    (date_created <= $11 OR $11 IS NULL)
+    (id = $1 OR $1 IS NULL) AND
+    (product_model_id = $2 OR $2 IS NULL) AND
+    (quantity >= $3 OR $3 IS NULL) AND
+    (quantity <= $4 OR $4 IS NULL) AND
+    (sold >= $5 OR $5 IS NULL) AND
+    (sold <= $6 OR $6 IS NULL) AND
+    (add_price >= $7 OR $7 IS NULL) AND
+    (add_price <= $8 OR $8 IS NULL) AND
+    (is_active = $9 OR $9 IS NULL) AND
+    (can_combine = $10 OR $10 IS NULL) AND
+    (metadata @> $11 OR $11 IS NULL) AND
+    (date_created >= $12 OR $12 IS NULL) AND
+    (date_created <= $13 OR $13 IS NULL)
 )
 `
 
 type CountProductsParams struct {
+	ID              pgtype.Int8
 	ProductModelID  pgtype.Int8
 	QuantityFrom    pgtype.Int8
 	QuantityTo      pgtype.Int8
@@ -54,6 +57,7 @@ type CountProductsParams struct {
 	AddPriceFrom    pgtype.Int8
 	AddPriceTo      pgtype.Int8
 	IsActive        pgtype.Bool
+	CanCombine      pgtype.Bool
 	Metadata        []byte
 	DateCreatedFrom pgtype.Timestamptz
 	DateCreatedTo   pgtype.Timestamptz
@@ -61,6 +65,7 @@ type CountProductsParams struct {
 
 func (q *Queries) CountProducts(ctx context.Context, arg CountProductsParams) (int64, error) {
 	row := q.db.QueryRow(ctx, countProducts,
+		arg.ID,
 		arg.ProductModelID,
 		arg.QuantityFrom,
 		arg.QuantityTo,
@@ -69,6 +74,7 @@ func (q *Queries) CountProducts(ctx context.Context, arg CountProductsParams) (i
 		arg.AddPriceFrom,
 		arg.AddPriceTo,
 		arg.IsActive,
+		arg.CanCombine,
 		arg.Metadata,
 		arg.DateCreatedFrom,
 		arg.DateCreatedTo,
@@ -81,15 +87,15 @@ func (q *Queries) CountProducts(ctx context.Context, arg CountProductsParams) (i
 const createProduct = `-- name: CreateProduct :one
 WITH inserted_product AS (
     INSERT INTO product.base (
-        serial_id,
         product_model_id,
         quantity,
         sold,
         add_price,
-        is_active,
+        is_active,  
+        can_combine,
         metadata
     ) VALUES ($1, $2, $3, $4, $5, $6, $7)
-    RETURNING id, serial_id, product_model_id, quantity, sold, add_price, is_active, metadata, date_created, date_updated
+    RETURNING id, product_model_id, quantity, sold, add_price, is_active, can_combine, metadata, date_created, date_updated
 ),
 inserted_resources AS (
     INSERT INTO product.resource (owner_id, url)
@@ -105,12 +111,12 @@ GROUP BY p.id
 `
 
 type CreateProductParams struct {
-	SerialID       string
 	ProductModelID int64
 	Quantity       int64
 	Sold           int64
 	AddPrice       int64
 	IsActive       bool
+	CanCombine     bool
 	Metadata       []byte
 	Resources      []string
 }
@@ -122,12 +128,12 @@ type CreateProductRow struct {
 
 func (q *Queries) CreateProduct(ctx context.Context, arg CreateProductParams) (CreateProductRow, error) {
 	row := q.db.QueryRow(ctx, createProduct,
-		arg.SerialID,
 		arg.ProductModelID,
 		arg.Quantity,
 		arg.Sold,
 		arg.AddPrice,
 		arg.IsActive,
+		arg.CanCombine,
 		arg.Metadata,
 		arg.Resources,
 	)
@@ -137,111 +143,49 @@ func (q *Queries) CreateProduct(ctx context.Context, arg CreateProductParams) (C
 }
 
 const deleteProduct = `-- name: DeleteProduct :exec
-DELETE FROM product.base WHERE (
-    id = $1 OR 
-    serial_id = $2
-)
+DELETE FROM product.base WHERE id = $1
 `
 
-type DeleteProductParams struct {
-	ID       pgtype.Int8
-	SerialID pgtype.Text
-}
-
-func (q *Queries) DeleteProduct(ctx context.Context, arg DeleteProductParams) error {
-	_, err := q.db.Exec(ctx, deleteProduct, arg.ID, arg.SerialID)
+func (q *Queries) DeleteProduct(ctx context.Context, id int64) error {
+	_, err := q.db.Exec(ctx, deleteProduct, id)
 	return err
-}
-
-const getAvailableProducts = `-- name: GetAvailableProducts :many
-SELECT id, serial_id, product_model_id, quantity, sold, add_price, is_active, metadata, date_created, date_updated
-FROM product.base
-WHERE (
-    product_model_id = $1 AND
-    sold + $2 <= quantity
-)
-LIMIT $2
-`
-
-type GetAvailableProductsParams struct {
-	ProductModelID int64
-	Amount         int32
-}
-
-func (q *Queries) GetAvailableProducts(ctx context.Context, arg GetAvailableProductsParams) ([]ProductBase, error) {
-	rows, err := q.db.Query(ctx, getAvailableProducts, arg.ProductModelID, arg.Amount)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-	var items []ProductBase
-	for rows.Next() {
-		var i ProductBase
-		if err := rows.Scan(
-			&i.ID,
-			&i.SerialID,
-			&i.ProductModelID,
-			&i.Quantity,
-			&i.Sold,
-			&i.AddPrice,
-			&i.IsActive,
-			&i.Metadata,
-			&i.DateCreated,
-			&i.DateUpdated,
-		); err != nil {
-			return nil, err
-		}
-		items = append(items, i)
-	}
-	if err := rows.Err(); err != nil {
-		return nil, err
-	}
-	return items, nil
 }
 
 const getProduct = `-- name: GetProduct :one
 SELECT 
-    p.id, p.serial_id, p.product_model_id, p.quantity, p.sold, p.add_price, p.is_active, p.metadata, p.date_created, p.date_updated,
+    p.id, p.product_model_id, p.quantity, p.sold, p.add_price, p.is_active, p.can_combine, p.metadata, p.date_created, p.date_updated,
     COALESCE(array_agg(DISTINCT res.url) FILTER (WHERE res.url IS NOT NULL), '{}')::text[] as resources
 FROM product.base p
 LEFT JOIN product.resource res ON res.owner_id = p.id
-WHERE (
-    id = $1 OR 
-    serial_id = $2
-)
+WHERE id = $1
 GROUP BY p.id
 `
 
-type GetProductParams struct {
-	ID       pgtype.Int8
-	SerialID pgtype.Text
-}
-
 type GetProductRow struct {
 	ID             int64
-	SerialID       string
 	ProductModelID int64
 	Quantity       int64
 	Sold           int64
 	AddPrice       int64
 	IsActive       bool
+	CanCombine     bool
 	Metadata       []byte
 	DateCreated    pgtype.Timestamptz
 	DateUpdated    pgtype.Timestamptz
 	Resources      []string
 }
 
-func (q *Queries) GetProduct(ctx context.Context, arg GetProductParams) (GetProductRow, error) {
-	row := q.db.QueryRow(ctx, getProduct, arg.ID, arg.SerialID)
+func (q *Queries) GetProduct(ctx context.Context, id int64) (GetProductRow, error) {
+	row := q.db.QueryRow(ctx, getProduct, id)
 	var i GetProductRow
 	err := row.Scan(
 		&i.ID,
-		&i.SerialID,
 		&i.ProductModelID,
 		&i.Quantity,
 		&i.Sold,
 		&i.AddPrice,
 		&i.IsActive,
+		&i.CanCombine,
 		&i.Metadata,
 		&i.DateCreated,
 		&i.DateUpdated,
@@ -278,30 +222,33 @@ func (q *Queries) GetResources(ctx context.Context, ownerID int64) ([]string, er
 
 const listProducts = `-- name: ListProducts :many
 SELECT
-    p.id, p.serial_id, p.product_model_id, p.quantity, p.sold, p.add_price, p.is_active, p.metadata, p.date_created, p.date_updated,
+    p.id, p.product_model_id, p.quantity, p.sold, p.add_price, p.is_active, p.can_combine, p.metadata, p.date_created, p.date_updated,
     COALESCE(array_agg(DISTINCT res.url) FILTER (WHERE res.url IS NOT NULL), '{}')::text[] as resources
 FROM product.base p
 LEFT JOIN product.resource res ON res.owner_id = p.id
 WHERE (
-    (product_model_id = $1 OR $1 IS NULL) AND
-    (quantity >= $2 OR $2 IS NULL) AND
-    (quantity <= $3 OR $3 IS NULL) AND
-    (sold >= $4 OR $4 IS NULL) AND
-    (sold <= $5 OR $5 IS NULL) AND
-    (add_price >= $6 OR $6 IS NULL) AND
-    (add_price <= $7 OR $7 IS NULL) AND
-    (is_active = $8 OR $8 IS NULL) AND
-    (metadata @> $9 OR $9 IS NULL) AND
-    (date_created >= $10 OR $10 IS NULL) AND
-    (date_created <= $11 OR $11 IS NULL)
+    (id = $1 OR $1 IS NULL) AND
+    (product_model_id = $2 OR $2 IS NULL) AND
+    (quantity >= $3 OR $3 IS NULL) AND
+    (quantity <= $4 OR $4 IS NULL) AND
+    (sold >= $5 OR $5 IS NULL) AND
+    (sold <= $6 OR $6 IS NULL) AND
+    (add_price >= $7 OR $7 IS NULL) AND
+    (add_price <= $8 OR $8 IS NULL) AND
+    (is_active = $9 OR $9 IS NULL) AND
+    (can_combine = $10 OR $10 IS NULL) AND
+    (metadata @> $11 OR $11 IS NULL) AND
+    (date_created >= $12 OR $12 IS NULL) AND
+    (date_created <= $13 OR $13 IS NULL)
 )
 GROUP BY p.id
 ORDER BY date_created DESC
-LIMIT $13
-OFFSET $12
+LIMIT $15
+OFFSET $14
 `
 
 type ListProductsParams struct {
+	ID              pgtype.Int8
 	ProductModelID  pgtype.Int8
 	QuantityFrom    pgtype.Int8
 	QuantityTo      pgtype.Int8
@@ -310,6 +257,7 @@ type ListProductsParams struct {
 	AddPriceFrom    pgtype.Int8
 	AddPriceTo      pgtype.Int8
 	IsActive        pgtype.Bool
+	CanCombine      pgtype.Bool
 	Metadata        []byte
 	DateCreatedFrom pgtype.Timestamptz
 	DateCreatedTo   pgtype.Timestamptz
@@ -319,12 +267,12 @@ type ListProductsParams struct {
 
 type ListProductsRow struct {
 	ID             int64
-	SerialID       string
 	ProductModelID int64
 	Quantity       int64
 	Sold           int64
 	AddPrice       int64
 	IsActive       bool
+	CanCombine     bool
 	Metadata       []byte
 	DateCreated    pgtype.Timestamptz
 	DateUpdated    pgtype.Timestamptz
@@ -333,6 +281,7 @@ type ListProductsRow struct {
 
 func (q *Queries) ListProducts(ctx context.Context, arg ListProductsParams) ([]ListProductsRow, error) {
 	rows, err := q.db.Query(ctx, listProducts,
+		arg.ID,
 		arg.ProductModelID,
 		arg.QuantityFrom,
 		arg.QuantityTo,
@@ -341,6 +290,7 @@ func (q *Queries) ListProducts(ctx context.Context, arg ListProductsParams) ([]L
 		arg.AddPriceFrom,
 		arg.AddPriceTo,
 		arg.IsActive,
+		arg.CanCombine,
 		arg.Metadata,
 		arg.DateCreatedFrom,
 		arg.DateCreatedTo,
@@ -356,12 +306,12 @@ func (q *Queries) ListProducts(ctx context.Context, arg ListProductsParams) ([]L
 		var i ListProductsRow
 		if err := rows.Scan(
 			&i.ID,
-			&i.SerialID,
 			&i.ProductModelID,
 			&i.Quantity,
 			&i.Sold,
 			&i.AddPrice,
 			&i.IsActive,
+			&i.CanCombine,
 			&i.Metadata,
 			&i.DateCreated,
 			&i.DateUpdated,
@@ -395,11 +345,11 @@ func (q *Queries) RemoveResources(ctx context.Context, arg RemoveResourcesParams
 const updateProduct = `-- name: UpdateProduct :exec
 UPDATE product.base
 SET
-    serial_id = COALESCE($2, serial_id),
-    product_model_id = COALESCE($3, product_model_id),
-    quantity = COALESCE($4, quantity),
-    sold = COALESCE($5, sold),
-    add_price = COALESCE($6, add_price),
+    product_model_id = COALESCE($2, product_model_id),
+    quantity = COALESCE($3, quantity),
+    sold = COALESCE($4, sold),
+    add_price = COALESCE($5, add_price),
+    can_combine = COALESCE($6, can_combine),
     is_active = COALESCE($7, is_active),
     metadata = COALESCE($8, metadata)
 WHERE id = $1
@@ -407,11 +357,11 @@ WHERE id = $1
 
 type UpdateProductParams struct {
 	ID             int64
-	SerialID       pgtype.Text
 	ProductModelID pgtype.Int8
 	Quantity       pgtype.Int8
 	Sold           pgtype.Int8
 	AddPrice       pgtype.Int8
+	CanCombine     pgtype.Bool
 	IsActive       pgtype.Bool
 	Metadata       []byte
 }
@@ -419,11 +369,11 @@ type UpdateProductParams struct {
 func (q *Queries) UpdateProduct(ctx context.Context, arg UpdateProductParams) error {
 	_, err := q.db.Exec(ctx, updateProduct,
 		arg.ID,
-		arg.SerialID,
 		arg.ProductModelID,
 		arg.Quantity,
 		arg.Sold,
 		arg.AddPrice,
+		arg.CanCombine,
 		arg.IsActive,
 		arg.Metadata,
 	)
@@ -435,8 +385,8 @@ UPDATE product.base
 SET
     sold = sold + $1
 WHERE
-id = ANY($2::bigint[]) AND 
-sold + $1 <= quantity
+    (id = ANY($2::bigint[])) AND 
+    (sold + $1 <= quantity)
 `
 
 type UpdateProductSoldParams struct {

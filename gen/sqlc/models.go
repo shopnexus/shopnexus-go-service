@@ -142,10 +142,10 @@ func (ns NullPaymentRefundMethod) Value() (driver.Value, error) {
 type PaymentStatus string
 
 const (
-	PaymentStatusPENDING   PaymentStatus = "PENDING"
-	PaymentStatusSUCCESS   PaymentStatus = "SUCCESS"
-	PaymentStatusCANCELLED PaymentStatus = "CANCELLED"
-	PaymentStatusFAILED    PaymentStatus = "FAILED"
+	PaymentStatusPENDING  PaymentStatus = "PENDING"
+	PaymentStatusSUCCESS  PaymentStatus = "SUCCESS"
+	PaymentStatusCANCELED PaymentStatus = "CANCELED"
+	PaymentStatusFAILED   PaymentStatus = "FAILED"
 )
 
 func (e *PaymentStatus) Scan(src interface{}) error {
@@ -183,13 +183,58 @@ func (ns NullPaymentStatus) Value() (driver.Value, error) {
 	return string(ns.PaymentStatus), nil
 }
 
+type ProductCommentType string
+
+const (
+	ProductCommentTypePRODUCTMODEL ProductCommentType = "PRODUCT_MODEL"
+	ProductCommentTypeBRAND        ProductCommentType = "BRAND"
+	ProductCommentTypeCOMMENT      ProductCommentType = "COMMENT"
+)
+
+func (e *ProductCommentType) Scan(src interface{}) error {
+	switch s := src.(type) {
+	case []byte:
+		*e = ProductCommentType(s)
+	case string:
+		*e = ProductCommentType(s)
+	default:
+		return fmt.Errorf("unsupported scan type for ProductCommentType: %T", src)
+	}
+	return nil
+}
+
+type NullProductCommentType struct {
+	ProductCommentType ProductCommentType
+	Valid              bool // Valid is true if ProductCommentType is not NULL
+}
+
+// Scan implements the Scanner interface.
+func (ns *NullProductCommentType) Scan(value interface{}) error {
+	if value == nil {
+		ns.ProductCommentType, ns.Valid = "", false
+		return nil
+	}
+	ns.Valid = true
+	return ns.ProductCommentType.Scan(value)
+}
+
+// Value implements the driver Valuer interface.
+func (ns NullProductCommentType) Value() (driver.Value, error) {
+	if !ns.Valid {
+		return nil, nil
+	}
+	return string(ns.ProductCommentType), nil
+}
+
 type AccountAddress struct {
-	ID       int64
-	UserID   int64
-	Address  string
-	City     string
-	Province string
-	Country  string
+	ID          int64
+	UserID      int64
+	Address     string
+	City        string
+	Province    string
+	Country     string
+	DateCreated pgtype.Timestamptz
+	DateUpdated pgtype.Timestamptz
 }
 
 type AccountAdmin struct {
@@ -209,9 +254,9 @@ type AccountCart struct {
 }
 
 type AccountItemOnCart struct {
-	CartID         int64
-	ProductModelID int64
-	Quantity       int64
+	CartID    int64
+	ProductID int64
+	Quantity  int64
 }
 
 type AccountPermissionOnRole struct {
@@ -247,22 +292,28 @@ type PaymentBase struct {
 }
 
 type PaymentProductOnPayment struct {
-	PaymentID       int64
-	ProductSerialID string
-	Quantity        int64
-	Price           int64
-	TotalPrice      int64
+	ID         int64
+	PaymentID  int64
+	ProductID  int64
+	Quantity   int64
+	Price      int64
+	TotalPrice int64
+}
+
+type PaymentProductSerialOnProductOnPayment struct {
+	ProductOnPaymentID int64
+	ProductSerialID    string
 }
 
 type PaymentRefund struct {
-	ID          int64
-	PaymentID   int64
-	Method      PaymentRefundMethod
-	Status      PaymentStatus
-	Reason      string
-	Address     string
-	DateCreated pgtype.Timestamptz
-	DateUpdated pgtype.Timestamptz
+	ID                 int64
+	ProductOnPaymentID int64
+	Method             PaymentRefundMethod
+	Status             PaymentStatus
+	Reason             string
+	Address            string
+	DateCreated        pgtype.Timestamptz
+	DateUpdated        pgtype.Timestamptz
 }
 
 type PaymentVnpay struct {
@@ -277,12 +328,12 @@ type PaymentVnpay struct {
 
 type ProductBase struct {
 	ID             int64
-	SerialID       string
 	ProductModelID int64
 	Quantity       int64
 	Sold           int64
 	AddPrice       int64
 	IsActive       bool
+	CanCombine     bool
 	Metadata       []byte
 	DateCreated    pgtype.Timestamptz
 	DateUpdated    pgtype.Timestamptz
@@ -296,6 +347,7 @@ type ProductBrand struct {
 
 type ProductComment struct {
 	ID          int64
+	Type        ProductCommentType
 	AccountID   int64
 	DestID      int64
 	Body        string
@@ -335,6 +387,15 @@ type ProductSale struct {
 	DiscountPercent  pgtype.Int4
 	DiscountPrice    pgtype.Int8
 	MaxDiscountPrice int64
+}
+
+type ProductSerial struct {
+	SerialID    string
+	ProductID   int64
+	IsSold      bool
+	IsActive    bool
+	DateCreated pgtype.Timestamptz
+	DateUpdated pgtype.Timestamptz
 }
 
 type ProductTag struct {

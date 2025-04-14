@@ -181,12 +181,12 @@ func (q *Queries) GetProductModel(ctx context.Context, id int64) (GetProductMode
 
 const getProductSerialIDs = `-- name: GetProductSerialIDs :many
 SELECT serial_id
-FROM product.base
-WHERE product_model_id = $1
+FROM product.serial
+WHERE product_id = $1
 `
 
-func (q *Queries) GetProductSerialIDs(ctx context.Context, productModelID int64) ([]string, error) {
-	rows, err := q.db.Query(ctx, getProductSerialIDs, productModelID)
+func (q *Queries) GetProductSerialIDs(ctx context.Context, productID int64) ([]string, error) {
+	rows, err := q.db.Query(ctx, getProductSerialIDs, productID)
 	if err != nil {
 		return nil, err
 	}

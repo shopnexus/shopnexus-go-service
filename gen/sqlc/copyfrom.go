@@ -9,6 +9,39 @@ import (
 	"context"
 )
 
+// iteratorForCreatePaymentProductSerials implements pgx.CopyFromSource.
+type iteratorForCreatePaymentProductSerials struct {
+	rows                 []CreatePaymentProductSerialsParams
+	skippedFirstNextCall bool
+}
+
+func (r *iteratorForCreatePaymentProductSerials) Next() bool {
+	if len(r.rows) == 0 {
+		return false
+	}
+	if !r.skippedFirstNextCall {
+		r.skippedFirstNextCall = true
+		return true
+	}
+	r.rows = r.rows[1:]
+	return len(r.rows) > 0
+}
+
+func (r iteratorForCreatePaymentProductSerials) Values() ([]interface{}, error) {
+	return []interface{}{
+		r.rows[0].ProductOnPaymentID,
+		r.rows[0].ProductSerialID,
+	}, nil
+}
+
+func (r iteratorForCreatePaymentProductSerials) Err() error {
+	return nil
+}
+
+func (q *Queries) CreatePaymentProductSerials(ctx context.Context, arg []CreatePaymentProductSerialsParams) (int64, error) {
+	return q.db.CopyFrom(ctx, []string{"payment", "product_serial_on_product_on_payment"}, []string{"product_on_payment_id", "product_serial_id"}, &iteratorForCreatePaymentProductSerials{rows: arg})
+}
+
 // iteratorForCreatePaymentProducts implements pgx.CopyFromSource.
 type iteratorForCreatePaymentProducts struct {
 	rows                 []CreatePaymentProductsParams
@@ -30,7 +63,7 @@ func (r *iteratorForCreatePaymentProducts) Next() bool {
 func (r iteratorForCreatePaymentProducts) Values() ([]interface{}, error) {
 	return []interface{}{
 		r.rows[0].PaymentID,
-		r.rows[0].ProductSerialID,
+		r.rows[0].ProductID,
 		r.rows[0].Quantity,
 		r.rows[0].Price,
 		r.rows[0].TotalPrice,
@@ -42,5 +75,5 @@ func (r iteratorForCreatePaymentProducts) Err() error {
 }
 
 func (q *Queries) CreatePaymentProducts(ctx context.Context, arg []CreatePaymentProductsParams) (int64, error) {
-	return q.db.CopyFrom(ctx, []string{"payment", "product_on_payment"}, []string{"payment_id", "product_serial_id", "quantity", "price", "total_price"}, &iteratorForCreatePaymentProducts{rows: arg})
+	return q.db.CopyFrom(ctx, []string{"payment", "product_on_payment"}, []string{"payment_id", "product_id", "quantity", "price", "total_price"}, &iteratorForCreatePaymentProducts{rows: arg})
 }

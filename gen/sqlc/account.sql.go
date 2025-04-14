@@ -246,3 +246,84 @@ func (q *Queries) GetRolePermissions(ctx context.Context, name string) (pgtype.B
 	err := row.Scan(&permission)
 	return permission, err
 }
+
+const updateAccount = `-- name: UpdateAccount :one
+UPDATE "account".base
+SET 
+  username = COALESCE($2, username),
+  password = COALESCE($3, password),
+  custom_permission = CASE WHEN $4 = TRUE THEN NULL ELSE COALESCE($5, custom_permission) END
+WHERE id = $1
+RETURNING id, username, password, role, custom_permission
+`
+
+type UpdateAccountParams struct {
+	ID                   int64
+	Username             pgtype.Text
+	Password             pgtype.Text
+	NullCustomPermission interface{}
+	CustomPermission     pgtype.Bits
+}
+
+func (q *Queries) UpdateAccount(ctx context.Context, arg UpdateAccountParams) (AccountBase, error) {
+	row := q.db.QueryRow(ctx, updateAccount,
+		arg.ID,
+		arg.Username,
+		arg.Password,
+		arg.NullCustomPermission,
+		arg.CustomPermission,
+	)
+	var i AccountBase
+	err := row.Scan(
+		&i.ID,
+		&i.Username,
+		&i.Password,
+		&i.Role,
+		&i.CustomPermission,
+	)
+	return i, err
+}
+
+const updateAccountUser = `-- name: UpdateAccountUser :one
+UPDATE "account".user
+SET 
+  email = COALESCE($2, email),
+  phone = COALESCE($3, phone),
+  gender = COALESCE($4, gender),
+  full_name = COALESCE($5, full_name),
+  default_address_id = CASE WHEN $6 = TRUE THEN NULL ELSE COALESCE($7, default_address_id) END
+WHERE id = $1
+RETURNING id, email, phone, gender, full_name, default_address_id
+`
+
+type UpdateAccountUserParams struct {
+	ID                   int64
+	Email                pgtype.Text
+	Phone                pgtype.Text
+	Gender               NullAccountGender
+	FullName             pgtype.Text
+	NullDefaultAddressID interface{}
+	DefaultAddressID     pgtype.Int8
+}
+
+func (q *Queries) UpdateAccountUser(ctx context.Context, arg UpdateAccountUserParams) (AccountUser, error) {
+	row := q.db.QueryRow(ctx, updateAccountUser,
+		arg.ID,
+		arg.Email,
+		arg.Phone,
+		arg.Gender,
+		arg.FullName,
+		arg.NullDefaultAddressID,
+		arg.DefaultAddressID,
+	)
+	var i AccountUser
+	err := row.Scan(
+		&i.ID,
+		&i.Email,
+		&i.Phone,
+		&i.Gender,
+		&i.FullName,
+		&i.DefaultAddressID,
+	)
+	return i, err
+}
