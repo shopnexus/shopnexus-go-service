@@ -55,15 +55,15 @@ func (s *ImplementedPaymentServiceHandler) ListRefunds(ctx context.Context, req 
 			Page:  req.Msg.GetPagination().GetPage(),
 			Limit: req.Msg.GetPagination().GetLimit(),
 		},
-		AccountID:       claims.UserID,
-		Role:            claims.Role,
-		PaymentID:       req.Msg.PaymentId,
-		Method:          method,
-		Status:          status,
-		Reason:          req.Msg.Reason,
-		Address:         req.Msg.Address,
-		DateCreatedFrom: req.Msg.DateCreatedFrom,
-		DateCreatedTo:   req.Msg.DateCreatedTo,
+		AccountID:          claims.UserID,
+		Role:               claims.Role,
+		ProductOnPaymentID: req.Msg.ProductOnPaymentId,
+		Method:             method,
+		Status:             status,
+		Reason:             req.Msg.Reason,
+		Address:            req.Msg.Address,
+		DateCreatedFrom:    req.Msg.DateCreatedFrom,
+		DateCreatedTo:      req.Msg.DateCreatedTo,
 	})
 	if err != nil {
 		return nil, err
@@ -88,12 +88,12 @@ func (s *ImplementedPaymentServiceHandler) CreateRefund(ctx context.Context, req
 	}
 
 	refund, err := s.service.CreateRefund(ctx, payment.CreateRefundParams{
-		UserID:    claims.UserID,
-		PaymentID: req.Msg.PaymentId,
-		Method:    convertRefundMethod(req.Msg.Method),
-		Reason:    req.Msg.Reason,
-		Address:   req.Msg.Address,
-		Resources: req.Msg.Resources,
+		UserID:             claims.UserID,
+		ProductOnPaymentID: req.Msg.ProductOnPaymentId,
+		Method:             convertRefundMethod(req.Msg.Method),
+		Reason:             req.Msg.Reason,
+		Address:            req.Msg.Address,
+		Resources:          req.Msg.Resources,
 	})
 	if err != nil {
 		return nil, err
@@ -123,12 +123,13 @@ func (s *ImplementedPaymentServiceHandler) UpdateRefund(ctx context.Context, req
 	}
 
 	err = s.service.UpdateRefund(ctx, payment.UpdateRefundParams{
-		ID:      req.Msg.Id,
-		UserID:  claims.UserID,
-		Method:  method,
-		Status:  status,
-		Reason:  req.Msg.Reason,
-		Address: req.Msg.Address,
+		ID:        req.Msg.Id,
+		UserID:    claims.UserID,
+		Method:    method,
+		Status:    status,
+		Reason:    req.Msg.Reason,
+		Address:   req.Msg.Address,
+		Resources: req.Msg.Resources,
 	})
 	if err != nil {
 		return nil, err

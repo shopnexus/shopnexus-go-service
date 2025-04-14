@@ -28,15 +28,15 @@ func (s *PaymentService) GetRefund(ctx context.Context, params GetRefundParams) 
 
 type ListRefundsParams struct {
 	model.PaginationParams
-	AccountID       int64
-	Role            model.Role
-	PaymentID       *int64
-	Method          *model.RefundMethod
-	Status          *model.Status
-	Reason          *string
-	Address         *string
-	DateCreatedFrom *int64
-	DateCreatedTo   *int64
+	AccountID          int64
+	Role               model.Role
+	ProductOnPaymentID *int64
+	Method             *model.RefundMethod
+	Status             *model.Status
+	Reason             *string
+	Address            *string
+	DateCreatedFrom    *int64
+	DateCreatedTo      *int64
 }
 
 func (s *PaymentService) ListRefunds(ctx context.Context, params ListRefundsParams) (result model.PaginateResult[model.Refund], err error) {
@@ -45,13 +45,13 @@ func (s *PaymentService) ListRefunds(ctx context.Context, params ListRefundsPara
 			Page:  params.Page,
 			Limit: params.Limit,
 		},
-		PaymentID:       params.PaymentID,
-		Method:          params.Method,
-		Status:          params.Status,
-		Reason:          params.Reason,
-		Address:         params.Address,
-		DateCreatedFrom: params.DateCreatedFrom,
-		DateCreatedTo:   params.DateCreatedTo,
+		ProductOnPaymentID: params.ProductOnPaymentID,
+		Method:             params.Method,
+		Status:             params.Status,
+		Reason:             params.Reason,
+		Address:            params.Address,
+		DateCreatedFrom:    params.DateCreatedFrom,
+		DateCreatedTo:      params.DateCreatedTo,
 	}
 
 	// User only can see their own refunds
@@ -80,12 +80,12 @@ func (s *PaymentService) ListRefunds(ctx context.Context, params ListRefundsPara
 }
 
 type CreateRefundParams struct {
-	UserID    int64
-	PaymentID int64
-	Method    model.RefundMethod
-	Reason    string
-	Address   string
-	Resources []string
+	UserID             int64
+	ProductOnPaymentID int64
+	Method             model.RefundMethod
+	Reason             string
+	Address            string
+	Resources          []string
 }
 
 func (s *PaymentService) CreateRefund(ctx context.Context, params CreateRefundParams) (model.Refund, error) {
@@ -105,39 +105,30 @@ func (s *PaymentService) CreateRefund(ctx context.Context, params CreateRefundPa
 		return model.Refund{}, fmt.Errorf("address is required for refund method pick_up %w", model.ErrMalformedParams)
 	}
 
-	// Payment must exist and is successful
-	existsPayment, err := txRepo.ExistsPayment(ctx, repository.GetPaymentParams{
-		ID:     params.PaymentID,
-		UserID: &params.UserID,
-		Status: util.ToPtr(model.StatusSuccess),
+	// Check if refund is allowed
+	canRefund, err := txRepo.CanRefund(ctx, repository.CanRefundParams{
+		ProductOnPaymentID: params.ProductOnPaymentID,
+		UserID:             &params.UserID,
 	})
 	if err != nil {
 		return model.Refund{}, err
 	}
-	if !existsPayment {
-		return model.Refund{}, fmt.Errorf("payment %d not found", params.PaymentID)
-	}
-
-	// Check if there is an existing refund for the payment
-	existsRefund, err := txRepo.ExistsRefund(ctx, repository.ExistsRefundParams{
-		PaymentID: params.PaymentID,
-		UserID:    params.UserID,
-	})
-	if err != nil {
-		return model.Refund{}, err
-	}
-	if existsRefund {
-		return model.Refund{}, fmt.Errorf("refund for payment %d already exists and is pending or resolved", params.PaymentID)
+	if !canRefund {
+		return model.Refund{}, fmt.Errorf("refund for payment product %d is not allowed", params.ProductOnPaymentID)
 	}
 
 	refund, err := txRepo.CreateRefund(ctx, model.Refund{
-		PaymentID: params.PaymentID,
-		Method:    params.Method,
-		Status:    model.StatusPending,
-		Reason:    params.Reason,
-		Address:   params.Address,
+		ProductOnPaymentID: params.ProductOnPaymentID,
+		Method:             params.Method,
+		Status:             model.StatusPending,
+		Reason:             params.Reason,
+		Address:            params.Address,
 	})
 	if err != nil {
+		return model.Refund{}, err
+	}
+
+	if err = txRepo.AddResources(ctx, refund.ID, params.Resources); err != nil {
 		return model.Refund{}, err
 	}
 
@@ -149,12 +140,13 @@ func (s *PaymentService) CreateRefund(ctx context.Context, params CreateRefundPa
 }
 
 type UpdateRefundParams struct {
-	ID      int64
-	UserID  int64
-	Method  *model.RefundMethod
-	Status  *model.Status
-	Reason  *string
-	Address *string
+	ID        int64
+	UserID    int64
+	Method    *model.RefundMethod
+	Status    *model.Status
+	Reason    *string
+	Address   *string
+	Resources []string
 }
 
 func (s *PaymentService) UpdateRefund(ctx context.Context, params UpdateRefundParams) error {
@@ -194,6 +186,19 @@ func (s *PaymentService) UpdateRefund(ctx context.Context, params UpdateRefundPa
 	}
 
 	if err = txRepo.UpdateRefund(ctx, repoParams); err != nil {
+		return err
+	}
+
+	current, err := txRepo.GetResources(ctx, params.ID)
+	if err != nil {
+		return err
+	}
+
+	added, removed := util.Diff(current, params.Resources)
+	if err := txRepo.AddResources(ctx, params.ID, added); err != nil {
+		return err
+	}
+	if err := txRepo.RemoveResources(ctx, params.ID, removed); err != nil {
 		return err
 	}
 
