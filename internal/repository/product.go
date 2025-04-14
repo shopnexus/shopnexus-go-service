@@ -16,27 +16,20 @@ type ProductIdentifierPg struct {
 	SerialID pgtype.Text
 }
 
-func ToPgtype(p model.ProductIdentifier) ProductIdentifierPg {
-	return ProductIdentifierPg{
-		ID:       *pgxutil.PtrToPgtype(&pgtype.Int8{}, p.ID),
-		SerialID: *pgxutil.PtrToPgtype(&pgtype.Text{}, p.SerialID),
-	}
-}
-
-func (r *RepositoryImpl) GetProduct(ctx context.Context, id model.ProductIdentifier) (model.Product, error) {
-	row, err := r.sqlc.GetProduct(ctx, sqlc.GetProductParams(ToPgtype(id)))
+func (r *RepositoryImpl) GetProduct(ctx context.Context, id int64) (model.Product, error) {
+	row, err := r.sqlc.GetProduct(ctx, id)
 	if err != nil {
 		return model.Product{}, err
 	}
 
 	return model.Product{
 		ID:             row.ID,
-		SerialID:       row.SerialID,
 		ProductModelID: row.ProductModelID,
 		Quantity:       row.Quantity,
 		Sold:           row.Sold,
 		AddPrice:       row.AddPrice,
 		IsActive:       row.IsActive,
+		CanCombine:     row.CanCombine,
 		Metadata:       row.Metadata,
 		DateCreated:    row.DateCreated.Time.UnixMilli(),
 		DateUpdated:    row.DateUpdated.Time.UnixMilli(),
@@ -44,36 +37,9 @@ func (r *RepositoryImpl) GetProduct(ctx context.Context, id model.ProductIdentif
 	}, nil
 }
 
-func (r *RepositoryImpl) GetAvailableProducts(ctx context.Context, productModelID, amount int64) ([]model.Product, error) {
-	rows, err := r.sqlc.GetAvailableProducts(ctx, sqlc.GetAvailableProductsParams{
-		ProductModelID: productModelID,
-		Amount:         int32(amount),
-	})
-	if err != nil {
-		return nil, err
-	}
-
-	result := make([]model.Product, len(rows))
-	for i, row := range rows {
-		result[i] = model.Product{
-			ID:             row.ID,
-			SerialID:       row.SerialID,
-			ProductModelID: row.ProductModelID,
-			Quantity:       row.Quantity,
-			Sold:           row.Sold,
-			AddPrice:       row.AddPrice,
-			IsActive:       row.IsActive,
-			Metadata:       row.Metadata,
-			DateCreated:    row.DateCreated.Time.UnixMilli(),
-			DateUpdated:    row.DateUpdated.Time.UnixMilli(),
-		}
-	}
-
-	return result, nil
-}
-
 type ListProductsParams struct {
 	model.PaginationParams
+	ID              *int64
 	ProductModelID  *int64
 	QuantityFrom    *int64
 	QuantityTo      *int64
@@ -82,6 +48,7 @@ type ListProductsParams struct {
 	AddPriceFrom    *int64
 	AddPriceTo      *int64
 	IsActive        *bool
+	CanCombine      *bool
 	Metadata        []byte
 	DateCreatedFrom *int64
 	DateCreatedTo   *int64
@@ -89,6 +56,7 @@ type ListProductsParams struct {
 
 func (r *RepositoryImpl) CountProducts(ctx context.Context, params ListProductsParams) (int64, error) {
 	return r.sqlc.CountProducts(ctx, sqlc.CountProductsParams{
+		ID:              *pgxutil.PtrToPgtype(&pgtype.Int8{}, params.ID),
 		ProductModelID:  *pgxutil.PtrToPgtype(&pgtype.Int8{}, params.ProductModelID),
 		QuantityFrom:    *pgxutil.PtrToPgtype(&pgtype.Int8{}, params.QuantityFrom),
 		QuantityTo:      *pgxutil.PtrToPgtype(&pgtype.Int8{}, params.QuantityTo),
@@ -97,6 +65,7 @@ func (r *RepositoryImpl) CountProducts(ctx context.Context, params ListProductsP
 		AddPriceFrom:    *pgxutil.PtrToPgtype(&pgtype.Int8{}, params.AddPriceFrom),
 		AddPriceTo:      *pgxutil.PtrToPgtype(&pgtype.Int8{}, params.AddPriceTo),
 		IsActive:        *pgxutil.PtrToPgtype(&pgtype.Bool{}, params.IsActive),
+		CanCombine:      *pgxutil.PtrToPgtype(&pgtype.Bool{}, params.CanCombine),
 		Metadata:        params.Metadata,
 		DateCreatedFrom: *pgxutil.PtrToPgtype(&pgtype.Timestamptz{}, util.PtrMilisToTime(params.DateCreatedFrom)),
 		DateCreatedTo:   *pgxutil.PtrToPgtype(&pgtype.Timestamptz{}, util.PtrMilisToTime(params.DateCreatedTo)),
@@ -107,6 +76,7 @@ func (r *RepositoryImpl) ListProducts(ctx context.Context, params ListProductsPa
 	products, err := r.sqlc.ListProducts(ctx, sqlc.ListProductsParams{
 		Offset:          params.Offset(),
 		Limit:           params.Limit,
+		ID:              *pgxutil.PtrToPgtype(&pgtype.Int8{}, params.ID),
 		ProductModelID:  *pgxutil.PtrToPgtype(&pgtype.Int8{}, params.ProductModelID),
 		QuantityFrom:    *pgxutil.PtrToPgtype(&pgtype.Int8{}, params.QuantityFrom),
 		QuantityTo:      *pgxutil.PtrToPgtype(&pgtype.Int8{}, params.QuantityTo),
@@ -115,6 +85,7 @@ func (r *RepositoryImpl) ListProducts(ctx context.Context, params ListProductsPa
 		AddPriceFrom:    *pgxutil.PtrToPgtype(&pgtype.Int8{}, params.AddPriceFrom),
 		AddPriceTo:      *pgxutil.PtrToPgtype(&pgtype.Int8{}, params.AddPriceTo),
 		IsActive:        *pgxutil.PtrToPgtype(&pgtype.Bool{}, params.IsActive),
+		CanCombine:      *pgxutil.PtrToPgtype(&pgtype.Bool{}, params.CanCombine),
 		Metadata:        params.Metadata,
 		DateCreatedFrom: *pgxutil.PtrToPgtype(&pgtype.Timestamptz{}, util.PtrMilisToTime(params.DateCreatedFrom)),
 		DateCreatedTo:   *pgxutil.PtrToPgtype(&pgtype.Timestamptz{}, util.PtrMilisToTime(params.DateCreatedTo)),
@@ -127,12 +98,12 @@ func (r *RepositoryImpl) ListProducts(ctx context.Context, params ListProductsPa
 	for i, product := range products {
 		result[i] = model.Product{
 			ID:             product.ID,
-			SerialID:       product.SerialID,
 			ProductModelID: product.ProductModelID,
 			Quantity:       product.Quantity,
 			Sold:           product.Sold,
 			AddPrice:       product.AddPrice,
 			IsActive:       product.IsActive,
+			CanCombine:     product.CanCombine,
 			Metadata:       product.Metadata,
 			DateCreated:    product.DateCreated.Time.UnixMilli(),
 			DateUpdated:    product.DateUpdated.Time.UnixMilli(),
@@ -145,11 +116,11 @@ func (r *RepositoryImpl) ListProducts(ctx context.Context, params ListProductsPa
 
 func (r *RepositoryImpl) CreateProduct(ctx context.Context, product model.Product) (model.Product, error) {
 	row, err := r.sqlc.CreateProduct(ctx, sqlc.CreateProductParams{
-		SerialID:       product.SerialID,
 		ProductModelID: product.ProductModelID,
 		Quantity:       product.Quantity,
 		Sold:           product.Sold,
 		AddPrice:       product.AddPrice,
+		CanCombine:     product.CanCombine,
 		IsActive:       product.IsActive,
 		Metadata:       product.Metadata,
 		Resources:      product.Resources,
@@ -160,12 +131,12 @@ func (r *RepositoryImpl) CreateProduct(ctx context.Context, product model.Produc
 
 	return model.Product{
 		ID:             row.ID,
-		SerialID:       product.SerialID,
 		ProductModelID: product.ProductModelID,
 		Quantity:       product.Quantity,
 		Sold:           product.Sold,
 		AddPrice:       product.AddPrice,
 		IsActive:       product.IsActive,
+		CanCombine:     product.CanCombine,
 		Metadata:       product.Metadata,
 		DateCreated:    time.Now().UnixMilli(),
 		DateUpdated:    time.Now().UnixMilli(),
@@ -175,11 +146,11 @@ func (r *RepositoryImpl) CreateProduct(ctx context.Context, product model.Produc
 
 type UpdateProductParams struct {
 	ID             int64
-	SerialID       *string
 	ProductModelID *int64
 	Quantity       *int64
 	Sold           *int64
 	AddPrice       *int64
+	CanCombine     *bool
 	IsActive       *bool
 	Metadata       []byte
 }
@@ -187,11 +158,11 @@ type UpdateProductParams struct {
 func (r *RepositoryImpl) UpdateProduct(ctx context.Context, params UpdateProductParams) error {
 	return r.sqlc.UpdateProduct(ctx, sqlc.UpdateProductParams{
 		ID:             params.ID,
-		SerialID:       *pgxutil.PtrToPgtype(&pgtype.Text{}, params.SerialID),
 		ProductModelID: *pgxutil.PtrToPgtype(&pgtype.Int8{}, params.ProductModelID),
 		Quantity:       *pgxutil.PtrToPgtype(&pgtype.Int8{}, params.Quantity),
 		Sold:           *pgxutil.PtrToPgtype(&pgtype.Int8{}, params.Sold),
 		AddPrice:       *pgxutil.PtrToPgtype(&pgtype.Int8{}, params.AddPrice),
+		CanCombine:     *pgxutil.PtrToPgtype(&pgtype.Bool{}, params.CanCombine),
 		IsActive:       *pgxutil.PtrToPgtype(&pgtype.Bool{}, params.IsActive),
 		Metadata:       params.Metadata,
 	})
@@ -204,8 +175,8 @@ func (r *RepositoryImpl) UpdateProductSold(ctx context.Context, ids []int64, amo
 	})
 }
 
-func (r *RepositoryImpl) DeleteProduct(ctx context.Context, id model.ProductIdentifier) error {
-	return r.sqlc.DeleteProduct(ctx, sqlc.DeleteProductParams(ToPgtype(id)))
+func (r *RepositoryImpl) DeleteProduct(ctx context.Context, id int64) error {
+	return r.sqlc.DeleteProduct(ctx, id)
 }
 
 func (r *RepositoryImpl) GetResources(ctx context.Context, ownerID int64) ([]string, error) {

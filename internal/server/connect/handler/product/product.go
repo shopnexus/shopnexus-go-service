@@ -26,10 +26,7 @@ func NewProductServiceHandler(service *product.ProductService, opts ...connect.H
 }
 
 func (s *ImplementedProductServiceHandler) GetProduct(ctx context.Context, req *connect.Request[productv1.GetProductRequest]) (*connect.Response[productv1.GetProductResponse], error) {
-	data, err := s.service.GetProduct(ctx, model.ProductIdentifier{
-		ID:       req.Msg.Id,
-		SerialID: req.Msg.SerialId,
-	})
+	data, err := s.service.GetProduct(ctx, req.Msg.Id)
 	if err != nil {
 		return nil, err
 	}
@@ -74,7 +71,6 @@ func (s *ImplementedProductServiceHandler) ListProducts(ctx context.Context, req
 
 func (s *ImplementedProductServiceHandler) CreateProduct(ctx context.Context, req *connect.Request[productv1.CreateProductRequest]) (*connect.Response[productv1.CreateProductResponse], error) {
 	data, err := s.service.CreateProduct(ctx, model.Product{
-		SerialID:       req.Msg.SerialId,
 		ProductModelID: req.Msg.ProductModelId,
 		Quantity:       req.Msg.Quantity,
 		AddPrice:       req.Msg.AddPrice,
@@ -95,7 +91,6 @@ func (s *ImplementedProductServiceHandler) UpdateProduct(ctx context.Context, re
 	err := s.service.UpdateProduct(ctx, product.UpdateProductParams{
 		RepoParams: repository.UpdateProductParams{
 			ID:             req.Msg.GetId(),
-			SerialID:       req.Msg.SerialId,
 			ProductModelID: req.Msg.ProductModelId,
 			Quantity:       req.Msg.Quantity,
 			Sold:           req.Msg.Sold,
@@ -113,10 +108,7 @@ func (s *ImplementedProductServiceHandler) UpdateProduct(ctx context.Context, re
 }
 
 func (s *ImplementedProductServiceHandler) DeleteProduct(ctx context.Context, req *connect.Request[productv1.DeleteProductRequest]) (*connect.Response[productv1.DeleteProductResponse], error) {
-	err := s.service.DeleteProduct(ctx, model.ProductIdentifier{
-		ID:       req.Msg.Id,
-		SerialID: req.Msg.SerialId,
-	})
+	err := s.service.DeleteProduct(ctx, req.Msg.Id)
 	if err != nil {
 		return nil, err
 	}
@@ -127,7 +119,6 @@ func (s *ImplementedProductServiceHandler) DeleteProduct(ctx context.Context, re
 func modelToProductEntity(data model.Product) *productv1.ProductEntity {
 	return &productv1.ProductEntity{
 		Id:             data.ID,
-		SerialId:       data.SerialID,
 		ProductModelId: data.ProductModelID,
 		Quantity:       data.Quantity,
 		Sold:           data.Sold,

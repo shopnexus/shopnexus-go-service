@@ -4,27 +4,31 @@ import (
 	"context"
 	"shopnexus-go-service/internal/model"
 	"shopnexus-go-service/internal/repository"
+	"shopnexus-go-service/internal/service/account"
 	"shopnexus-go-service/internal/util"
 )
 
 type ProductService struct {
-	repo repository.Repository
+	repo       repository.Repository
+	accountSvc account.AccountServiceInterface
 }
 
 var _ ProductServiceInterface = (*ProductService)(nil)
 
-func NewProductService(repo repository.Repository) *ProductService {
+func NewProductService(repo repository.Repository, accountSvc account.AccountServiceInterface) *ProductService {
 	return &ProductService{
-		repo: repo,
+		repo:       repo,
+		accountSvc: accountSvc,
 	}
 }
 
 func (s *ProductService) WithTx(txRepo repository.Repository) *ProductService {
-	return NewProductService(txRepo)
+	//TODO: Use WithTX to all injected service
+	return NewProductService(txRepo, s.accountSvc.WithTx(txRepo))
 }
 
-func (s *ProductService) GetProduct(ctx context.Context, params model.ProductIdentifier) (model.Product, error) {
-	return s.repo.GetProduct(ctx, params)
+func (s *ProductService) GetProduct(ctx context.Context, id int64) (model.Product, error) {
+	return s.repo.GetProduct(ctx, id)
 }
 
 type ListProductsParams = repository.ListProductsParams
@@ -118,8 +122,8 @@ func (s *ProductService) UpdateProductSold(ctx context.Context, params UpdatePro
 	return nil
 }
 
-func (s *ProductService) DeleteProduct(ctx context.Context, params model.ProductIdentifier) error {
-	return s.repo.DeleteProduct(ctx, params)
+func (s *ProductService) DeleteProduct(ctx context.Context, id int64) error {
+	return s.repo.DeleteProduct(ctx, id)
 }
 
 type ProductServiceInterface interface {
@@ -136,11 +140,18 @@ type ProductServiceInterface interface {
 	DeleteProductModel(ctx context.Context, id int64) error
 	ListProductTypes(ctx context.Context, params ListProductTypesParams) ([]model.ProductType, error)
 
-	GetProduct(ctx context.Context, params model.ProductIdentifier) (model.Product, error)
+	GetProduct(ctx context.Context, id int64) (model.Product, error)
 	ListProducts(ctx context.Context, params ListProductsParams) (model.PaginateResult[model.Product], error)
 	CreateProduct(ctx context.Context, product model.Product) (model.Product, error)
 	UpdateProduct(ctx context.Context, params UpdateProductParams) error
-	DeleteProduct(ctx context.Context, params model.ProductIdentifier) error
+	DeleteProduct(ctx context.Context, id int64) error
+
+	GetProductSerial(ctx context.Context, serialID string) (model.ProductSerial, error)
+	ListProductSerials(ctx context.Context, params ListProductSerialsParams) (model.PaginateResult[model.ProductSerial], error)
+	CreateProductSerial(ctx context.Context, serial model.ProductSerial) (model.ProductSerial, error)
+	UpdateProductSerial(ctx context.Context, params UpdateProductSerialParams) error
+	DeleteProductSerial(ctx context.Context, params DeleteProductSerialPParams) error
+	MarkProductSerialsAsSold(ctx context.Context, serialIDs []string) error
 
 	GetSale(ctx context.Context, id int64) (model.Sale, error)
 	ListSales(ctx context.Context, params ListSalesParams) (model.PaginateResult[model.Sale], error)
