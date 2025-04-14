@@ -24,8 +24,7 @@ func (s *ImplementedProductServiceHandler) GetProductModel(ctx context.Context, 
 	}
 
 	return connect.NewResponse(&productv1.GetProductModelResponse{
-		Data:      modelToProductModelEntity(data),
-		SerialIds: serialIds,
+		Data: modelToProductModelEntity(data, serialIds),
 	}), nil
 }
 
@@ -50,7 +49,11 @@ func (s *ImplementedProductServiceHandler) ListProductModels(ctx context.Context
 
 	var models []*productv1.ProductModelEntity
 	for _, d := range data.Data {
-		models = append(models, modelToProductModelEntity(d))
+		serialIds, err := s.service.GetProductSerialIDs(ctx, d.ID)
+		if err != nil {
+			return nil, err
+		}
+		models = append(models, modelToProductModelEntity(d, serialIds))
 	}
 
 	return connect.NewResponse(&productv1.ListProductModelsResponse{
@@ -76,8 +79,13 @@ func (s *ImplementedProductServiceHandler) CreateProductModel(ctx context.Contex
 		return nil, err
 	}
 
+	serialIds, err := s.service.GetProductSerialIDs(ctx, data.ID)
+	if err != nil {
+		return nil, err
+	}
+
 	return connect.NewResponse(&productv1.CreateProductModelResponse{
-		Data: modelToProductModelEntity(data),
+		Data: modelToProductModelEntity(data, serialIds),
 	}), nil
 }
 
@@ -133,7 +141,7 @@ func (s *ImplementedProductServiceHandler) ListProductTypes(ctx context.Context,
 	}), nil
 }
 
-func modelToProductModelEntity(data model.ProductModel) *productv1.ProductModelEntity {
+func modelToProductModelEntity(data model.ProductModel, serialIds []string) *productv1.ProductModelEntity {
 	return &productv1.ProductModelEntity{
 		Id:               data.ID,
 		Type:             data.Type,
@@ -144,6 +152,7 @@ func modelToProductModelEntity(data model.ProductModel) *productv1.ProductModelE
 		DateManufactured: data.DateManufactured,
 		Resources:        data.Resources,
 		Tags:             data.Tags,
+		SerialIds:        serialIds,
 	}
 }
 

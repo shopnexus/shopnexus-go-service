@@ -11,6 +11,7 @@ GROUP BY c.id;
 SELECT COUNT(id) FROM product.comment
 WHERE
     (account_id = sqlc.narg('account_id') OR sqlc.narg('account_id') IS NULL) AND
+    (type = sqlc.narg('type') OR sqlc.narg('type') IS NULL) AND
     (dest_id = sqlc.narg('dest_id') OR sqlc.narg('dest_id') IS NULL) AND
     (sqlc.narg('body') ILIKE '%' || sqlc.narg('body') || '%' OR sqlc.narg('body') IS NULL) AND
     (upvote >= sqlc.narg('upvote_from') OR sqlc.narg('upvote_from') IS NULL) AND
@@ -30,6 +31,7 @@ FROM product.comment c
 LEFT JOIN product.resource res ON c.id = res.owner_id
 WHERE
     (account_id = sqlc.narg('account_id') OR sqlc.narg('account_id') IS NULL) AND
+    (type = sqlc.narg('type') OR sqlc.narg('type') IS NULL) AND
     (dest_id = sqlc.narg('dest_id') OR sqlc.narg('dest_id') IS NULL) AND
     (sqlc.narg('body') ILIKE '%' || sqlc.narg('body') || '%' OR sqlc.narg('body') IS NULL) AND
     (upvote >= sqlc.narg('upvote_from') OR sqlc.narg('upvote_from') IS NULL) AND
@@ -48,9 +50,9 @@ OFFSET sqlc.arg('offset');
 
 -- name: CreateComment :exec
 INSERT INTO product.comment (
-    account_id, dest_id, body, upvote, downvote, score
+    account_id, type, dest_id, body, upvote, downvote, score
 ) VALUES (
-    $1, $2, $3, $4, $5, $6
+    $1, $2, $3, $4, $5, $6, $7
 );
 
 -- name: UpdateComment :exec

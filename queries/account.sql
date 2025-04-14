@@ -68,7 +68,8 @@ UPDATE "account".base
 SET 
   username = COALESCE(sqlc.narg('username'), username),
   password = COALESCE(sqlc.narg('password'), password),
-  custom_permission = CASE WHEN sqlc.narg('null_custom_permission') = TRUE THEN NULL ELSE COALESCE(sqlc.narg('custom_permission'), custom_permission) END
+  custom_permission = CASE WHEN sqlc.narg('null_custom_permission') = TRUE THEN NULL ELSE COALESCE(sqlc.narg('custom_permission'), custom_permission) END,
+  avatar_url = COALESCE(sqlc.narg('avatar_url'), avatar_url)
 WHERE id = $1
 RETURNING *;
 

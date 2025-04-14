@@ -8,6 +8,7 @@ Table Account {
   password String [not null]
   role String [not null]
   custom_permission String
+  avatar_url String
 }
 
 Table Role {

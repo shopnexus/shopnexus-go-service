@@ -29,6 +29,7 @@ CREATE TABLE "account"."base" (
     "password" VARCHAR(100) NOT NULL,
     "role" VARCHAR(50) NOT NULL,
     "custom_permission" VARBIT(100),
+    "avatar_url" VARCHAR(255),
 
     CONSTRAINT "base_pkey" PRIMARY KEY ("id")
 );

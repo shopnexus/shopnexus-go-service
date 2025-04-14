@@ -6,6 +6,7 @@ import (
 	"shopnexus-go-service/internal/model"
 	"shopnexus-go-service/internal/server/connect/interceptor/auth"
 	"shopnexus-go-service/internal/service/account"
+	"shopnexus-go-service/internal/util"
 
 	"connectrpc.com/connect"
 	accountv1 "github.com/shopnexus/shopnexus-protobuf-gen-go/pb/account/v1"
@@ -44,12 +45,36 @@ func (s *ImplementedAccountServiceHandler) GetUser(ctx context.Context, req *con
 	}
 
 	return connect.NewResponse(&accountv1.GetUserResponse{
+		Id:               user.ID,
 		Email:            user.Username,
 		Phone:            user.Phone,
 		Username:         user.Username,
 		Gender:           convertGenderToProto(user.Gender),
 		FullName:         user.FullName,
 		DefaultAddressId: user.DefaultAddressID,
+		Avatar:           user.Avatar,
+	}), nil
+}
+
+func (s *ImplementedAccountServiceHandler) GetUserPublic(ctx context.Context, req *connect.Request[accountv1.GetUserPublicRequest]) (*connect.Response[accountv1.GetUserPublicResponse], error) {
+	account, err := s.service.FindAccount(ctx, account.FindAccountParams{
+		Role:   model.RoleUser,
+		UserID: &req.Msg.Id,
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	user, ok := account.(model.AccountUser)
+	if !ok {
+		return nil, model.ErrForbidden
+	}
+
+	return connect.NewResponse(&accountv1.GetUserPublicResponse{
+		Id:       user.ID,
+		Username: user.Username,
+		FullName: user.FullName,
+		Avatar:   user.Avatar,
 	}), nil
 }
 
@@ -121,6 +146,71 @@ func (s *ImplementedAccountServiceHandler) RegisterAdmin(ctx context.Context, re
 	}
 
 	return connect.NewResponse(&accountv1.RegisterAdminResponse{Token: token}), nil
+}
+
+func (s *ImplementedAccountServiceHandler) UpdateAccount(ctx context.Context, req *connect.Request[accountv1.UpdateAccountRequest]) (*connect.Response[accountv1.UpdateAccountResponse], error) {
+	claims, err := auth.GetClaims(req)
+	if err != nil {
+		return nil, err
+	}
+
+	var (
+		accountID int64
+	)
+	if req.Msg.Id != nil {
+		accountID = *req.Msg.Id
+	} else {
+		accountID = claims.UserID
+	}
+
+	// TODO: check permission on update account & update user (add permission too)
+	_, err = s.service.UpdateAccount(ctx, account.UpdateAccountParams{
+		ID:                   accountID,
+		Username:             req.Msg.Username,
+		Password:             req.Msg.Password,
+		NullCustomPermission: req.Msg.NullCustomPermission,
+		CustomPermission:     req.Msg.CustomPermission,
+		AvatarURL:            req.Msg.Avatar,
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	return connect.NewResponse(&accountv1.UpdateAccountResponse{}), nil
+}
+
+func (s *ImplementedAccountServiceHandler) UpdateUser(ctx context.Context, req *connect.Request[accountv1.UpdateUserRequest]) (*connect.Response[accountv1.UpdateUserResponse], error) {
+	claims, err := auth.GetClaims(req)
+	if err != nil {
+		return nil, err
+	}
+
+	var (
+		accountID int64
+		gender    *model.Gender
+	)
+	if req.Msg.Gender != nil {
+		gender = util.ToPtr(convertGender(*req.Msg.Gender))
+	}
+	if req.Msg.Id != nil {
+		accountID = *req.Msg.Id
+	} else {
+		accountID = claims.UserID
+	}
+
+	_, err = s.service.UpdateAccountUser(ctx, account.UpdateAccountUserParams{
+		ID:               accountID,
+		Email:            req.Msg.Email,
+		Phone:            req.Msg.Phone,
+		Gender:           gender,
+		FullName:         req.Msg.FullName,
+		DefaultAddressID: req.Msg.DefaultAddressId,
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	return connect.NewResponse(&accountv1.UpdateUserResponse{}), nil
 }
 
 func convertGender(protoGender accountv1.Gender) model.Gender {

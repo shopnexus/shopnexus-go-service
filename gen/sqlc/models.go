@@ -247,6 +247,7 @@ type AccountBase struct {
 	Password         string
 	Role             string
 	CustomPermission pgtype.Bits
+	AvatarUrl        pgtype.Text
 }
 
 type AccountCart struct {

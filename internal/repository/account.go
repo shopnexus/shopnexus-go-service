@@ -22,6 +22,7 @@ func (r *RepositoryImpl) GetAccountBase(ctx context.Context, accountID int64) (m
 		Username: baseRow.Username,
 		Password: baseRow.Password,
 		Role:     model.Role(baseRow.Role),
+		Avatar:   pgxutil.PgtypeToPtr[string](baseRow.AvatarUrl),
 	}, nil
 }
 
@@ -49,6 +50,7 @@ func (r *RepositoryImpl) GetAccountUser(ctx context.Context, params GetAccountUs
 			Username: userRow.Username,
 			Password: userRow.Password,
 			Role:     model.Role(userRow.Role),
+			Avatar:   pgxutil.PgtypeToPtr[string](userRow.AvatarUrl),
 		},
 		Email:            userRow.Email,
 		Phone:            userRow.Phone,
@@ -78,6 +80,7 @@ func (r *RepositoryImpl) GetAccountAdmin(ctx context.Context, params GetAccountA
 			Username: adminRow.Username,
 			Password: adminRow.Password,
 			Role:     model.Role(adminRow.Role),
+			Avatar:   pgxutil.PgtypeToPtr[string](adminRow.AvatarUrl),
 		},
 	}, nil
 }
@@ -165,6 +168,7 @@ func (r *RepositoryImpl) CreateAccount(ctx context.Context, account model.Accoun
 				Username: account.Username,
 				Password: account.Password,
 				Role:     model.RoleUser,
+				Avatar:   account.Avatar,
 			},
 			Email:    account.Email,
 			Phone:    account.Phone,
@@ -186,6 +190,7 @@ func (r *RepositoryImpl) CreateAccount(ctx context.Context, account model.Accoun
 				Username: account.Username,
 				Password: account.Password,
 				Role:     model.RoleAdmin,
+				Avatar:   account.Avatar,
 			},
 		}, nil
 	default:
@@ -199,6 +204,7 @@ type UpdateAccountParams struct {
 	Password             *string
 	NullCustomPermission bool
 	CustomPermission     *string
+	AvatarURL            *string
 }
 
 func (r *RepositoryImpl) UpdateAccount(ctx context.Context, params UpdateAccountParams) (model.AccountBase, error) {
@@ -208,6 +214,7 @@ func (r *RepositoryImpl) UpdateAccount(ctx context.Context, params UpdateAccount
 		Password:             *pgxutil.PtrToPgtype(&pgtype.Text{}, params.Password),
 		NullCustomPermission: params.NullCustomPermission,
 		CustomPermission:     *pgxutil.PtrToPgtype(&pgtype.Bits{}, params.CustomPermission),
+		AvatarUrl:            *pgxutil.PtrToPgtype(&pgtype.Text{}, params.AvatarURL),
 	})
 	if err != nil {
 		return model.AccountBase{}, err
@@ -218,6 +225,7 @@ func (r *RepositoryImpl) UpdateAccount(ctx context.Context, params UpdateAccount
 		Role:     model.Role(row.Role),
 		Username: row.Username,
 		Password: row.Password,
+		Avatar:   pgxutil.PgtypeToPtr[string](row.AvatarUrl),
 	}, nil
 }
 

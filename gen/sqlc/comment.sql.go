@@ -15,20 +15,22 @@ const countComments = `-- name: CountComments :one
 SELECT COUNT(id) FROM product.comment
 WHERE
     (account_id = $1 OR $1 IS NULL) AND
-    (dest_id = $2 OR $2 IS NULL) AND
-    ($3 ILIKE '%' || $3 || '%' OR $3 IS NULL) AND
-    (upvote >= $4 OR $4 IS NULL) AND
-    (upvote <= $5 OR $5 IS NULL) AND
-    (downvote >= $6 OR $6 IS NULL) AND
-    (downvote <= $7 OR $7 IS NULL) AND
-    (score >= $8 OR $8 IS NULL) AND
-    (score <= $9 OR $9 IS NULL) AND
-    (date_created >= $10 OR $10 IS NULL) AND
-    (date_created <= $11 OR $11 IS NULL)
+    (type = $2 OR $2 IS NULL) AND
+    (dest_id = $3 OR $3 IS NULL) AND
+    ($4 ILIKE '%' || $4 || '%' OR $4 IS NULL) AND
+    (upvote >= $5 OR $5 IS NULL) AND
+    (upvote <= $6 OR $6 IS NULL) AND
+    (downvote >= $7 OR $7 IS NULL) AND
+    (downvote <= $8 OR $8 IS NULL) AND
+    (score >= $9 OR $9 IS NULL) AND
+    (score <= $10 OR $10 IS NULL) AND
+    (date_created >= $11 OR $11 IS NULL) AND
+    (date_created <= $12 OR $12 IS NULL)
 `
 
 type CountCommentsParams struct {
 	AccountID     pgtype.Int8
+	Type          NullProductCommentType
 	DestID        pgtype.Int8
 	Body          interface{}
 	UpvoteFrom    pgtype.Int8
@@ -44,6 +46,7 @@ type CountCommentsParams struct {
 func (q *Queries) CountComments(ctx context.Context, arg CountCommentsParams) (int64, error) {
 	row := q.db.QueryRow(ctx, countComments,
 		arg.AccountID,
+		arg.Type,
 		arg.DestID,
 		arg.Body,
 		arg.UpvoteFrom,
@@ -62,14 +65,15 @@ func (q *Queries) CountComments(ctx context.Context, arg CountCommentsParams) (i
 
 const createComment = `-- name: CreateComment :exec
 INSERT INTO product.comment (
-    account_id, dest_id, body, upvote, downvote, score
+    account_id, type, dest_id, body, upvote, downvote, score
 ) VALUES (
-    $1, $2, $3, $4, $5, $6
+    $1, $2, $3, $4, $5, $6, $7
 )
 `
 
 type CreateCommentParams struct {
 	AccountID int64
+	Type      ProductCommentType
 	DestID    int64
 	Body      string
 	Upvote    int64
@@ -80,6 +84,7 @@ type CreateCommentParams struct {
 func (q *Queries) CreateComment(ctx context.Context, arg CreateCommentParams) error {
 	_, err := q.db.Exec(ctx, createComment,
 		arg.AccountID,
+		arg.Type,
 		arg.DestID,
 		arg.Body,
 		arg.Upvote,
@@ -158,24 +163,26 @@ FROM product.comment c
 LEFT JOIN product.resource res ON c.id = res.owner_id
 WHERE
     (account_id = $1 OR $1 IS NULL) AND
-    (dest_id = $2 OR $2 IS NULL) AND
-    ($3 ILIKE '%' || $3 || '%' OR $3 IS NULL) AND
-    (upvote >= $4 OR $4 IS NULL) AND
-    (upvote <= $5 OR $5 IS NULL) AND
-    (downvote >= $6 OR $6 IS NULL) AND
-    (downvote <= $7 OR $7 IS NULL) AND
-    (score >= $8 OR $8 IS NULL) AND
-    (score <= $9 OR $9 IS NULL) AND
-    (date_created >= $10 OR $10 IS NULL) AND
-    (date_created <= $11 OR $11 IS NULL)
+    (type = $2 OR $2 IS NULL) AND
+    (dest_id = $3 OR $3 IS NULL) AND
+    ($4 ILIKE '%' || $4 || '%' OR $4 IS NULL) AND
+    (upvote >= $5 OR $5 IS NULL) AND
+    (upvote <= $6 OR $6 IS NULL) AND
+    (downvote >= $7 OR $7 IS NULL) AND
+    (downvote <= $8 OR $8 IS NULL) AND
+    (score >= $9 OR $9 IS NULL) AND
+    (score <= $10 OR $10 IS NULL) AND
+    (date_created >= $11 OR $11 IS NULL) AND
+    (date_created <= $12 OR $12 IS NULL)
 GROUP BY c.id
 ORDER BY date_created DESC
-LIMIT $13
-OFFSET $12
+LIMIT $14
+OFFSET $13
 `
 
 type ListCommentsParams struct {
 	AccountID     pgtype.Int8
+	Type          NullProductCommentType
 	DestID        pgtype.Int8
 	Body          interface{}
 	UpvoteFrom    pgtype.Int8
@@ -207,6 +214,7 @@ type ListCommentsRow struct {
 func (q *Queries) ListComments(ctx context.Context, arg ListCommentsParams) ([]ListCommentsRow, error) {
 	rows, err := q.db.Query(ctx, listComments,
 		arg.AccountID,
+		arg.Type,
 		arg.DestID,
 		arg.Body,
 		arg.UpvoteFrom,

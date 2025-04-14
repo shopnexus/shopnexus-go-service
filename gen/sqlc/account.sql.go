@@ -71,7 +71,7 @@ func (q *Queries) CreateAccountUser(ctx context.Context, arg CreateAccountUserPa
 }
 
 const getAccountAdmin = `-- name: GetAccountAdmin :one
-SELECT a.id, b.id, b.username, b.password, b.role, b.custom_permission
+SELECT a.id, b.id, b.username, b.password, b.role, b.custom_permission, b.avatar_url
 FROM "account".admin a
 INNER JOIN "account".base b ON a.id = b.id
 WHERE (
@@ -92,6 +92,7 @@ type GetAccountAdminRow struct {
 	Password         string
 	Role             string
 	CustomPermission pgtype.Bits
+	AvatarUrl        pgtype.Text
 }
 
 func (q *Queries) GetAccountAdmin(ctx context.Context, arg GetAccountAdminParams) (GetAccountAdminRow, error) {
@@ -104,12 +105,13 @@ func (q *Queries) GetAccountAdmin(ctx context.Context, arg GetAccountAdminParams
 		&i.Password,
 		&i.Role,
 		&i.CustomPermission,
+		&i.AvatarUrl,
 	)
 	return i, err
 }
 
 const getAccountBase = `-- name: GetAccountBase :one
-SELECT id, username, password, role, custom_permission FROM "account".base
+SELECT id, username, password, role, custom_permission, avatar_url FROM "account".base
 WHERE id = $1
 `
 
@@ -122,12 +124,13 @@ func (q *Queries) GetAccountBase(ctx context.Context, id int64) (AccountBase, er
 		&i.Password,
 		&i.Role,
 		&i.CustomPermission,
+		&i.AvatarUrl,
 	)
 	return i, err
 }
 
 const getAccountStaff = `-- name: GetAccountStaff :one
-SELECT s.id, b.id, b.username, b.password, b.role, b.custom_permission
+SELECT s.id, b.id, b.username, b.password, b.role, b.custom_permission, b.avatar_url
 FROM "account".staff s
 INNER JOIN "account".base b ON s.id = b.id
 WHERE (
@@ -148,6 +151,7 @@ type GetAccountStaffRow struct {
 	Password         string
 	Role             string
 	CustomPermission pgtype.Bits
+	AvatarUrl        pgtype.Text
 }
 
 func (q *Queries) GetAccountStaff(ctx context.Context, arg GetAccountStaffParams) (GetAccountStaffRow, error) {
@@ -160,12 +164,13 @@ func (q *Queries) GetAccountStaff(ctx context.Context, arg GetAccountStaffParams
 		&i.Password,
 		&i.Role,
 		&i.CustomPermission,
+		&i.AvatarUrl,
 	)
 	return i, err
 }
 
 const getAccountUser = `-- name: GetAccountUser :one
-SELECT u.id, u.email, u.phone, u.gender, u.full_name, u.default_address_id, b.id, b.username, b.password, b.role, b.custom_permission
+SELECT u.id, u.email, u.phone, u.gender, u.full_name, u.default_address_id, b.id, b.username, b.password, b.role, b.custom_permission, b.avatar_url
 FROM "account".user u
 INNER JOIN "account".base b ON u.id = b.id
 WHERE (
@@ -195,6 +200,7 @@ type GetAccountUserRow struct {
 	Password         string
 	Role             string
 	CustomPermission pgtype.Bits
+	AvatarUrl        pgtype.Text
 }
 
 func (q *Queries) GetAccountUser(ctx context.Context, arg GetAccountUserParams) (GetAccountUserRow, error) {
@@ -217,6 +223,7 @@ func (q *Queries) GetAccountUser(ctx context.Context, arg GetAccountUserParams) 
 		&i.Password,
 		&i.Role,
 		&i.CustomPermission,
+		&i.AvatarUrl,
 	)
 	return i, err
 }
@@ -252,9 +259,10 @@ UPDATE "account".base
 SET 
   username = COALESCE($2, username),
   password = COALESCE($3, password),
-  custom_permission = CASE WHEN $4 = TRUE THEN NULL ELSE COALESCE($5, custom_permission) END
+  custom_permission = CASE WHEN $4 = TRUE THEN NULL ELSE COALESCE($5, custom_permission) END,
+  avatar_url = COALESCE($6, avatar_url)
 WHERE id = $1
-RETURNING id, username, password, role, custom_permission
+RETURNING id, username, password, role, custom_permission, avatar_url
 `
 
 type UpdateAccountParams struct {
@@ -263,6 +271,7 @@ type UpdateAccountParams struct {
 	Password             pgtype.Text
 	NullCustomPermission interface{}
 	CustomPermission     pgtype.Bits
+	AvatarUrl            pgtype.Text
 }
 
 func (q *Queries) UpdateAccount(ctx context.Context, arg UpdateAccountParams) (AccountBase, error) {
@@ -272,6 +281,7 @@ func (q *Queries) UpdateAccount(ctx context.Context, arg UpdateAccountParams) (A
 		arg.Password,
 		arg.NullCustomPermission,
 		arg.CustomPermission,
+		arg.AvatarUrl,
 	)
 	var i AccountBase
 	err := row.Scan(
@@ -280,6 +290,7 @@ func (q *Queries) UpdateAccount(ctx context.Context, arg UpdateAccountParams) (A
 		&i.Password,
 		&i.Role,
 		&i.CustomPermission,
+		&i.AvatarUrl,
 	)
 	return i, err
 }

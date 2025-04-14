@@ -255,6 +255,7 @@ type UpdateAccountParams struct {
 	Password             *string
 	NullCustomPermission bool
 	CustomPermission     *string
+	AvatarURL            *string
 }
 
 func (s *AccountService) UpdateAccount(ctx context.Context, params UpdateAccountParams) (model.AccountBase, error) {
@@ -264,27 +265,26 @@ func (s *AccountService) UpdateAccount(ctx context.Context, params UpdateAccount
 		Password:             params.Password,
 		NullCustomPermission: params.NullCustomPermission,
 		CustomPermission:     params.CustomPermission,
+		AvatarURL:            params.AvatarURL,
 	})
 }
 
 type UpdateAccountUserParams struct {
-	ID                   int64
-	Email                *string
-	Phone                *string
-	Gender               *model.Gender
-	FullName             *string
-	DefaultAddressID     *int64
-	NullDefaultAddressID bool
+	ID               int64
+	Email            *string
+	Phone            *string
+	Gender           *model.Gender
+	FullName         *string
+	DefaultAddressID *int64
 }
 
 func (s *AccountService) UpdateAccountUser(ctx context.Context, params UpdateAccountUserParams) (model.AccountUser, error) {
 	return s.repo.UpdateAccountUser(ctx, repository.UpdateAccountUserParams{
-		ID:                   params.ID,
-		Email:                params.Email,
-		Phone:                params.Phone,
-		Gender:               params.Gender,
-		FullName:             params.FullName,
-		DefaultAddressID:     params.DefaultAddressID,
-		NullDefaultAddressID: params.NullDefaultAddressID,
+		ID:               params.ID,
+		Email:            params.Email,
+		Phone:            params.Phone,
+		Gender:           params.Gender,
+		FullName:         params.FullName,
+		DefaultAddressID: params.DefaultAddressID,
 	})
 }

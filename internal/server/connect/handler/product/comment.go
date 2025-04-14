@@ -6,6 +6,7 @@ import (
 	common_grpc "shopnexus-go-service/internal/server/connect/handler/common"
 	"shopnexus-go-service/internal/server/connect/interceptor/auth"
 	"shopnexus-go-service/internal/service/product"
+	"shopnexus-go-service/internal/util"
 
 	"connectrpc.com/connect"
 	commentv1 "github.com/shopnexus/shopnexus-protobuf-gen-go/pb/product/v1"
@@ -23,12 +24,18 @@ func (s *ImplementedProductServiceHandler) GetComment(ctx context.Context, req *
 }
 
 func (s *ImplementedProductServiceHandler) ListComments(ctx context.Context, req *connect.Request[commentv1.ListCommentsRequest]) (*connect.Response[commentv1.ListCommentsResponse], error) {
+	var commentType *model.CommentType
+	if req.Msg.Type != nil {
+		commentType = util.ToPtr(commentTypeToModel(*req.Msg.Type))
+	}
+
 	data, err := s.service.ListComments(ctx, product.ListCommentsParams{
 		PaginationParams: model.PaginationParams{
 			Page:  req.Msg.GetPagination().GetPage(),
 			Limit: req.Msg.GetPagination().GetLimit(),
 		},
 		AccountID:       req.Msg.UserId,
+		Type:            commentType,
 		DestID:          req.Msg.DestId,
 		Body:            req.Msg.Body,
 		UpvoteFrom:      req.Msg.UpvoteFrom,
@@ -63,6 +70,7 @@ func (s *ImplementedProductServiceHandler) CreateComment(ctx context.Context, re
 
 	err = s.service.CreateComment(ctx, product.CreateCommentParams{
 		AccountID: claims.UserID,
+		Type:      commentTypeToModel(req.Msg.Type),
 		DestID:    req.Msg.DestId,
 		Body:      req.Msg.Body,
 		Resources: req.Msg.Resources,
@@ -116,6 +124,7 @@ func modelToCommentEntity(data model.Comment) *commentv1.CommentEntity {
 	return &commentv1.CommentEntity{
 		Id:          data.ID,
 		UserId:      data.AccountID,
+		Type:        commentTypeToProto(data.Type),
 		DestId:      data.DestID,
 		Body:        data.Body,
 		Upvote:      data.Upvote,
@@ -125,4 +134,30 @@ func modelToCommentEntity(data model.Comment) *commentv1.CommentEntity {
 		DateUpdated: data.DateUpdated,
 		Resources:   data.Resources,
 	}
+}
+
+func commentTypeToProto(data model.CommentType) commentv1.CommentType {
+	switch data {
+	case model.CommentTypeProductModel:
+		return commentv1.CommentType_COMMENT_TYPE_PRODUCT_MODEL
+	case model.CommentTypeBrand:
+		return commentv1.CommentType_COMMENT_TYPE_BRAND
+	case model.CommentTypeComment:
+		return commentv1.CommentType_COMMENT_TYPE_COMMENT
+	}
+
+	return commentv1.CommentType_COMMENT_TYPE_UNSPECIFIED
+}
+
+func commentTypeToModel(data commentv1.CommentType) model.CommentType {
+	switch data {
+	case commentv1.CommentType_COMMENT_TYPE_PRODUCT_MODEL:
+		return model.CommentTypeProductModel
+	case commentv1.CommentType_COMMENT_TYPE_BRAND:
+		return model.CommentTypeBrand
+	case commentv1.CommentType_COMMENT_TYPE_COMMENT:
+		return model.CommentTypeComment
+	}
+
+	return model.CommentTypeProductModel
 }

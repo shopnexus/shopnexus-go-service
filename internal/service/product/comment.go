@@ -41,6 +41,7 @@ func (s *ProductService) ListComments(ctx context.Context, params ListCommentsPa
 
 type CreateCommentParams struct {
 	AccountID int64
+	Type      model.CommentType
 	DestID    int64
 	Body      string
 	Resources []string
@@ -54,6 +55,7 @@ func (s *ProductService) CreateComment(ctx context.Context, params CreateComment
 	defer txRepo.Rollback(ctx)
 
 	err = txRepo.CreateComment(ctx, model.Comment{
+		Type:      params.Type,
 		AccountID: params.AccountID,
 		DestID:    params.DestID,
 		Body:      params.Body,

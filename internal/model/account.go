@@ -21,10 +21,11 @@ type Account interface {
 }
 
 type AccountBase struct {
-	ID       int64  `json:"id"` /* unique */
-	Username string `json:"username"`
-	Password string `json:"-"`
-	Role     Role   `json:"role"`
+	ID       int64   `json:"id"` /* unique */
+	Username string  `json:"username"`
+	Password string  `json:"-"`
+	Role     Role    `json:"role"`
+	Avatar   *string `json:"avatar"`
 }
 
 func (AccountBase) ImplementsAccount() {}

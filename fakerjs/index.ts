@@ -1,5 +1,6 @@
 import { faker } from "@faker-js/faker";
 import {
+  CommentType,
   PrismaClient,
   Gender,
   Brand,
@@ -13,7 +14,7 @@ import {
   Tag,
   ProductType,
   Refund,
-} from "@prisma/client";
+} from "../node_modules/.prisma/client";
 
 type TxPrisma = Omit<
   PrismaClient,
@@ -404,12 +405,14 @@ async function createPayments(
 ) {
   const paymentsData: Prisma.PaymentCreateManyInput[] = [];
   const productOnPaymentData: Prisma.ProductOnPaymentCreateManyInput[] = [];
-  const productSerialOnProductOnPaymentData: Prisma.ProductSerialOnProductOnPaymentCreateManyInput[] = [];
+  const productSerialOnProductOnPaymentData: Prisma.ProductSerialOnProductOnPaymentCreateManyInput[] =
+    [];
   const vnpayData: Prisma.PaymentVnpayCreateManyInput[] = [];
   const paymentMethods = Object.values(PaymentMethod);
 
   for (let i = 0; i < count; i++) {
-    const userAccount = userAccounts[Math.floor(Math.random() * userAccounts.length)];
+    const userAccount =
+      userAccounts[Math.floor(Math.random() * userAccounts.length)];
     const method = faker.helpers.arrayElement(paymentMethods);
     const status: Status = faker.helpers.arrayElement(Object.values(Status));
     const totalPrice = BigInt(Math.floor(Math.random() * 1000000) + 100000);
@@ -463,9 +466,8 @@ async function createPayments(
       // Create serial numbers for successful payments
       if (status === Status.SUCCESS) {
         // Get available serials for the product
-        const availableSerials = Array.from(
-          { length: Number(quantity) },
-          () => faker.string.alphanumeric(10).toUpperCase()
+        const availableSerials = Array.from({ length: Number(quantity) }, () =>
+          faker.string.alphanumeric(10).toUpperCase()
         );
 
         for (const serialId of availableSerials) {
@@ -536,7 +538,9 @@ async function createRefunds(prisma: TxPrisma, payments: any[], count: number) {
     const refundId = BigInt(i + 1);
     refundsData.push({
       id: refundId,
-      product_on_payment_id: productOnPayments[Math.floor(Math.random() * productOnPayments.length)].id,
+      product_on_payment_id:
+        productOnPayments[Math.floor(Math.random() * productOnPayments.length)]
+          .id,
       method: refundMethod,
       status: "PENDING", // Always start with PENDING status
       reason: faker.lorem.sentence(),
@@ -581,18 +585,17 @@ async function createComments(
   accounts: Account[],
   count: number
 ) {
-  const commentsData: any[] = [];
-  const resourcesData: any[] = [];
-  const commentTypes = ["PRODUCT_MODEL", "BRAND", "COMMENT"];
+  const commentsData: Prisma.CommentCreateManyInput[] = [];
+  const resourcesData: Prisma.ResourceCreateManyInput[] = [];
+  const products = await prisma.product.findMany();
+  const productModels = await prisma.productModel.findMany();
+  const brands = await prisma.brand.findMany();
 
-  for (let i = 0; i < count; i++) {
+  const addComment = (commentId: bigint, destId: bigint, type: CommentType) => {
     const account = accounts[Math.floor(Math.random() * accounts.length)];
-    const destId = BigInt(Math.floor(Math.random() * 1000) + 1);
-    const commentId = BigInt(i + 1);
-
     commentsData.push({
       id: commentId,
-      type: faker.helpers.arrayElement(commentTypes),
+      type: type,
       account_id: account.id,
       dest_id: destId,
       body: faker.lorem.paragraph(),
@@ -611,6 +614,26 @@ async function createComments(
         url: faker.image.urlPicsumPhotos({ width: 800, height: 600 }),
       });
     }
+  };
+
+  let commentId = BigInt(1);
+
+  for (let i = 0; i < count; i++) {
+    addComment(
+      commentId++,
+      productModels[Math.floor(Math.random() * productModels.length)].id,
+      CommentType.PRODUCT_MODEL
+    );
+    addComment(
+      commentId++,
+      brands[Math.floor(Math.random() * brands.length)].id,
+      CommentType.BRAND
+    );
+    addComment(
+      commentId++,
+      products[Math.floor(Math.random() * products.length)].id,
+      CommentType.COMMENT
+    );
   }
 
   await prisma.comment.createMany({

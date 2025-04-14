@@ -21,6 +21,7 @@ model Account {
   password          String  @db.VarChar(100)
   role              String  @db.VarChar(50)
   custom_permission String? @db.VarBit(100) // Only available in admin account TODO: Extend if need more permissions
+  avatar_url        String? @db.VarChar(255)
 
   user_account  UserAccount?
   admin_account AdminAccount?
@@ -89,12 +90,12 @@ model StaffAccount {
 }
 
 model Address {
-  id       BigInt @id @default(autoincrement())
-  user_id  BigInt
-  address  String
-  city     String
-  province String
-  country  String
+  id           BigInt   @id @default(autoincrement())
+  user_id      BigInt
+  address      String
+  city         String
+  province     String
+  country      String
   date_created DateTime @default(now()) @db.Timestamptz(3)
   date_updated DateTime @default(now()) @db.Timestamptz(3)
 
@@ -363,14 +364,14 @@ model PaymentVnpay {
 }
 
 model Refund {
-  id           BigInt       @id @default(autoincrement())
-  product_on_payment_id   BigInt
-  method       RefundMethod
-  status       Status
-  reason       String
-  address      String // PICK_UP address, if method is DROP_OFF, address is empty
-  date_created DateTime     @default(now()) @db.Timestamptz(3)
-  date_updated DateTime     @default(now()) @db.Timestamptz(3)
+  id                    BigInt       @id @default(autoincrement())
+  product_on_payment_id BigInt
+  method                RefundMethod
+  status                Status
+  reason                String
+  address               String // PICK_UP address, if method is DROP_OFF, address is empty
+  date_created          DateTime     @default(now()) @db.Timestamptz(3)
+  date_updated          DateTime     @default(now()) @db.Timestamptz(3)
 
   product_on_payment ProductOnPayment @relation(fields: [product_on_payment_id], references: [id], onUpdate: Cascade, onDelete: Cascade)
 

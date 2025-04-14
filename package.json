@@ -2,7 +2,8 @@
 	"devDependencies": {
 		"nodemon": "^3.1.9",
 		"prisma": "^6.4.0",
-		"prisma-dbml-generator": "^0.12.0"
+		"prisma-dbml-generator": "^0.12.0",
+		"tsx": "^4.19.3"
 	},
 	"dependencies": {
 		"@faker-js/faker": "^9.5.0",
@@ -13,6 +14,7 @@
 		"dev2": "nodemon --watch . --ext go --exec \"go build ./cmd/main.go && ./main || exit 1\" --watch \"src\"",
 		"init-migrate": "npx prisma migrate diff --from-empty --to-schema-datamodel prisma/schema.prisma --script > prisma/migrations/0_init/migration.sql",
 		"sqlc": "npx prisma migrate diff --from-empty --to-schema-datamodel prisma/schema.prisma --script > prisma/migrations/0_init/migration.sql && sqlc generate",
-		"proto": "cd proto && protoc --go_out=../gen/pb --go-grpc_out=../gen/pb --go_opt=paths=source_relative --go-grpc_opt=paths=source_relative ./*.proto && cd .."
+		"proto": "cd proto && protoc --go_out=../gen/pb --go-grpc_out=../gen/pb --go_opt=paths=source_relative --go-grpc_opt=paths=source_relative ./*.proto && cd ..",
+		"faker": "prisma generate && tsx fakerjs/index.ts"
 	}
 }

@@ -10,10 +10,13 @@ var PermissionRoutes = map[string]permission.Options{
 
 	// ACCOUNT
 	"/account.v1.AccountService/GetUser":       permission.UseOptions(permission.NeedRoles(model.RoleUser, model.RoleStaff, model.RoleAdmin)),
+	"/account.v1.AccountService/GetUserPublic": permission.UseOptions(permission.NeedRoles()),
 	"/account.v1.AccountService/LoginUser":     permission.UseOptions(permission.NeedRoles()),
 	"/account.v1.AccountService/RegisterUser":  permission.UseOptions(permission.NeedRoles()),
 	"/account.v1.AccountService/LoginAdmin":    permission.UseOptions(permission.NeedRoles()),
 	"/account.v1.AccountService/RegisterAdmin": permission.UseOptions(permission.NeedRoles()),
+	"/account.v1.AccountService/UpdateAccount": permission.UseOptions(permission.NeedRoles()),
+	"/account.v1.AccountService/UpdateUser":    permission.UseOptions(permission.NeedRoles()),
 
 	// CART
 	"/account.v1.AccountService/GetCart":        permission.UseOptions(permission.NeedRoles(model.RoleUser)),

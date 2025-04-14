@@ -17,6 +17,7 @@ func (r *RepositoryImpl) GetComment(ctx context.Context, id int64) (model.Commen
 
 	return model.Comment{
 		ID:          row.ID,
+		Type:        model.CommentType(row.Type),
 		AccountID:   row.AccountID,
 		DestID:      row.DestID,
 		Body:        row.Body,
@@ -32,6 +33,7 @@ func (r *RepositoryImpl) GetComment(ctx context.Context, id int64) (model.Commen
 type ListCommentsParams struct {
 	model.PaginationParams
 	AccountID       *int64
+	Type            *model.CommentType
 	DestID          *int64
 	Body            *string
 	UpvoteFrom      *int64
@@ -47,6 +49,7 @@ type ListCommentsParams struct {
 func (r *RepositoryImpl) CountComments(ctx context.Context, params ListCommentsParams) (int64, error) {
 	return r.sqlc.CountComments(ctx, sqlc.CountCommentsParams{
 		AccountID:     *pgxutil.PtrToPgtype(&pgtype.Int8{}, params.AccountID),
+		Type:          *pgxutil.PtrBrandedToPgType(&sqlc.NullProductCommentType{}, params.Type),
 		DestID:        *pgxutil.PtrToPgtype(&pgtype.Int8{}, params.DestID),
 		Body:          *pgxutil.PtrToPgtype(&pgtype.Text{}, params.Body),
 		UpvoteFrom:    *pgxutil.PtrToPgtype(&pgtype.Int8{}, params.UpvoteFrom),
@@ -65,6 +68,7 @@ func (r *RepositoryImpl) ListComments(ctx context.Context, params ListCommentsPa
 		Limit:         params.Limit,
 		Offset:        params.Offset(),
 		AccountID:     *pgxutil.PtrToPgtype(&pgtype.Int8{}, params.AccountID),
+		Type:          *pgxutil.PtrBrandedToPgType(&sqlc.NullProductCommentType{}, params.Type),
 		DestID:        *pgxutil.PtrToPgtype(&pgtype.Int8{}, params.DestID),
 		Body:          *pgxutil.PtrToPgtype(&pgtype.Text{}, params.Body),
 		UpvoteFrom:    *pgxutil.PtrToPgtype(&pgtype.Int8{}, params.UpvoteFrom),
@@ -84,6 +88,7 @@ func (r *RepositoryImpl) ListComments(ctx context.Context, params ListCommentsPa
 	for _, row := range rows {
 		comments = append(comments, model.Comment{
 			ID:          row.ID,
+			Type:        model.CommentType(row.Type),
 			AccountID:   row.AccountID,
 			DestID:      row.DestID,
 			Body:        row.Body,
@@ -102,6 +107,7 @@ func (r *RepositoryImpl) ListComments(ctx context.Context, params ListCommentsPa
 func (r *RepositoryImpl) CreateComment(ctx context.Context, comment model.Comment) error {
 	return r.sqlc.CreateComment(ctx, sqlc.CreateCommentParams{
 		AccountID: comment.AccountID,
+		Type:      sqlc.ProductCommentType(comment.Type),
 		DestID:    comment.DestID,
 		Body:      comment.Body,
 		Upvote:    comment.Upvote,
