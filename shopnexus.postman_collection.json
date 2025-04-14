@@ -213,7 +213,7 @@
 						],
 						"body": {
 							"mode": "raw",
-							"raw": "{\n    \"items\": [\n        {\n            \"item_id\": 20,\n            \"quantity\": 2\n        }\n    ]\n}"
+							"raw": "{\n    \"items\": [\n        {\n            \"item_id\": 58,\n            \"quantity\": 2\n        }\n    ]\n}"
 						},
 						"url": {
 							"raw": "{{API_URL}}/account.v1.AccountService/AddCartItem",
@@ -526,7 +526,7 @@
 							}
 						],
 						"url": {
-							"raw": "{{API_URL}}/product.v1.ProductService/GetProduct?encoding=json&message={\"id\":1}",
+							"raw": "{{API_URL}}/product.v1.ProductService/GetProduct?encoding=json&message={\"id\":58}",
 							"host": [
 								"{{API_URL}}"
 							],
@@ -541,7 +541,7 @@
 								},
 								{
 									"key": "message",
-									"value": "{\"id\":1}"
+									"value": "{\"id\":58}"
 								}
 							]
 						}
@@ -1346,7 +1346,7 @@
 						],
 						"body": {
 							"mode": "raw",
-							"raw": "{\n    \"request_id2\": 1, \n    \"method\": \"PAYMENT_METHOD_VNPAY\",\n    \"address\": \"123 Main St, City, Country\"\n}"
+							"raw": "{\n    \"request_id\": 1, \n    \"method\": \"PAYMENT_METHOD_VNPAY\",\n    \"address\": \"123 Main St, City, Country\"\n}"
 						},
 						"url": {
 							"raw": "{{API_URL}}/payment.v1.PaymentService/CreatePayment",
@@ -1503,7 +1503,7 @@
 						],
 						"body": {
 							"mode": "raw",
-							"raw": "{\n    \"payment_id\": 19,\n    \"method\": \"REFUND_METHOD_DROP_OFF\",\n    \"reason\": \"Product damaged\",\n    \"address\": \"\",\n    \"resources\": []\n}"
+							"raw": "{\n    \"product_on_payment_id\": 5,\n    \"method\": \"REFUND_METHOD_DROP_OFF\",\n    \"reason\": \"Product damaged\",\n    \"address\": \"\",\n    \"resources\": []\n}"
 						},
 						"url": {
 							"raw": "{{API_URL}}/payment.v1.PaymentService/CreateRefund",
@@ -1569,6 +1569,163 @@
 							"path": [
 								"payment.v1.PaymentService",
 								"CreateRefund"
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Product Serial",
+			"item": [
+				{
+					"name": "List Product Serials",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{API_URL}}/product.v1.ProductService/ListProductSerials?encoding=json&message={\"pagination\":{\"limit\":10,\"page\":1}}",
+							"host": [
+								"{{API_URL}}"
+							],
+							"path": [
+								"product.v1.ProductService",
+								"ListProductSerials"
+							],
+							"query": [
+								{
+									"key": "encoding",
+									"value": "json"
+								},
+								{
+									"key": "message",
+									"value": "{\"pagination\":{\"limit\":10,\"page\":1}}"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get Product Serial",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{API_URL}}/product.v1.ProductService/GetProductSerial?encoding=json&message={\"serial_id\":\"PROD-12345\"}",
+							"host": [
+								"{{API_URL}}"
+							],
+							"path": [
+								"product.v1.ProductService",
+								"GetProductSerial"
+							],
+							"query": [
+								{
+									"key": "encoding",
+									"value": "json"
+								},
+								{
+									"key": "message",
+									"value": "{\"serial_id\":\"PROD-12345\"}"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Create Product Serial",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"serial_id\": \"PROD-12345\",\n    \"product_id\": 1,\n    \"is_sold\": false,\n    \"is_active\": true\n}"
+						},
+						"url": {
+							"raw": "{{API_URL}}/product.v1.ProductService/CreateProductSerial",
+							"host": [
+								"{{API_URL}}"
+							],
+							"path": [
+								"product.v1.ProductService",
+								"CreateProductSerial"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Update Product Serial",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"serial_id\": \"PROD-12345\",\n    \"is_sold\": true,\n    \"is_active\": true\n}"
+						},
+						"url": {
+							"raw": "{{API_URL}}/product.v1.ProductService/UpdateProductSerial",
+							"host": [
+								"{{API_URL}}"
+							],
+							"path": [
+								"product.v1.ProductService",
+								"UpdateProductSerial"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Delete Product Serial",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"serial_id\": \"PROD-12345\"\n}"
+						},
+						"url": {
+							"raw": "{{API_URL}}/product.v1.ProductService/DeleteProductSerial",
+							"host": [
+								"{{API_URL}}"
+							],
+							"path": [
+								"product.v1.ProductService",
+								"DeleteProductSerial"
 							]
 						}
 					},
