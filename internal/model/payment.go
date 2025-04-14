@@ -7,10 +7,10 @@ type (
 )
 
 const (
-	StatusPending   Status = "PENDING"
-	StatusSuccess   Status = "SUCCESS"
-	StatusCancelled Status = "CANCELLED"
-	StatusFailed    Status = "FAILED"
+	StatusPending  Status = "PENDING"
+	StatusSuccess  Status = "SUCCESS"
+	StatusCanceled Status = "CANCELED"
+	StatusFailed   Status = "FAILED"
 
 	PaymentMethodCash  PaymentMethod = "CASH"
 	PaymentMethodMomo  PaymentMethod = "MOMO"
@@ -21,10 +21,11 @@ const (
 )
 
 type ProductOnPayment struct {
-	ItemQuantityBase[int64]
-	SerialIDs  []string `json:"serial_ids"`  // List of serial IDs
-	Price      int64    `json:"price"`       // Single price, maybe have discount
-	TotalPrice int64    `json:"total_price"` // Total price, maybe have discount if reach certain quantity
+	ItemQuantityBase[int64]          // item_id is product_id
+	ID                      int64    `json:"id"`          // unique
+	SerialIDs               []string `json:"serial_ids"`  // List of serial IDs
+	Price                   int64    `json:"price"`       // Single price, maybe have discount
+	TotalPrice              int64    `json:"total_price"` // Total price, maybe have discount if reach certain quantity
 }
 
 type Payment struct {
