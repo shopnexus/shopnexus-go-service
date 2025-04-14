@@ -11,11 +11,15 @@ import (
 	"golang.org/x/crypto/bcrypt"
 )
 
+var _ AccountServiceInterface = (*AccountService)(nil)
+
 type AccountService struct {
 	repo repository.Repository
 }
 
 type AccountServiceInterface interface {
+	WithTx(txRepo repository.Repository) *AccountService
+
 	// Account
 	CheckPassword(hashedPassword, password string) bool
 	CreateHash(password string) (string, error)
@@ -28,6 +32,17 @@ type AccountServiceInterface interface {
 	AddCartItem(ctx context.Context, params AddCartItemParams) (int64, error)
 	UpdateCartItem(ctx context.Context, params UpdateCartItemParams) (int64, error)
 	ClearCart(ctx context.Context, userID int64) error
+
+	// Address
+	GetAddress(ctx context.Context, params GetAddressParams) (model.Address, error)
+	ListAddresses(ctx context.Context, params ListAddressesParams) (model.PaginateResult[model.Address], error)
+	CreateAddress(ctx context.Context, params model.Address) (model.Address, error)
+	UpdateAddress(ctx context.Context, params UpdateAddressParams) (model.Address, error)
+	DeleteAddress(ctx context.Context, params DeleteAddressParams) error
+
+	// Permission
+	GetPermissions(ctx context.Context, params GetPermissionsParams) ([]model.Permission, error)
+	HasPermission(ctx context.Context, params HasPermissionParams) (bool, error)
 }
 
 func NewAccountService(repo repository.Repository) *AccountService {
@@ -232,4 +247,44 @@ func (s *AccountService) HasPermission(ctx context.Context, params HasPermission
 	}
 
 	return true, nil
+}
+
+type UpdateAccountParams struct {
+	ID                   int64
+	Username             *string
+	Password             *string
+	NullCustomPermission bool
+	CustomPermission     *string
+}
+
+func (s *AccountService) UpdateAccount(ctx context.Context, params UpdateAccountParams) (model.AccountBase, error) {
+	return s.repo.UpdateAccount(ctx, repository.UpdateAccountParams{
+		ID:                   params.ID,
+		Username:             params.Username,
+		Password:             params.Password,
+		NullCustomPermission: params.NullCustomPermission,
+		CustomPermission:     params.CustomPermission,
+	})
+}
+
+type UpdateAccountUserParams struct {
+	ID                   int64
+	Email                *string
+	Phone                *string
+	Gender               *model.Gender
+	FullName             *string
+	DefaultAddressID     *int64
+	NullDefaultAddressID bool
+}
+
+func (s *AccountService) UpdateAccountUser(ctx context.Context, params UpdateAccountUserParams) (model.AccountUser, error) {
+	return s.repo.UpdateAccountUser(ctx, repository.UpdateAccountUserParams{
+		ID:                   params.ID,
+		Email:                params.Email,
+		Phone:                params.Phone,
+		Gender:               params.Gender,
+		FullName:             params.FullName,
+		DefaultAddressID:     params.DefaultAddressID,
+		NullDefaultAddressID: params.NullDefaultAddressID,
+	})
 }
