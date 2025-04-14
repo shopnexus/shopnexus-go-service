@@ -64,6 +64,26 @@ var PermissionRoutes = map[string]permission.Options{
 		permission.NeedPermissions(model.PermissionDeleteProduct),
 	),
 
+	// PRODUCT SERIAL
+	"/product.v1.ProductService/ListProductSerials": permission.UseOptions(
+		permission.NeedRoles(model.RoleUser, model.RoleStaff, model.RoleAdmin),
+	),
+	"/product.v1.ProductService/GetProductSerial": permission.UseOptions(
+		permission.NeedRoles(model.RoleUser, model.RoleStaff, model.RoleAdmin),
+	),
+	"/product.v1.ProductService/CreateProductSerial": permission.UseOptions(
+		permission.NeedRoles(model.RoleAdmin, model.RoleStaff),
+		permission.NeedPermissions(model.PermissionCreateProductSerial),
+	),
+	"/product.v1.ProductService/UpdateProductSerial": permission.UseOptions(
+		permission.NeedRoles(model.RoleAdmin, model.RoleStaff),
+		permission.NeedPermissions(model.PermissionUpdateProductSerial),
+	),
+	"/product.v1.ProductService/DeleteProductSerial": permission.UseOptions(
+		permission.NeedRoles(model.RoleAdmin, model.RoleStaff),
+		permission.NeedPermissions(model.PermissionDeleteProductSerial),
+	),
+
 	// SALE
 	"/product.v1.ProductService/ListSales": permission.UseOptions(
 		permission.NeedRoles(model.RoleUser, model.RoleStaff, model.RoleAdmin),
