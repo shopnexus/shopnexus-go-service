@@ -177,6 +177,7 @@ func convertPaymentToProto(p model.Payment) *paymentv1.Payment {
 	products := make([]*paymentv1.ProductOnPayment, 0, len(p.Products))
 	for _, pop := range p.Products {
 		products = append(products, &paymentv1.ProductOnPayment{
+			Id: pop.ID,
 			ItemQuantity: &common_pb.ItemQuantityInt64{
 				ItemId:   pop.ItemID,
 				Quantity: pop.Quantity,
@@ -201,15 +202,15 @@ func convertPaymentToProto(p model.Payment) *paymentv1.Payment {
 
 func convertRefundToProto(r model.Refund) *paymentv1.Refund {
 	return &paymentv1.Refund{
-		Id:          r.ID,
-		PaymentId:   r.PaymentID,
-		Method:      convertRefundMethodToProto(r.Method),
-		Status:      convertStatusToProto(r.Status),
-		Reason:      r.Reason,
-		Address:     r.Address,
-		DateCreated: r.DateCreated,
-		DateUpdated: r.DateUpdated,
-		Resources:   r.Resources,
+		Id:                 r.ID,
+		ProductOnPaymentId: r.ProductOnPaymentID,
+		Method:             convertRefundMethodToProto(r.Method),
+		Status:             convertStatusToProto(r.Status),
+		Reason:             r.Reason,
+		Address:            r.Address,
+		DateCreated:        r.DateCreated,
+		DateUpdated:        r.DateUpdated,
+		Resources:          r.Resources,
 	}
 }
 
@@ -247,8 +248,8 @@ func convertStatus(protoStatus common_pb.Status) model.Status {
 		return model.StatusPending
 	case common_pb.Status_STATUS_SUCCESS:
 		return model.StatusSuccess
-	case common_pb.Status_STATUS_CANCELLED:
-		return model.StatusCancelled
+	case common_pb.Status_STATUS_CANCELED:
+		return model.StatusCanceled
 	case common_pb.Status_STATUS_FAILED:
 		return model.StatusFailed
 	case common_pb.Status_STATUS_UNSPECIFIED:
@@ -288,8 +289,8 @@ func convertStatusToProto(status model.Status) common_pb.Status {
 		return common_pb.Status_STATUS_PENDING
 	case model.StatusSuccess:
 		return common_pb.Status_STATUS_SUCCESS
-	case model.StatusCancelled:
-		return common_pb.Status_STATUS_CANCELLED
+	case model.StatusCanceled:
+		return common_pb.Status_STATUS_CANCELED
 	case model.StatusFailed:
 		return common_pb.Status_STATUS_FAILED
 	default:

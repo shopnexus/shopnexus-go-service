@@ -150,7 +150,7 @@ func (s *PaymentService) CreatePayment(ctx context.Context, params CreatePayment
 		return CreatePaymentResult{}, err
 	}
 
-	if len(cart.ProductModels) == 0 {
+	if len(cart.Products) == 0 {
 		return CreatePaymentResult{}, fmt.Errorf("cart is empty")
 	}
 
@@ -166,31 +166,36 @@ func (s *PaymentService) CreatePayment(ctx context.Context, params CreatePayment
 
 	// Calculate total payment
 	// Iterate through each product model in the cart
-	for _, productModelItem := range cart.ProductModels {
+	for _, cartProduct := range cart.Products {
+		// Get product details
+		product, err := txRepo.GetProduct(ctx, cartProduct.GetID())
+		if err != nil {
+			return CreatePaymentResult{}, err
+		}
+
 		// Get product model details
-		productModel, err := txRepo.GetProductModel(ctx, productModelItem.GetID())
+		productModel, err := txRepo.GetProductModel(ctx, product.ProductModelID)
 		if err != nil {
 			return CreatePaymentResult{}, err
 		}
 
-		// Get any available products from that product model
-		pickProducts, err := txRepo.GetAvailableProducts(
+		// Get any available product serial_ids from that product
+		var serialIDs []string
+		productSerials, err := txRepo.GetAvailableProducts(
 			ctx,
-			productModelItem.GetID(),
-			productModelItem.GetQuantity(),
+			cartProduct.GetID(),
+			cartProduct.GetQuantity(),
 		)
 		if err != nil {
 			return CreatePaymentResult{}, err
 		}
-
-		var (
-			serialIDs  []string
-			totalPrice int64
-		)
+		for _, productSerial := range productSerials {
+			serialIDs = append(serialIDs, productSerial.SerialID)
+		}
 
 		// Get available sales for the product model
 		sales, err := txRepo.GetAvailableSales(ctx, repository.GetLatestSaleParams{
-			ProductModelID: productModelItem.GetID(),
+			ProductModelID: productModel.ID,
 			BrandID:        productModel.BrandID,
 			Tags:           productModel.Tags,
 		})
@@ -198,27 +203,45 @@ func (s *PaymentService) CreatePayment(ctx context.Context, params CreatePayment
 			return CreatePaymentResult{}, err
 		}
 
-		for _, pickProduct := range pickProducts {
-			serialIDs = append(serialIDs, pickProduct.SerialID)
-			totalPrice += productModel.ListPrice + pickProduct.AddPrice
-			totalPriceBase := totalPrice
+		combinePrice := (productModel.ListPrice + product.AddPrice) * cartProduct.GetQuantity()
+		var combineDiscount int64
 
-			// Apply sales
-			for _, sale := range sales {
-				totalPrice -= sale.Apply(totalPriceBase)
+		// Apply sales
+		for _, sale := range sales {
+			combineDiscount += sale.Apply(productModel.ListPrice+product.AddPrice) * cartProduct.GetQuantity()
+		}
+
+		// Ensure combineDiscount is not greater than combinePrice
+		if combineDiscount > combinePrice {
+			combineDiscount = combinePrice
+		}
+
+		totalPayment += combinePrice - combineDiscount
+
+		// If product can combine, add all quantity at once
+		if product.CanCombine {
+			productOnPayments = append(productOnPayments, model.ProductOnPayment{
+				ItemQuantityBase: model.ItemQuantityBase[int64]{
+					ItemID:   cartProduct.GetID(),
+					Quantity: cartProduct.GetQuantity(),
+				},
+				SerialIDs:  serialIDs,
+				Price:      combinePrice,
+				TotalPrice: combinePrice - combineDiscount,
+			})
+		} else {
+			for i := int64(0); i < cartProduct.GetQuantity(); i++ {
+				productOnPayments = append(productOnPayments, model.ProductOnPayment{
+					ItemQuantityBase: model.ItemQuantityBase[int64]{
+						ItemID:   cartProduct.GetID(),
+						Quantity: 1,
+					},
+					SerialIDs:  []string{serialIDs[i]},
+					Price:      combinePrice / cartProduct.GetQuantity(),
+					TotalPrice: (combinePrice - combineDiscount) / cartProduct.GetQuantity(),
+				})
 			}
 		}
-		totalPayment += totalPrice
-
-		productOnPayments = append(productOnPayments, model.ProductOnPayment{
-			ItemQuantityBase: model.ItemQuantityBase[int64]{
-				ItemID:   productModelItem.GetID(),
-				Quantity: productModelItem.GetQuantity(),
-			},
-			SerialIDs:  serialIDs,
-			Price:      productModel.ListPrice,
-			TotalPrice: totalPrice,
-		})
 	}
 
 	// Create payment
@@ -391,12 +414,12 @@ func (s *PaymentService) CancelPayment(ctx context.Context, params CancelPayment
 	// }
 
 	if payment.Status != model.StatusPending {
-		return fmt.Errorf("payment %d cannot be cancelled", params.PaymentID)
+		return fmt.Errorf("payment %d cannot be canceled", params.PaymentID)
 	}
 
 	if err = txRepo.UpdatePayment(ctx, repository.UpdatePaymentParams{
 		ID:     params.PaymentID,
-		Status: util.ToPtr(model.StatusCancelled),
+		Status: util.ToPtr(model.StatusCanceled),
 	}); err != nil {
 		return err
 	}
@@ -429,13 +452,13 @@ func (s *PaymentService) CancelRefund(ctx context.Context, params CancelRefundPa
 	}
 
 	if refund.Status != model.StatusPending {
-		return fmt.Errorf("refund %d cannot be cancelled", params.RefundID)
+		return fmt.Errorf("refund %d cannot be canceled", params.RefundID)
 	}
 
 	if err = txRepo.UpdateRefund(ctx, repository.UpdateRefundParams{
 		ID:     params.RefundID,
 		UserID: &params.UserID,
-		Status: util.ToPtr(model.StatusCancelled),
+		Status: util.ToPtr(model.StatusCanceled),
 	}); err != nil {
 		return err
 	}

@@ -58,32 +58,52 @@ func (r *RepositoryImpl) GetPaymentProducts(ctx context.Context, paymentID int64
 		return nil, err
 	}
 
-	productByModel := map[int64]model.ProductOnPayment{}
-	for _, row := range rows {
-		if product, exists := productByModel[row.ProductModelID]; exists {
-			product.Quantity += row.Quantity
-			product.SerialIDs = append(product.SerialIDs, row.ProductSerialID)
-			product.TotalPrice += row.TotalPrice
-			productByModel[row.ProductModelID] = product
-		} else {
-			productByModel[row.ProductModelID] = model.ProductOnPayment{
-				ItemQuantityBase: model.ItemQuantityBase[int64]{
-					ItemID:   row.ProductModelID,
-					Quantity: row.Quantity,
-				},
-				SerialIDs:  []string{row.ProductSerialID},
-				Price:      row.Price,
-				TotalPrice: row.TotalPrice,
-			}
-		}
-	}
-
 	var products []model.ProductOnPayment
-	for _, product := range productByModel {
-		products = append(products, product)
+	for _, row := range rows {
+		productSerials, err := r.GetPaymentProductSerials(ctx, row.ID)
+		if err != nil {
+			return nil, err
+		}
+
+		serialIDs := make([]string, len(productSerials))
+		for i, serial := range productSerials {
+			serialIDs[i] = serial.SerialID
+		}
+
+		products = append(products, model.ProductOnPayment{
+			ID: row.ID,
+			ItemQuantityBase: model.ItemQuantityBase[int64]{
+				ItemID:   row.ProductID,
+				Quantity: row.Quantity,
+			},
+			SerialIDs:  serialIDs,
+			Price:      row.Price,
+			TotalPrice: row.TotalPrice,
+		})
 	}
 
 	return products, nil
+}
+
+func (r *RepositoryImpl) GetPaymentProductSerials(ctx context.Context, productOnPaymentID int64) ([]model.ProductSerial, error) {
+	rows, err := r.sqlc.GetPaymentProductSerials(ctx, productOnPaymentID)
+	if err != nil {
+		return nil, err
+	}
+
+	productSerials := make([]model.ProductSerial, len(rows))
+	for i, row := range rows {
+		productSerials[i] = model.ProductSerial{
+			SerialID:    row.SerialID,
+			ProductID:   row.ProductID,
+			IsSold:      row.IsSold,
+			IsActive:    row.IsActive,
+			DateCreated: row.DateCreated.Time.UnixMilli(),
+			DateUpdated: row.DateUpdated.Time.UnixMilli(),
+		}
+	}
+
+	return productSerials, nil
 }
 
 type ListPaymentsParams struct {
@@ -151,7 +171,7 @@ func (r *RepositoryImpl) ListPayments(ctx context.Context, params ListPaymentsPa
 }
 
 func (r *RepositoryImpl) CreatePayment(ctx context.Context, payment model.Payment) (model.Payment, error) {
-	row, err := r.sqlc.CreatePayment(ctx, sqlc.CreatePaymentParams{
+	paymentRow, err := r.sqlc.CreatePayment(ctx, sqlc.CreatePaymentParams{
 		UserID:  payment.UserID,
 		Method:  sqlc.PaymentPaymentMethod(payment.Method),
 		Status:  sqlc.PaymentStatus(payment.Status),
@@ -162,33 +182,59 @@ func (r *RepositoryImpl) CreatePayment(ctx context.Context, payment model.Paymen
 		return model.Payment{}, err
 	}
 
-	var createArgs []sqlc.CreatePaymentProductsParams
-	for _, product := range payment.Products {
-		for _, serialID := range product.SerialIDs {
-			createArgs = append(createArgs, sqlc.CreatePaymentProductsParams{
-				PaymentID:       row.ID,
-				ProductSerialID: serialID,
-				Quantity:        product.Quantity,
-				Price:           product.Price,
-				TotalPrice:      product.TotalPrice,
+	// 1. Create the payment products
+
+	var createPaymentProductsArgs []sqlc.CreatePaymentProductsParams
+	for _, productOnPayment := range payment.Products {
+		createPaymentProductsArgs = append(createPaymentProductsArgs, sqlc.CreatePaymentProductsParams{
+			PaymentID:  paymentRow.ID,
+			ProductID:  productOnPayment.GetID(),
+			Quantity:   productOnPayment.GetQuantity(),
+			Price:      productOnPayment.Price,
+			TotalPrice: productOnPayment.TotalPrice,
+		})
+	}
+
+	_, err = r.sqlc.CreatePaymentProducts(ctx, createPaymentProductsArgs)
+	if err != nil {
+		return model.Payment{}, err
+	}
+
+	createdPaymentProducts, err := r.GetPaymentProducts(ctx, paymentRow.ID)
+	if err != nil {
+		return model.Payment{}, err
+	}
+
+	// 2. Create the product serial to these payment products
+
+	var createPaymentProductSerialsArgs []sqlc.CreatePaymentProductSerialsParams
+	for popIdx, productOnPayment := range createdPaymentProducts {
+		// Assign serial IDs to newly created payment products
+		createdPaymentProducts[popIdx].SerialIDs = payment.Products[popIdx].SerialIDs
+
+		// Start creating serial to payment product
+		for _, serialID := range payment.Products[popIdx].SerialIDs {
+			createPaymentProductSerialsArgs = append(createPaymentProductSerialsArgs, sqlc.CreatePaymentProductSerialsParams{
+				ProductOnPaymentID: productOnPayment.ID,
+				ProductSerialID:    serialID,
 			})
 		}
 	}
 
-	_, err = r.sqlc.CreatePaymentProducts(ctx, createArgs)
+	_, err = r.sqlc.CreatePaymentProductSerials(ctx, createPaymentProductSerialsArgs)
 	if err != nil {
 		return model.Payment{}, err
 	}
 
 	return model.Payment{
-		ID:          row.ID,
-		UserID:      row.UserID,
-		Address:     row.Address,
-		Method:      model.PaymentMethod(row.Method),
-		Total:       row.Total,
-		Status:      model.Status(row.Status),
-		DateCreated: row.DateCreated.Time.UnixMilli(),
-		Products:    payment.Products,
+		ID:          paymentRow.ID,
+		UserID:      paymentRow.UserID,
+		Address:     paymentRow.Address,
+		Method:      model.PaymentMethod(paymentRow.Method),
+		Total:       paymentRow.Total,
+		Status:      model.Status(paymentRow.Status),
+		DateCreated: paymentRow.DateCreated.Time.UnixMilli(),
+		Products:    createdPaymentProducts,
 	}, nil
 }
 
