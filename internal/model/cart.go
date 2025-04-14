@@ -6,6 +6,6 @@ type ItemOnCart struct {
 }
 
 type Cart struct {
-	ID            int64                 `json:"id"` /* unique */
-	ProductModels []ItemQuantity[int64] `json:"product_models"`
+	ID       int64                 `json:"id"` /* unique */
+	Products []ItemQuantity[int64] `json:"products"`
 }
