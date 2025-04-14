@@ -27,7 +27,7 @@ func (r *RepositoryImpl) GetCart(ctx context.Context, cartID int64) (model.Cart,
 	for i, row := range itemRows {
 		items[i] = model.ItemOnCart{
 			ItemQuantityBase: model.ItemQuantityBase[int64]{
-				ItemID:   row.ProductModelID,
+				ItemID:   row.ProductID,
 				Quantity: row.Quantity,
 			},
 			CartID: row.CartID,
@@ -35,44 +35,44 @@ func (r *RepositoryImpl) GetCart(ctx context.Context, cartID int64) (model.Cart,
 	}
 
 	return model.Cart{
-		ID:            cartID,
-		ProductModels: items,
+		ID:       cartID,
+		Products: items,
 	}, nil
 }
 
 type AddCartItemParams struct {
-	CartID         int64
-	ProductModelID int64
-	Quantity       int64
+	CartID    int64
+	ProductID int64
+	Quantity  int64
 }
 
 // AddCartItem adds a new item to the cart
 func (r *RepositoryImpl) AddCartItem(ctx context.Context, params AddCartItemParams) (int64, error) {
 	return r.sqlc.AddCartItem(ctx, sqlc.AddCartItemParams{
-		CartID:         params.CartID,
-		ProductModelID: params.ProductModelID,
-		Quantity:       params.Quantity,
+		CartID:    params.CartID,
+		ProductID: params.ProductID,
+		Quantity:  params.Quantity,
 	})
 }
 
 type UpdateCartItemParams struct {
-	CartID         int64
-	ProductModelID int64
-	Quantity       int64
+	CartID    int64
+	ProductID int64
+	Quantity  int64
 }
 
 func (r *RepositoryImpl) UpdateCartItem(ctx context.Context, params UpdateCartItemParams) (int64, error) {
 	return r.sqlc.UpdateCartItem(ctx, sqlc.UpdateCartItemParams{
-		CartID:         params.CartID,
-		ProductModelID: params.ProductModelID,
-		Quantity:       params.Quantity,
+		CartID:    params.CartID,
+		ProductID: params.ProductID,
+		Quantity:  params.Quantity,
 	})
 }
 
 func (r *RepositoryImpl) RemoveCartItem(ctx context.Context, cartID, productModelID int64) error {
 	return r.sqlc.RemoveCartItem(ctx, sqlc.RemoveCartItemParams{
-		CartID:         cartID,
-		ProductModelID: productModelID,
+		CartID:    cartID,
+		ProductID: productModelID,
 	})
 }
 

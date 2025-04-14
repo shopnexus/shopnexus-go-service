@@ -21,8 +21,8 @@ func (s *ImplementedAccountServiceHandler) GetCart(ctx context.Context, req *con
 		return nil, err
 	}
 
-	items := make([]*common.ItemQuantityInt64, 0, len(cart.ProductModels))
-	for _, item := range cart.ProductModels {
+	items := make([]*common.ItemQuantityInt64, 0, len(cart.Products))
+	for _, item := range cart.Products {
 		items = append(items, &common.ItemQuantityInt64{
 			ItemId:   item.GetID(),
 			Quantity: item.GetQuantity(),
@@ -42,9 +42,9 @@ func (s *ImplementedAccountServiceHandler) AddCartItem(ctx context.Context, req 
 
 	for _, item := range req.Msg.GetItems() {
 		_, err := s.service.AddCartItem(ctx, account.AddCartItemParams{
-			UserID:         claims.UserID,
-			ProductModelID: item.GetItemId(),
-			Quantity:       item.GetQuantity(),
+			UserID:    claims.UserID,
+			ProductID: item.GetItemId(),
+			Quantity:  item.GetQuantity(),
 		})
 		if err != nil {
 			return nil, err
