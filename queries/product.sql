@@ -1,16 +1,17 @@
--- name: GetAvailableProducts :many
-SELECT *
-FROM product.base
-WHERE (
-    product_model_id = $1 AND
-    sold + sqlc.arg('amount') <= quantity
-)
-LIMIT sqlc.arg('amount');
+-- name: GetProduct :one
+SELECT 
+    p.*,
+    COALESCE(array_agg(DISTINCT res.url) FILTER (WHERE res.url IS NOT NULL), '{}')::text[] as resources
+FROM product.base p
+LEFT JOIN product.resource res ON res.owner_id = p.id
+WHERE id = $1
+GROUP BY p.id;
 
 -- name: CountProducts :one
 SELECT COUNT(id)
 FROM product.base
 WHERE (
+    (id = sqlc.narg('id') OR sqlc.narg('id') IS NULL) AND
     (product_model_id = sqlc.narg('product_model_id') OR sqlc.narg('product_model_id') IS NULL) AND
     (quantity >= sqlc.narg('quantity_from') OR sqlc.narg('quantity_from') IS NULL) AND
     (quantity <= sqlc.narg('quantity_to') OR sqlc.narg('quantity_to') IS NULL) AND
@@ -19,22 +20,11 @@ WHERE (
     (add_price >= sqlc.narg('add_price_from') OR sqlc.narg('add_price_from') IS NULL) AND
     (add_price <= sqlc.narg('add_price_to') OR sqlc.narg('add_price_to') IS NULL) AND
     (is_active = sqlc.narg('is_active') OR sqlc.narg('is_active') IS NULL) AND
+    (can_combine = sqlc.narg('can_combine') OR sqlc.narg('can_combine') IS NULL) AND
     (metadata @> sqlc.narg('metadata') OR sqlc.narg('metadata') IS NULL) AND
     (date_created >= sqlc.narg('date_created_from') OR sqlc.narg('date_created_from') IS NULL) AND
     (date_created <= sqlc.narg('date_created_to') OR sqlc.narg('date_created_to') IS NULL)
 );
-
--- name: GetProduct :one
-SELECT 
-    p.*,
-    COALESCE(array_agg(DISTINCT res.url) FILTER (WHERE res.url IS NOT NULL), '{}')::text[] as resources
-FROM product.base p
-LEFT JOIN product.resource res ON res.owner_id = p.id
-WHERE (
-    id = sqlc.narg('id') OR 
-    serial_id = sqlc.narg('serial_id')
-)
-GROUP BY p.id;
 
 -- name: ListProducts :many
 SELECT
@@ -43,6 +33,7 @@ SELECT
 FROM product.base p
 LEFT JOIN product.resource res ON res.owner_id = p.id
 WHERE (
+    (id = sqlc.narg('id') OR sqlc.narg('id') IS NULL) AND
     (product_model_id = sqlc.narg('product_model_id') OR sqlc.narg('product_model_id') IS NULL) AND
     (quantity >= sqlc.narg('quantity_from') OR sqlc.narg('quantity_from') IS NULL) AND
     (quantity <= sqlc.narg('quantity_to') OR sqlc.narg('quantity_to') IS NULL) AND
@@ -51,6 +42,7 @@ WHERE (
     (add_price >= sqlc.narg('add_price_from') OR sqlc.narg('add_price_from') IS NULL) AND
     (add_price <= sqlc.narg('add_price_to') OR sqlc.narg('add_price_to') IS NULL) AND
     (is_active = sqlc.narg('is_active') OR sqlc.narg('is_active') IS NULL) AND
+    (can_combine = sqlc.narg('can_combine') OR sqlc.narg('can_combine') IS NULL) AND
     (metadata @> sqlc.narg('metadata') OR sqlc.narg('metadata') IS NULL) AND
     (date_created >= sqlc.narg('date_created_from') OR sqlc.narg('date_created_from') IS NULL) AND
     (date_created <= sqlc.narg('date_created_to') OR sqlc.narg('date_created_to') IS NULL)
@@ -63,12 +55,12 @@ OFFSET sqlc.arg('offset');
 -- name: CreateProduct :one
 WITH inserted_product AS (
     INSERT INTO product.base (
-        serial_id,
         product_model_id,
         quantity,
         sold,
         add_price,
-        is_active,
+        is_active,  
+        can_combine,
         metadata
     ) VALUES ($1, $2, $3, $4, $5, $6, $7)
     RETURNING *
@@ -88,11 +80,11 @@ GROUP BY p.id;
 -- name: UpdateProduct :exec
 UPDATE product.base
 SET
-    serial_id = COALESCE(sqlc.narg('serial_id'), serial_id),
     product_model_id = COALESCE(sqlc.narg('product_model_id'), product_model_id),
     quantity = COALESCE(sqlc.narg('quantity'), quantity),
     sold = COALESCE(sqlc.narg('sold'), sold),
     add_price = COALESCE(sqlc.narg('add_price'), add_price),
+    can_combine = COALESCE(sqlc.narg('can_combine'), can_combine),
     is_active = COALESCE(sqlc.narg('is_active'), is_active),
     metadata = COALESCE(sqlc.narg('metadata'), metadata)
 WHERE id = $1;
@@ -102,14 +94,11 @@ UPDATE product.base
 SET
     sold = sold + sqlc.arg('amount')
 WHERE
-id = ANY(sqlc.arg('ids')::bigint[]) AND 
-sold + sqlc.arg('amount') <= quantity;
+    (id = ANY(sqlc.arg('ids')::bigint[])) AND 
+    (sold + sqlc.arg('amount') <= quantity);
 
 -- name: DeleteProduct :exec
-DELETE FROM product.base WHERE (
-    id = sqlc.narg('id') OR 
-    serial_id = sqlc.narg('serial_id')
-);
+DELETE FROM product.base WHERE id = $1;
 
 -- name: GetResources :many
 SELECT url
@@ -124,3 +113,5 @@ ON CONFLICT (owner_id, url) DO NOTHING;
 -- name: RemoveResources :exec
 DELETE FROM product.resource
 WHERE owner_id = $1 AND url = ANY(sqlc.arg('resources')::text[]);
+
+-- TODO: sửa repository ở product, add product_serial, sửa lại payment dựa trên product mới

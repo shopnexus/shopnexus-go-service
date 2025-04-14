@@ -11,8 +11,8 @@ GROUP BY pm.id;
 
 -- name: GetProductSerialIDs :many
 SELECT serial_id
-FROM product.base
-WHERE product_model_id = $1;
+FROM product.serial
+WHERE product_id = $1;
 
 -- name: CountProductTypes :one
 SELECT COUNT(id)

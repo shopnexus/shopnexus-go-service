@@ -49,11 +49,15 @@ LIMIT sqlc.arg('limit')
 OFFSET sqlc.arg('offset');
 
 -- name: GetPaymentProducts :many
-SELECT pop.*, pm.id as product_model_id
+SELECT pop.*
 FROM payment.product_on_payment pop
-INNER JOIN product.base p ON pop.product_serial_id = p.serial_id
-INNER JOIN product.model pm ON p.product_model_id = pm.id
 WHERE pop.payment_id = $1;
+
+-- name: GetPaymentProductSerials :many
+SELECT ps.*
+FROM payment.product_serial_on_product_on_payment psopop
+INNER JOIN product.serial ps ON ps.serial_id = psopop.product_serial_id
+WHERE psopop.product_on_payment_id = $1;
 
 -- name: CreatePayment :one
 INSERT INTO payment.base (
@@ -71,13 +75,22 @@ RETURNING *;
 -- name: CreatePaymentProducts :copyfrom
 INSERT INTO "payment".product_on_payment (
     payment_id,
-    product_serial_id,
+    product_id,
     quantity,
     price,
     total_price
 )
 VALUES (
     $1, $2, $3, $4, $5
+);
+
+-- name: CreatePaymentProductSerials :copyfrom
+INSERT INTO "payment".product_serial_on_product_on_payment (
+    product_on_payment_id,
+    product_serial_id
+)
+VALUES (
+    $1, $2
 );
 
 -- name: UpdatePayment :exec

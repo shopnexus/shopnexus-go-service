@@ -14,21 +14,21 @@ SELECT * FROM "account".item_on_cart
 WHERE cart_id = $1;
 
 -- name: AddCartItem :one
-INSERT INTO "account".item_on_cart (cart_id, product_model_id, quantity)
+INSERT INTO "account".item_on_cart (cart_id, product_id, quantity)
 VALUES ($1, $2, $3)
-ON CONFLICT (cart_id, product_model_id)
+ON CONFLICT (cart_id, product_id)
 DO UPDATE SET quantity = "account".item_on_cart.quantity + $3
 RETURNING quantity;
 
 -- name: UpdateCartItem :one
 UPDATE "account".item_on_cart
 SET quantity = $3
-WHERE cart_id = $1 AND product_model_id = $2
+WHERE cart_id = $1 AND product_id = $2
 RETURNING quantity;
 
 -- name: RemoveCartItem :exec
 DELETE FROM "account".item_on_cart
-WHERE cart_id = $1 AND product_model_id = $2;
+WHERE cart_id = $1 AND product_id = $2;
 
 -- name: ClearCart :exec
 DELETE FROM "account".item_on_cart

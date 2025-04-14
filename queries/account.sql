@@ -62,3 +62,23 @@ WHERE role.name = $1;
 SELECT custom_permission FROM "account".base
 WHERE 
 id = $1;
+
+-- name: UpdateAccount :one
+UPDATE "account".base
+SET 
+  username = COALESCE(sqlc.narg('username'), username),
+  password = COALESCE(sqlc.narg('password'), password),
+  custom_permission = CASE WHEN sqlc.narg('null_custom_permission') = TRUE THEN NULL ELSE COALESCE(sqlc.narg('custom_permission'), custom_permission) END
+WHERE id = $1
+RETURNING *;
+
+-- name: UpdateAccountUser :one
+UPDATE "account".user
+SET 
+  email = COALESCE(sqlc.narg('email'), email),
+  phone = COALESCE(sqlc.narg('phone'), phone),
+  gender = COALESCE(sqlc.narg('gender'), gender),
+  full_name = COALESCE(sqlc.narg('full_name'), full_name),
+  default_address_id = CASE WHEN sqlc.narg('null_default_address_id') = TRUE THEN NULL ELSE COALESCE(sqlc.narg('default_address_id'), default_address_id) END
+WHERE id = $1
+RETURNING *;
