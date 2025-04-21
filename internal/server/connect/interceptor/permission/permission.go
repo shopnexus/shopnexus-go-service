@@ -81,7 +81,7 @@ func validatePermissions(ctx context.Context, req connect.AnyRequest, accountSvc
 	}
 
 	// Check permissions if needed
-	if len(opts.Permissions) > 0 {
+	if len(opts.Permissions) > 0 && claims.Role != model.RoleUser {
 		if err := checkUserPermissions(ctx, accountSvc, claims, opts.Permissions); err != nil {
 			return err
 		}
