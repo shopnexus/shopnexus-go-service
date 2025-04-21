@@ -34,13 +34,13 @@ var PermissionRoutes = map[string]permission.Options{
 
 	// PRODUCT MODEL
 	"/product.v1.ProductService/ListProductModels": permission.UseOptions(
-		permission.NeedRoles(model.RoleUser, model.RoleStaff, model.RoleAdmin),
+		permission.NeedRoles(),
 	),
 	"/product.v1.ProductService/ListProductTypes": permission.UseOptions(
-		permission.NeedRoles(model.RoleUser, model.RoleStaff, model.RoleAdmin),
+		permission.NeedRoles(),
 	),
 	"/product.v1.ProductService/GetProductModel": permission.UseOptions(
-		permission.NeedRoles(model.RoleUser, model.RoleStaff, model.RoleAdmin),
+		permission.NeedRoles(),
 	),
 	"/product.v1.ProductService/CreateProductModel": permission.UseOptions(
 		permission.NeedRoles(model.RoleAdmin, model.RoleStaff),
@@ -57,10 +57,10 @@ var PermissionRoutes = map[string]permission.Options{
 
 	// PRODUCT
 	"/product.v1.ProductService/ListProducts": permission.UseOptions(
-		permission.NeedRoles(model.RoleUser, model.RoleStaff, model.RoleAdmin),
+		permission.NeedRoles(),
 	),
 	"/product.v1.ProductService/GetProduct": permission.UseOptions(
-		permission.NeedRoles(model.RoleUser, model.RoleStaff, model.RoleAdmin),
+		permission.NeedRoles(),
 	),
 	"/product.v1.ProductService/CreateProduct": permission.UseOptions(
 		permission.NeedRoles(model.RoleAdmin, model.RoleStaff),
@@ -117,10 +117,10 @@ var PermissionRoutes = map[string]permission.Options{
 
 	// TAG
 	"/product.v1.ProductService/ListTags": permission.UseOptions(
-		permission.NeedRoles(model.RoleUser, model.RoleStaff, model.RoleAdmin),
+		permission.NeedRoles(),
 	),
 	"/product.v1.ProductService/GetTag": permission.UseOptions(
-		permission.NeedRoles(model.RoleUser, model.RoleStaff, model.RoleAdmin),
+		permission.NeedRoles(),
 	),
 	"/product.v1.ProductService/CreateTag": permission.UseOptions(
 		permission.NeedRoles(model.RoleAdmin, model.RoleStaff),
@@ -137,10 +137,10 @@ var PermissionRoutes = map[string]permission.Options{
 
 	// BRAND
 	"/product.v1.ProductService/ListBrands": permission.UseOptions(
-		permission.NeedRoles(model.RoleUser, model.RoleStaff, model.RoleAdmin),
+		permission.NeedRoles(),
 	),
 	"/product.v1.ProductService/GetBrand": permission.UseOptions(
-		permission.NeedRoles(model.RoleUser, model.RoleStaff, model.RoleAdmin),
+		permission.NeedRoles(),
 	),
 	"/product.v1.ProductService/CreateBrand": permission.UseOptions(
 		permission.NeedRoles(model.RoleAdmin, model.RoleStaff),
@@ -195,10 +195,10 @@ var PermissionRoutes = map[string]permission.Options{
 
 	// COMMENT
 	"/product.v1.ProductService/ListComments": permission.UseOptions(
-		permission.NeedRoles(model.RoleUser, model.RoleStaff, model.RoleAdmin),
+		permission.NeedRoles(),
 	),
 	"/product.v1.ProductService/GetComment": permission.UseOptions(
-		permission.NeedRoles(model.RoleUser, model.RoleStaff, model.RoleAdmin),
+		permission.NeedRoles(),
 	),
 	"/product.v1.ProductService/CreateComment": permission.UseOptions(
 		permission.NeedRoles(model.RoleUser),

@@ -48,11 +48,11 @@ func (s *ImplementedProductServiceHandler) ListProductModels(ctx context.Context
 
 	var models []*productv1.ProductModelEntity
 	for _, d := range data.Data {
-		serialIds, err := s.service.GetProductSerialIDs(ctx, d.ID)
-		if err != nil {
-			return nil, err
-		}
-		models = append(models, modelToProductModelEntity(d, serialIds))
+		// serialIds, err := s.service.GetProductSerialIDs(ctx, d.ID)
+		// if err != nil {
+		// 	return nil, err
+		// }
+		models = append(models, modelToProductModelEntity(d, []string{}))
 	}
 
 	return connect.NewResponse(&productv1.ListProductModelsResponse{
