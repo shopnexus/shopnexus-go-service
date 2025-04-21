@@ -9,7 +9,8 @@ var PermissionRoutes = map[string]permission.Options{
 	// OTHER will always return permission denied
 
 	// ACCOUNT
-	"/account.v1.AccountService/GetUser":       permission.UseOptions(permission.NeedRoles(model.RoleUser, model.RoleStaff, model.RoleAdmin)),
+	"/account.v1.AccountService/GetUser":       permission.UseOptions(permission.NeedRoles(model.RoleUser)),
+	"/account.v1.AccountService/GetAdmin":      permission.UseOptions(permission.NeedRoles(model.RoleAdmin)),
 	"/account.v1.AccountService/GetUserPublic": permission.UseOptions(permission.NeedRoles()),
 	"/account.v1.AccountService/LoginUser":     permission.UseOptions(permission.NeedRoles()),
 	"/account.v1.AccountService/RegisterUser":  permission.UseOptions(permission.NeedRoles()),
@@ -23,6 +24,13 @@ var PermissionRoutes = map[string]permission.Options{
 	"/account.v1.AccountService/AddCartItem":    permission.UseOptions(permission.NeedRoles(model.RoleUser)),
 	"/account.v1.AccountService/UpdateCartItem": permission.UseOptions(permission.NeedRoles(model.RoleUser)),
 	"/account.v1.AccountService/ClearCart":      permission.UseOptions(permission.NeedRoles(model.RoleUser)),
+
+	// ADDRESS
+	"/account.v1.AccountService/GetAddress":    permission.UseOptions(permission.NeedRoles(model.RoleUser, model.RoleStaff, model.RoleAdmin)),
+	"/account.v1.AccountService/ListAddresses": permission.UseOptions(permission.NeedRoles(model.RoleUser, model.RoleStaff, model.RoleAdmin)),
+	"/account.v1.AccountService/CreateAddress": permission.UseOptions(permission.NeedRoles(model.RoleUser, model.RoleStaff, model.RoleAdmin)),
+	"/account.v1.AccountService/UpdateAddress": permission.UseOptions(permission.NeedRoles(model.RoleUser, model.RoleStaff, model.RoleAdmin)),
+	"/account.v1.AccountService/DeleteAddress": permission.UseOptions(permission.NeedRoles(model.RoleUser, model.RoleStaff, model.RoleAdmin)),
 
 	// PRODUCT MODEL
 	"/product.v1.ProductService/ListProductModels": permission.UseOptions(
