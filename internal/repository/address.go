@@ -26,6 +26,8 @@ func (r *RepositoryImpl) GetAddress(ctx context.Context, params GetAddressParams
 	return model.Address{
 		ID:          row.ID,
 		UserID:      row.UserID,
+		FullName:    row.FullName,
+		Phone:       row.Phone,
 		Address:     row.Address,
 		City:        row.City,
 		Province:    row.Province,
@@ -38,6 +40,8 @@ func (r *RepositoryImpl) GetAddress(ctx context.Context, params GetAddressParams
 type ListAddressesParams struct {
 	model.PaginationParams
 	UserID   *int64
+	FullName *string
+	Phone    *string
 	Address  *string
 	City     *string
 	Province *string
@@ -47,6 +51,8 @@ type ListAddressesParams struct {
 func (r *RepositoryImpl) CountAddresses(ctx context.Context, params ListAddressesParams) (int64, error) {
 	return r.sqlc.CountAddresses(ctx, sqlc.CountAddressesParams{
 		UserID:   *pgxutil.PtrToPgtype(&pgtype.Int8{}, params.UserID),
+		FullName: *pgxutil.PtrToPgtype(&pgtype.Text{}, params.FullName),
+		Phone:    *pgxutil.PtrToPgtype(&pgtype.Text{}, params.Phone),
 		Address:  *pgxutil.PtrToPgtype(&pgtype.Text{}, params.Address),
 		City:     *pgxutil.PtrToPgtype(&pgtype.Text{}, params.City),
 		Province: *pgxutil.PtrToPgtype(&pgtype.Text{}, params.Province),
@@ -59,6 +65,8 @@ func (r *RepositoryImpl) ListAddresses(ctx context.Context, params ListAddresses
 		Limit:    params.Limit,
 		Offset:   params.Offset(),
 		UserID:   *pgxutil.PtrToPgtype(&pgtype.Int8{}, params.UserID),
+		FullName: *pgxutil.PtrToPgtype(&pgtype.Text{}, params.FullName),
+		Phone:    *pgxutil.PtrToPgtype(&pgtype.Text{}, params.Phone),
 		Address:  *pgxutil.PtrToPgtype(&pgtype.Text{}, params.Address),
 		City:     *pgxutil.PtrToPgtype(&pgtype.Text{}, params.City),
 		Province: *pgxutil.PtrToPgtype(&pgtype.Text{}, params.Province),
@@ -73,6 +81,8 @@ func (r *RepositoryImpl) ListAddresses(ctx context.Context, params ListAddresses
 		result[i] = model.Address{
 			ID:          address.ID,
 			UserID:      address.UserID,
+			FullName:    address.FullName,
+			Phone:       address.Phone,
 			Address:     address.Address,
 			City:        address.City,
 			Province:    address.Province,
@@ -88,6 +98,8 @@ func (r *RepositoryImpl) ListAddresses(ctx context.Context, params ListAddresses
 func (r *RepositoryImpl) CreateAddress(ctx context.Context, address model.Address) (model.Address, error) {
 	row, err := r.sqlc.CreateAddress(ctx, sqlc.CreateAddressParams{
 		UserID:   address.UserID,
+		FullName: address.FullName,
+		Phone:    address.Phone,
 		Address:  address.Address,
 		City:     address.City,
 		Province: address.Province,
@@ -100,6 +112,8 @@ func (r *RepositoryImpl) CreateAddress(ctx context.Context, address model.Addres
 	return model.Address{
 		ID:          row.ID,
 		UserID:      row.UserID,
+		FullName:    row.FullName,
+		Phone:       row.Phone,
 		Address:     row.Address,
 		City:        row.City,
 		Province:    row.Province,
@@ -112,6 +126,8 @@ func (r *RepositoryImpl) CreateAddress(ctx context.Context, address model.Addres
 type UpdateAddressParams struct {
 	ID       int64
 	UserID   *int64
+	FullName *string
+	Phone    *string
 	Address  *string
 	City     *string
 	Province *string
@@ -122,6 +138,8 @@ func (r *RepositoryImpl) UpdateAddress(ctx context.Context, params UpdateAddress
 	row, err := r.sqlc.UpdateAddress(ctx, sqlc.UpdateAddressParams{
 		ID:       params.ID,
 		UserID:   *pgxutil.PtrToPgtype(&pgtype.Int8{}, params.UserID),
+		FullName: *pgxutil.PtrToPgtype(&pgtype.Text{}, params.FullName),
+		Phone:    *pgxutil.PtrToPgtype(&pgtype.Text{}, params.Phone),
 		Address:  *pgxutil.PtrToPgtype(&pgtype.Text{}, params.Address),
 		City:     *pgxutil.PtrToPgtype(&pgtype.Text{}, params.City),
 		Province: *pgxutil.PtrToPgtype(&pgtype.Text{}, params.Province),
@@ -132,12 +150,16 @@ func (r *RepositoryImpl) UpdateAddress(ctx context.Context, params UpdateAddress
 	}
 
 	return model.Address{
-		ID:       row.ID,
-		UserID:   row.UserID,
-		Address:  row.Address,
-		City:     row.City,
-		Province: row.Province,
-		Country:  row.Country,
+		ID:          row.ID,
+		UserID:      row.UserID,
+		FullName:    row.FullName,
+		Phone:       row.Phone,
+		Address:     row.Address,
+		City:        row.City,
+		Province:    row.Province,
+		Country:     row.Country,
+		DateCreated: row.DateCreated.Time.UnixMilli(),
+		DateUpdated: row.DateUpdated.Time.UnixMilli(),
 	}, nil
 }
 

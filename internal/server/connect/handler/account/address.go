@@ -43,6 +43,8 @@ func (s *ImplementedAccountServiceHandler) ListAddresses(ctx context.Context, re
 			Limit: req.Msg.GetPagination().GetLimit(),
 		},
 		UserID:   &claims.UserID,
+		FullName: req.Msg.FullName,
+		Phone:    req.Msg.Phone,
 		Address:  req.Msg.Address,
 		City:     req.Msg.City,
 		Province: req.Msg.Province,
@@ -64,8 +66,15 @@ func (s *ImplementedAccountServiceHandler) ListAddresses(ctx context.Context, re
 }
 
 func (s *ImplementedAccountServiceHandler) CreateAddress(ctx context.Context, req *connect.Request[accountv1.CreateAddressRequest]) (*connect.Response[accountv1.CreateAddressResponse], error) {
-	data, err := s.service.CreateAddress(ctx, model.Address{
-		UserID:   req.Msg.UserId,
+	claims, err := auth.GetClaims(req)
+	if err != nil {
+		return nil, err
+	}
+
+	data, err := s.service.CreateAddress(ctx, account.CreateAddressParams{
+		UserID:   claims.UserID,
+		FullName: req.Msg.FullName,
+		Phone:    req.Msg.Phone,
 		Address:  req.Msg.Address,
 		City:     req.Msg.City,
 		Province: req.Msg.Province,
@@ -89,6 +98,8 @@ func (s *ImplementedAccountServiceHandler) UpdateAddress(ctx context.Context, re
 	_, err = s.service.UpdateAddress(ctx, account.UpdateAddressParams{
 		ID:       req.Msg.Id,
 		UserID:   &claims.UserID,
+		FullName: req.Msg.FullName,
+		Phone:    req.Msg.Phone,
 		Address:  req.Msg.Address,
 		City:     req.Msg.City,
 		Province: req.Msg.Province,
@@ -122,6 +133,8 @@ func modelToAddressEntity(data model.Address) *accountv1.AddressEntity {
 	return &accountv1.AddressEntity{
 		Id:          data.ID,
 		UserId:      data.UserID,
+		FullName:    data.FullName,
+		Phone:       data.Phone,
 		Address:     data.Address,
 		City:        data.City,
 		Province:    data.Province,

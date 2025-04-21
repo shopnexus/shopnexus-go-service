@@ -41,8 +41,26 @@ func (s *AccountService) ListAddresses(ctx context.Context, params ListAddresses
 	}, nil
 }
 
-func (s *AccountService) CreateAddress(ctx context.Context, address model.Address) (model.Address, error) {
-	return s.repo.CreateAddress(ctx, address)
+type CreateAddressParams struct {
+	UserID   int64
+	FullName string
+	Phone    string
+	Address  string
+	City     string
+	Province string
+	Country  string
+}
+
+func (s *AccountService) CreateAddress(ctx context.Context, params CreateAddressParams) (model.Address, error) {
+	return s.repo.CreateAddress(ctx, model.Address{
+		UserID:   params.UserID,
+		FullName: params.FullName,
+		Phone:    params.Phone,
+		Address:  params.Address,
+		City:     params.City,
+		Province: params.Province,
+		Country:  params.Country,
+	})
 }
 
 type UpdateAddressParams = repository.UpdateAddressParams
