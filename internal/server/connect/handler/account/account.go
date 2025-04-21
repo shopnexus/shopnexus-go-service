@@ -46,13 +46,40 @@ func (s *ImplementedAccountServiceHandler) GetUser(ctx context.Context, req *con
 
 	return connect.NewResponse(&accountv1.GetUserResponse{
 		Id:               user.ID,
-		Email:            user.Username,
+		Email:            user.Email,
 		Phone:            user.Phone,
 		Username:         user.Username,
 		Gender:           convertGenderToProto(user.Gender),
 		FullName:         user.FullName,
 		DefaultAddressId: user.DefaultAddressID,
 		Avatar:           user.Avatar,
+	}), nil
+}
+
+func (s *ImplementedAccountServiceHandler) GetAdmin(ctx context.Context, req *connect.Request[accountv1.GetAdminRequest]) (*connect.Response[accountv1.GetAdminResponse], error) {
+	claims, err := auth.GetClaims(req)
+	if err != nil {
+		return nil, err
+	}
+
+	account, err := s.service.FindAccount(ctx, account.FindAccountParams{
+		Role:   model.RoleAdmin,
+		UserID: &claims.UserID,
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	admin, ok := account.(model.AccountAdmin)
+	if !ok {
+		return nil, model.ErrForbidden
+	}
+
+	return connect.NewResponse(&accountv1.GetAdminResponse{
+		Id:       admin.ID,
+		Username: admin.Username,
+		Role:     convertRoleToProto(admin.Role),
+		Avatar:   admin.Avatar,
 	}), nil
 }
 
@@ -239,4 +266,17 @@ func convertGenderToProto(gender model.Gender) accountv1.Gender {
 	default:
 		return accountv1.Gender_GENDER_UNSPECIFIED
 	}
+}
+
+func convertRoleToProto(role model.Role) accountv1.Role {
+	switch role {
+	case model.RoleAdmin:
+		return accountv1.Role_ROLE_ADMIN
+	case model.RoleUser:
+		return accountv1.Role_ROLE_USER
+	case model.RoleStaff:
+		return accountv1.Role_ROLE_STAFF
+	}
+
+	panic("unknown role")
 }
