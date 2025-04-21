@@ -87,7 +87,7 @@ func (s *ImplementedPaymentServiceHandler) ListPayments(ctx context.Context, req
 		return nil, err
 	}
 
-	protoPayments := make([]*paymentv1.Payment, 0, len(payments.Data))
+	protoPayments := make([]*paymentv1.PaymentEntity, 0, len(payments.Data))
 	for _, p := range payments.Data {
 		protoPayments = append(protoPayments, convertPaymentToProto(p))
 	}
@@ -173,7 +173,7 @@ func (s *ImplementedPaymentServiceHandler) CancelPayment(ctx context.Context, re
 }
 
 // Helper functions to convert between model and proto types
-func convertPaymentToProto(p model.Payment) *paymentv1.Payment {
+func convertPaymentToProto(p model.Payment) *paymentv1.PaymentEntity {
 	products := make([]*paymentv1.ProductOnPayment, 0, len(p.Products))
 	for _, pop := range p.Products {
 		products = append(products, &paymentv1.ProductOnPayment{
@@ -188,7 +188,7 @@ func convertPaymentToProto(p model.Payment) *paymentv1.Payment {
 		})
 	}
 
-	return &paymentv1.Payment{
+	return &paymentv1.PaymentEntity{
 		Id:          p.ID,
 		UserId:      p.UserID,
 		Address:     p.Address,
