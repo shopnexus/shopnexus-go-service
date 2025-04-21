@@ -4,7 +4,6 @@ import (
 	"context"
 	"shopnexus-go-service/internal/model"
 	"shopnexus-go-service/internal/repository"
-	"shopnexus-go-service/internal/util"
 )
 
 func (s *ProductService) GetProductModel(ctx context.Context, id int64) (model.ProductModel, error) {
@@ -68,9 +67,15 @@ func (s *ProductService) CreateProductModel(ctx context.Context, params CreatePr
 }
 
 type UpdateProductModelParams = struct {
-	RepoParams repository.UpdateProductModelParams
-	Resources  []string
-	Tags       []string
+	ID               int64
+	Type             *int64
+	BrandID          *int64
+	Name             *string
+	Description      *string
+	ListPrice        *int64
+	DateManufactured *int64
+	Resources        *[]string
+	Tags             *[]string
 }
 
 func (s *ProductService) UpdateProductModel(ctx context.Context, params UpdateProductModelParams) error {
@@ -80,33 +85,7 @@ func (s *ProductService) UpdateProductModel(ctx context.Context, params UpdatePr
 	}
 	defer txRepo.Rollback(ctx)
 
-	// Update resources
-	currentRs, err := txRepo.GetResources(ctx, params.RepoParams.ID)
-	if err != nil {
-		return err
-	}
-	addedRs, removedRs := util.Diff(currentRs, params.Resources)
-	if err = txRepo.AddResources(ctx, params.RepoParams.ID, addedRs); err != nil {
-		return err
-	}
-	if err = txRepo.RemoveResources(ctx, params.RepoParams.ID, removedRs); err != nil {
-		return err
-	}
-
-	// Update tags
-	currentTags, err := txRepo.GetTags(ctx, params.RepoParams.ID)
-	if err != nil {
-		return err
-	}
-	addedTags, removedTags := util.Diff(currentTags, params.Tags)
-	if err = txRepo.AddTags(ctx, params.RepoParams.ID, addedTags); err != nil {
-		return err
-	}
-	if err = txRepo.RemoveTags(ctx, params.RepoParams.ID, removedTags); err != nil {
-		return err
-	}
-
-	if err = s.repo.UpdateProductModel(ctx, params.RepoParams); err != nil {
+	if err = txRepo.UpdateProductModel(ctx, params); err != nil {
 		return err
 	}
 

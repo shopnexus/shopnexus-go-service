@@ -5,7 +5,6 @@ import (
 	"shopnexus-go-service/internal/model"
 	"shopnexus-go-service/internal/repository"
 	"shopnexus-go-service/internal/service/account"
-	"shopnexus-go-service/internal/util"
 )
 
 type ProductService struct {
@@ -64,8 +63,16 @@ func (s *ProductService) CreateProduct(ctx context.Context, product model.Produc
 }
 
 type UpdateProductParams = struct {
-	RepoParams repository.UpdateProductParams
-	Resources  []string
+	// TODO: sửa lại ko xài RepoParams, phải tự ghi ra hết
+	ID             int64
+	ProductModelID *int64
+	Quantity       *int64
+	Sold           *int64
+	AddPrice       *int64
+	CanCombine     *bool
+	IsActive       *bool
+	Metadata       *[]byte
+	Resources      *[]string
 }
 
 func (s *ProductService) UpdateProduct(ctx context.Context, params UpdateProductParams) error {
@@ -75,20 +82,17 @@ func (s *ProductService) UpdateProduct(ctx context.Context, params UpdateProduct
 	}
 	defer txRepo.Rollback(ctx)
 
-	if err = s.repo.UpdateProduct(ctx, params.RepoParams); err != nil {
-		return err
-	}
-
-	current, err := txRepo.GetResources(ctx, params.RepoParams.ID)
-	if err != nil {
-		return err
-	}
-
-	added, removed := util.Diff(current, params.Resources)
-	if err = txRepo.AddResources(ctx, params.RepoParams.ID, added); err != nil {
-		return err
-	}
-	if err = txRepo.RemoveResources(ctx, params.RepoParams.ID, removed); err != nil {
+	if err = s.repo.UpdateProduct(ctx, repository.UpdateProductParams{
+		ID:             params.ID,
+		ProductModelID: params.ProductModelID,
+		Quantity:       params.Quantity,
+		Sold:           params.Sold,
+		AddPrice:       params.AddPrice,
+		CanCombine:     params.CanCombine,
+		IsActive:       params.IsActive,
+		Metadata:       params.Metadata,
+		Resources:      params.Resources,
+	}); err != nil {
 		return err
 	}
 

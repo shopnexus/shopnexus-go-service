@@ -4,7 +4,6 @@ import (
 	"context"
 	"shopnexus-go-service/internal/model"
 	"shopnexus-go-service/internal/repository"
-	"shopnexus-go-service/internal/util"
 )
 
 func (s *ProductService) GetBrand(ctx context.Context, id int64) (model.Brand, error) {
@@ -56,10 +55,6 @@ func (s *ProductService) CreateBrand(ctx context.Context, params CreateBrandPara
 		return model.Brand{}, err
 	}
 
-	if err = txRepo.AddResources(ctx, newBrand.ID, params.Brand.Resources); err != nil {
-		return model.Brand{}, err
-	}
-
 	if err = txRepo.Commit(ctx); err != nil {
 		return model.Brand{}, err
 	}
@@ -83,24 +78,11 @@ func (s *ProductService) UpdateBrand(ctx context.Context, params UpdateBrandPara
 		return err
 	}
 
-	current, err := txRepo.GetResources(ctx, params.RepoParams.ID)
-	if err != nil {
+	if err = txRepo.UpdateResources(ctx, params.RepoParams.ID, model.ResourceTypeBrand, params.Resources); err != nil {
 		return err
 	}
 
-	added, removed := util.Diff(current, params.Resources)
-	if err := txRepo.AddResources(ctx, params.RepoParams.ID, added); err != nil {
-		return err
-	}
-	if err := txRepo.RemoveResources(ctx, params.RepoParams.ID, removed); err != nil {
-		return err
-	}
-
-	if err := txRepo.Commit(ctx); err != nil {
-		return err
-	}
-
-	return nil
+	return txRepo.Commit(ctx)
 }
 
 func (s *ProductService) DeleteBrand(ctx context.Context, id int64) error {

@@ -4,7 +4,6 @@ import (
 	"context"
 	"shopnexus-go-service/internal/model"
 	"shopnexus-go-service/internal/repository"
-	"shopnexus-go-service/internal/util"
 )
 
 func (s *ProductService) GetComment(ctx context.Context, id int64) (model.Comment, error) {
@@ -47,33 +46,29 @@ type CreateCommentParams struct {
 	Resources []string
 }
 
-func (s *ProductService) CreateComment(ctx context.Context, params CreateCommentParams) error {
+func (s *ProductService) CreateComment(ctx context.Context, params CreateCommentParams) (model.Comment, error) {
 	txRepo, err := s.repo.Begin(ctx)
 	if err != nil {
-		return err
+		return model.Comment{}, err
 	}
 	defer txRepo.Rollback(ctx)
 
-	err = txRepo.CreateComment(ctx, model.Comment{
+	comment, err := txRepo.CreateComment(ctx, model.Comment{
 		Type:      params.Type,
 		AccountID: params.AccountID,
 		DestID:    params.DestID,
 		Body:      params.Body,
+		Resources: params.Resources,
 	})
 	if err != nil {
-		return err
-	}
-
-	err = txRepo.AddResources(ctx, params.DestID, params.Resources)
-	if err != nil {
-		return err
+		return model.Comment{}, err
 	}
 
 	if err := txRepo.Commit(ctx); err != nil {
-		return err
+		return model.Comment{}, err
 	}
 
-	return nil
+	return comment, nil
 }
 
 // TODO: always check user only modify their resources
@@ -82,7 +77,7 @@ type UpdateCommentParams struct {
 	AccountID int64
 	ID        int64
 	Body      *string
-	Resources []string
+	Resources *[]string
 }
 
 func (s *ProductService) UpdateComment(ctx context.Context, params UpdateCommentParams) error {
@@ -93,28 +88,18 @@ func (s *ProductService) UpdateComment(ctx context.Context, params UpdateComment
 	defer txRepo.Rollback(ctx)
 
 	repoParams := repository.UpdateCommentParams{
-		ID:   params.ID,
-		Body: params.Body,
+		ID:        params.ID,
+		Body:      params.Body,
+		Resources: params.Resources,
 	}
 
+	// User only can modify their own comment
 	if params.Role == model.RoleUser {
 		repoParams.AccountID = &params.AccountID
 	}
 
-	if err = txRepo.UpdateComment(ctx, repoParams); err != nil {
-		return err
-	}
-
-	current, err := txRepo.GetResources(ctx, params.ID)
+	err = txRepo.UpdateComment(ctx, repoParams)
 	if err != nil {
-		return err
-	}
-
-	added, removed := util.Diff(current, params.Resources)
-	if err := txRepo.AddResources(ctx, params.ID, added); err != nil {
-		return err
-	}
-	if err := txRepo.RemoveResources(ctx, params.ID, removed); err != nil {
 		return err
 	}
 
