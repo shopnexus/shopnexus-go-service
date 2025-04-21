@@ -564,6 +564,16 @@ async function createPayments(
     });
   }
 
+  // Set the next value for payment and product_on_payment sequences
+  await prisma.$executeRawUnsafe(
+    `ALTER SEQUENCE product.payment_id_seq RESTART WITH ${BigInt(count + 1)}`
+  );
+  await prisma.$executeRawUnsafe(
+    `ALTER SEQUENCE product.product_on_payment_id_seq RESTART WITH ${BigInt(
+      productOnPaymentData.length + 1
+    )}`
+  );
+
   return await prisma.payment.findMany({ take: count });
 }
 
@@ -638,6 +648,13 @@ async function createRefunds(prisma: TxPrisma, payments: any[], count: number) {
       skipDuplicates: true,
     });
   }
+
+  // Set the next value for the refund sequence
+  await prisma.$executeRawUnsafe(
+    `ALTER SEQUENCE product.refund_id_seq RESTART WITH ${BigInt(
+      refundCount + 1
+    )}`
+  );
 
   return await prisma.refund.findMany({ take: count });
 }
@@ -794,6 +811,13 @@ async function createResources(
     skipDuplicates: true,
   });
 
+  // Set the next value for the resource sequence
+  await prisma.$executeRawUnsafe(
+    `ALTER SEQUENCE product.resource_id_seq RESTART WITH ${BigInt(
+      resourcesData.length + 1
+    )}`
+  );
+
   return await prisma.resource.findMany({ take: resourcesData.length });
 }
 
@@ -812,45 +836,6 @@ interface SeedConfig {
   payments: number;
   comments: number;
 }
-
-const SEED_PRESETS: Record<PresetType, SeedConfig> = {
-  light: {
-    accounts: 10,
-    brands: 5,
-    tags: 8,
-    productTypes: 5,
-    productModels: 20,
-    products: 50,
-    addresses: 15,
-    sales: 10,
-    payments: 15,
-    comments: 20,
-  },
-  medium: {
-    accounts: 1000, // 1k users
-    brands: 50, // 50 different brands
-    tags: 100, // 100 different tags
-    productTypes: 30, // 30 product types
-    productModels: 500, // 500 different product models
-    products: 2000, // 2k product variants
-    addresses: 1500, // ~1.5 addresses per user
-    sales: 200, // 200 different sales/promotions
-    payments: 3000, // 3k orders
-    comments: 5000, // 5k comments
-  },
-  heavy: {
-    accounts: 10000, // 10k users
-    brands: 200, // 200 different brands
-    tags: 300, // 300 different tags
-    productTypes: 100, // 100 product types
-    productModels: 2000, // 2k different product models
-    products: 10000, // 10k product variants
-    addresses: 15000, // ~1.5 addresses per user
-    sales: 1000, // 1k different sales/promotions
-    payments: 30000, // 30k orders
-    comments: 50000, // 50k comments
-  },
-};
 
 // Update main function to accept preset parameter
 async function main(preset: PresetType = "light") {
@@ -935,6 +920,45 @@ async function main(preset: PresetType = "light") {
     await prisma.$disconnect();
   }
 }
+
+const SEED_PRESETS: Record<PresetType, SeedConfig> = {
+  light: {
+    accounts: 10,
+    brands: 5,
+    tags: 8,
+    productTypes: 5,
+    productModels: 20,
+    products: 50,
+    addresses: 15,
+    sales: 10,
+    payments: 15,
+    comments: 20,
+  },
+  medium: {
+    accounts: 1000, // 1k users
+    brands: 50, // 50 different brands
+    tags: 100, // 100 different tags
+    productTypes: 30, // 30 product types
+    productModels: 500, // 500 different product models
+    products: 2000, // 2k product variants
+    addresses: 1500, // ~1.5 addresses per user
+    sales: 200, // 200 different sales/promotions
+    payments: 3000, // 3k orders
+    comments: 5000, // 5k comments
+  },
+  heavy: {
+    accounts: 10000, // 10k users
+    brands: 200, // 200 different brands
+    tags: 300, // 300 different tags
+    productTypes: 100, // 100 product types
+    productModels: 2000, // 2k different product models
+    products: 10000, // 10k product variants
+    addresses: 15000, // ~1.5 addresses per user
+    sales: 1000, // 1k different sales/promotions
+    payments: 30000, // 30k orders
+    comments: 50000, // 50k comments
+  },
+};
 
 // You can now call main with different presets
 main("heavy"); // or main('medium') or main('heavy')
