@@ -16,6 +16,7 @@ import {
   Refund,
   ResourceType,
 } from "../node_modules/.prisma/client";
+import { UserAccount } from "@prisma/client";
 
 type TxPrisma = Omit<
   PrismaClient,
@@ -86,40 +87,47 @@ async function createAccounts(prisma: TxPrisma, count: number) {
   });
 
   // Fetch created accounts to get their IDs
-  const createdAccounts = await prisma.account.findMany({
-    where: {
-      username: {
-        in: accountsData.map((a) => a.username),
-      },
-    },
-  });
+  const createdAccounts = await prisma.account.findMany({});
 
-  // Create related admin and user accounts individually since we need the base account IDs
+  // Prepare admin and user account data
+  const adminAccountsData: Prisma.AdminAccountCreateManyInput[] = [];
+  const userAccountsData: Prisma.UserAccountCreateManyInput[] = [];
+
   for (const account of createdAccounts) {
     if (account.role === Role.ADMIN) {
-      await prisma.adminAccount.create({
-        data: {
-          id: account.id,
-        },
+      adminAccountsData.push({
+        id: account.id,
       });
     } else {
-      await prisma.userAccount.create({
-        data: {
-          id: account.id,
-          email: faker.internet.email(),
-          phone: faker.phone.number({ style: "international" }),
-          gender: randomEnum<Gender>({
-            MALE: Gender.MALE,
-            FEMALE: Gender.FEMALE,
-            OTHER: Gender.OTHER,
-          }),
-          full_name: faker.person.fullName(),
-        },
+      userAccountsData.push({
+        id: account.id,
+        email: faker.internet.email(),
+        phone: faker.phone.number({ style: "international" }),
+        gender: randomEnum<Gender>({
+          MALE: Gender.MALE,
+          FEMALE: Gender.FEMALE,
+          OTHER: Gender.OTHER,
+        }),
+        full_name: faker.person.fullName(),
+        default_address_id: null,
       });
     }
   }
 
-  return createdAccounts;
+  // Create admin and user accounts in bulk
+  if (adminAccountsData.length > 0) {
+    await prisma.adminAccount.createMany({
+      data: adminAccountsData,
+      skipDuplicates: true,
+    });
+  }
+
+  if (userAccountsData.length > 0) {
+    await prisma.userAccount.createMany({
+      data: userAccountsData,
+      skipDuplicates: true,
+    });
+  }
 }
 
 // Generate Brands
@@ -282,15 +290,20 @@ async function createProducts(
 // Generate Addresses
 async function createAddresses(
   prisma: TxPrisma,
-  userAccounts: Account[],
+  userAccounts: UserAccount[],
   count: number
 ) {
-  const addressesData: Prisma.AddressCreateManyInput[] = Array.from(
-    { length: count },
-    () => {
-      const userAccount =
-        userAccounts[Math.floor(Math.random() * userAccounts.length)];
-      return {
+  // Calculate how many addresses per user (rounded up)
+  const addressesPerUser = Math.ceil(count / userAccounts.length);
+  const addressesData: Prisma.AddressCreateManyInput[] = [];
+
+  // Create addresses for each user
+  for (const userAccount of userAccounts) {
+    // Create 1 to addressesPerUser addresses for each user
+    const userAddressCount = Math.floor(Math.random() * addressesPerUser) + 1;
+
+    for (let i = 0; i < userAddressCount && addressesData.length < count; i++) {
+      addressesData.push({
         user_id: userAccount.id,
         address: faker.location.streetAddress(),
         city: faker.location.city(),
@@ -298,9 +311,9 @@ async function createAddresses(
         country: faker.location.country(),
         full_name: faker.person.fullName(),
         phone: faker.phone.number({ style: "international" }),
-      };
+      });
     }
-  );
+  }
 
   await prisma.address.createMany({
     data: addressesData,
@@ -313,7 +326,7 @@ async function createAddresses(
 // Generate Carts and Items
 async function createCarts(
   prisma: TxPrisma,
-  userAccounts: Account[],
+  userAccounts: UserAccount[],
   products: Product[]
 ) {
   const cartsData: Prisma.CartCreateManyInput[] = [];
@@ -416,6 +429,24 @@ async function createPayments(
   const vnpayData: Prisma.PaymentVnpayCreateManyInput[] = [];
   const paymentMethods = Object.values(PaymentMethod);
 
+  // First, fetch all available product serials
+  const productSerials = await prisma.productSerial.findMany({
+    where: {
+      is_sold: false,
+      is_active: true,
+    },
+  });
+
+  // Group serials by product_id for easier access
+  const serialsByProduct: Record<string, typeof productSerials> =
+    productSerials.reduce((acc, serial) => {
+      if (!acc[serial.product_id.toString()]) {
+        acc[serial.product_id.toString()] = [];
+      }
+      acc[serial.product_id.toString()].push(serial);
+      return acc;
+    }, {} as Record<string, typeof productSerials>);
+
   for (let i = 0; i < count; i++) {
     const userAccount =
       userAccounts[Math.floor(Math.random() * userAccounts.length)];
@@ -447,15 +478,29 @@ async function createPayments(
       });
     }
 
+    // Filter products that have available serials
+    const availableProducts = products.filter(
+      (p) =>
+        serialsByProduct[p.id.toString()] &&
+        serialsByProduct[p.id.toString()].length > 0
+    );
+
+    if (availableProducts.length === 0) continue;
+
     // Create 1-3 products per payment
     const productCount = Math.floor(Math.random() * 3) + 1;
     const selectedProducts = faker.helpers.arrayElements(
-      products.filter((p) => p.sold < p.quantity),
-      Math.min(productCount, products.filter((p) => p.sold < p.quantity).length)
+      availableProducts,
+      Math.min(productCount, availableProducts.length)
     );
 
     for (const product of selectedProducts) {
-      const quantity = BigInt(Math.floor(Math.random() * 3) + 1);
+      const availableSerials = serialsByProduct[product.id.toString()];
+      if (!availableSerials || availableSerials.length === 0) continue;
+
+      const quantity = BigInt(
+        Math.min(Math.floor(Math.random() * 3) + 1, availableSerials.length)
+      );
       const price = BigInt(Math.floor(Math.random() * 500000) + 50000);
       const totalProductPrice = price * quantity;
 
@@ -471,22 +516,26 @@ async function createPayments(
 
       // Create serial numbers for successful payments
       if (status === Status.SUCCESS) {
-        // Get available serials for the product
-        const availableSerials = Array.from({ length: Number(quantity) }, () =>
-          faker.string.alphanumeric(10).toUpperCase()
-        );
+        // Take the required number of serials and remove them from available serials
+        const selectedSerials = availableSerials.splice(0, Number(quantity));
 
-        for (const serialId of availableSerials) {
+        for (const serial of selectedSerials) {
           productSerialOnProductOnPaymentData.push({
             product_on_payment_id: productOnPaymentId,
-            product_serial_id: serialId,
+            product_serial_id: serial.serial_id,
+          });
+
+          // Mark serial as sold
+          await prisma.productSerial.update({
+            where: { serial_id: serial.serial_id },
+            data: { is_sold: true },
           });
         }
       }
     }
   }
 
-  // Create payments
+  // Bulk create all records
   if (paymentsData.length > 0) {
     await prisma.payment.createMany({
       data: paymentsData,
@@ -494,7 +543,6 @@ async function createPayments(
     });
   }
 
-  // Create VNPay records
   if (vnpayData.length > 0) {
     await prisma.paymentVnpay.createMany({
       data: vnpayData,
@@ -502,7 +550,6 @@ async function createPayments(
     });
   }
 
-  // Create product on payment records
   if (productOnPaymentData.length > 0) {
     await prisma.productOnPayment.createMany({
       data: productOnPaymentData,
@@ -510,7 +557,6 @@ async function createPayments(
     });
   }
 
-  // Create product serial on payment records
   if (productSerialOnProductOnPaymentData.length > 0) {
     await prisma.productSerialOnProductOnPayment.createMany({
       data: productSerialOnProductOnPaymentData,
@@ -532,25 +578,35 @@ async function createRefunds(prisma: TxPrisma, payments: any[], count: number) {
   const successfulPayments = payments.filter((p) => p.status === "SUCCESS");
   const refundCount = Math.min(count, successfulPayments.length);
 
+  // Get all product on payments first
+  const productOnPayments = await prisma.productOnPayment.findMany({
+    where: {
+      payment_id: {
+        in: successfulPayments.map((p) => p.id),
+      },
+    },
+  });
+
   for (let i = 0; i < refundCount; i++) {
     const payment = successfulPayments[i];
     const refundMethod = faker.helpers.arrayElement(refundMethods);
     const status = faker.helpers.arrayElement(statuses);
-    const productOnPayments = await prisma.productOnPayment.findMany({
-      where: { payment_id: payment.id },
-    });
+    const availableProductOnPayments = productOnPayments.filter(
+      (pop) => pop.payment_id === payment.id
+    );
 
-    // Create refund with proper address handling
+    if (availableProductOnPayments.length === 0) continue;
+
     const refundId = BigInt(i + 1);
     refundsData.push({
       id: refundId,
       product_on_payment_id:
-        productOnPayments[Math.floor(Math.random() * productOnPayments.length)]
-          .id,
+        availableProductOnPayments[
+          Math.floor(Math.random() * availableProductOnPayments.length)
+        ].id,
       method: refundMethod,
-      status: "PENDING", // Always start with PENDING status
+      status: "PENDING",
       reason: faker.lorem.sentence(),
-      // Only include address for PICK_UP method
       address: refundMethod === "PICK_UP" ? faker.location.streetAddress() : "",
       date_created: faker.date.recent(),
       date_updated: faker.date.recent(),
@@ -568,7 +624,7 @@ async function createRefunds(prisma: TxPrisma, payments: any[], count: number) {
     }
   }
 
-  // Create refunds
+  // Create refunds and resources in bulk
   if (refundsData.length > 0) {
     await prisma.refund.createMany({
       data: refundsData,
@@ -576,7 +632,6 @@ async function createRefunds(prisma: TxPrisma, payments: any[], count: number) {
     });
   }
 
-  // Create resources for refunds
   if (resourcesData.length > 0) {
     await prisma.resource.createMany({
       data: resourcesData,
@@ -590,7 +645,7 @@ async function createRefunds(prisma: TxPrisma, payments: any[], count: number) {
 // Generate Comments and Resources
 async function createComments(
   prisma: TxPrisma,
-  accounts: Account[],
+  userAccounts: UserAccount[],
   count: number
 ) {
   const commentsData: Prisma.CommentCreateManyInput[] = [];
@@ -600,7 +655,8 @@ async function createComments(
   const brands = await prisma.brand.findMany();
 
   const addComment = (commentId: bigint, destId: bigint, type: CommentType) => {
-    const account = accounts[Math.floor(Math.random() * accounts.length)];
+    const account =
+      userAccounts[Math.floor(Math.random() * userAccounts.length)];
     commentsData.push({
       id: commentId,
       type: type,
@@ -741,49 +797,138 @@ async function createResources(
   return await prisma.resource.findMany({ take: resourcesData.length });
 }
 
-// Main seeding function
-async function main() {
+// Define preset types and configurations
+type PresetType = "light" | "medium" | "heavy";
+
+interface SeedConfig {
+  accounts: number;
+  brands: number;
+  tags: number;
+  productTypes: number;
+  productModels: number;
+  products: number;
+  addresses: number;
+  sales: number;
+  payments: number;
+  comments: number;
+}
+
+const SEED_PRESETS: Record<PresetType, SeedConfig> = {
+  light: {
+    accounts: 10,
+    brands: 5,
+    tags: 8,
+    productTypes: 5,
+    productModels: 20,
+    products: 50,
+    addresses: 15,
+    sales: 10,
+    payments: 15,
+    comments: 20,
+  },
+  medium: {
+    accounts: 1000, // 1k users
+    brands: 50, // 50 different brands
+    tags: 100, // 100 different tags
+    productTypes: 30, // 30 product types
+    productModels: 500, // 500 different product models
+    products: 2000, // 2k product variants
+    addresses: 1500, // ~1.5 addresses per user
+    sales: 200, // 200 different sales/promotions
+    payments: 3000, // 3k orders
+    comments: 5000, // 5k comments
+  },
+  heavy: {
+    accounts: 10000, // 10k users
+    brands: 200, // 200 different brands
+    tags: 300, // 300 different tags
+    productTypes: 100, // 100 product types
+    productModels: 2000, // 2k different product models
+    products: 10000, // 10k product variants
+    addresses: 15000, // ~1.5 addresses per user
+    sales: 1000, // 1k different sales/promotions
+    payments: 30000, // 30k orders
+    comments: 50000, // 50k comments
+  },
+};
+
+// Update main function to accept preset parameter
+async function main(preset: PresetType = "light") {
   const prisma = new PrismaClient();
+  const config = SEED_PRESETS[preset];
+
   try {
-    console.log("Starting to seed database...");
+    console.log(`Starting to seed database with ${preset} preset...`);
 
-    await prisma.$transaction(async (tx) => {
-      // Create base data
-      await createRoles(tx);
-      const accounts = await createAccounts(tx, 10);
-      const userAccounts = accounts.filter((a) => a.role === "USER");
-      const brands = await createBrands(tx, 5);
-      const tags = await createTags(tx, 8);
-      const productTypes = await createProductTypes(tx, 5);
-      const productModels = await createProductModels(
-        tx,
-        brands,
-        tags,
-        productTypes,
-        20
-      );
-      const products = await createProducts(tx, productModels, 50);
+    await prisma.$transaction(
+      async (tx) => {
+        // Create base data
+        await createRoles(tx);
+        await createAccounts(tx, config.accounts);
+        const userAccounts = await tx.userAccount.findMany();
+        const brands = await createBrands(tx, config.brands);
+        const tags = await createTags(tx, config.tags);
+        const productTypes = await createProductTypes(tx, config.productTypes);
+        const productModels = await createProductModels(
+          tx,
+          brands,
+          tags,
+          productTypes,
+          config.productModels
+        );
+        const products = await createProducts(
+          tx,
+          productModels,
+          config.products
+        );
 
-      // Create related data
-      const addresses = await createAddresses(tx, userAccounts, 15);
-      const carts = await createCarts(tx, userAccounts, products);
-      const sales = await createSales(tx, productModels, tags, brands, 10);
-      // const payments = await createPayments(tx, userAccounts, products, 15);
-      // const refunds = await createRefunds(tx, payments, 5);
-      const comments = await createComments(tx, accounts, 20);
+        // Create related data
+        const addresses = await createAddresses(
+          tx,
+          userAccounts,
+          config.addresses
+        );
+        const carts = await createCarts(tx, userAccounts, products);
+        const sales = await createSales(
+          tx,
+          productModels,
+          tags,
+          brands,
+          config.sales
+        );
+        const payments = await createPayments(
+          tx,
+          userAccounts,
+          products,
+          config.payments
+        );
+        const refunds = await createRefunds(
+          tx,
+          payments,
+          Math.floor(config.payments * 0.1)
+        ); // 10% of payments
+        const comments = await createComments(
+          tx,
+          userAccounts,
+          config.comments
+        );
 
-      // Create resources for brands, productModels, products, and refunds
-      const resources = await createResources(
-        tx,
-        brands,
-        productModels,
-        products,
-        [],
-        0
-      );
+        // Create resources
+        const resources = await createResources(
+          tx,
+          brands,
+          productModels,
+          products,
+          refunds,
+          Math.floor(config.productModels * 2) // Average 2 resources per product model
+        );
 
-      console.log("Seeding completed successfully!");
-    });
+        console.log(`Seeding completed successfully with ${preset} preset!`);
+      },
+      {
+        timeout: 1000000000,
+      }
+    );
   } catch (error) {
     console.error("Error seeding database:", error);
   } finally {
@@ -791,4 +936,5 @@ async function main() {
   }
 }
 
-main();
+// You can now call main with different presets
+main("heavy"); // or main('medium') or main('heavy')
