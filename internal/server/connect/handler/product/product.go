@@ -4,7 +4,6 @@ import (
 	"context"
 	"net/http"
 	"shopnexus-go-service/internal/model"
-	"shopnexus-go-service/internal/repository"
 	"shopnexus-go-service/internal/service/product"
 
 	common_grpc "shopnexus-go-service/internal/server/connect/handler/common"
@@ -88,17 +87,26 @@ func (s *ImplementedProductServiceHandler) CreateProduct(ctx context.Context, re
 }
 
 func (s *ImplementedProductServiceHandler) UpdateProduct(ctx context.Context, req *connect.Request[productv1.UpdateProductRequest]) (*connect.Response[productv1.UpdateProductResponse], error) {
+	var resources *[]string
+	if req.Msg.Resources != nil {
+		resources = &req.Msg.Resources
+	}
+
+	var metadata *[]byte
+	if req.Msg.Metadata != nil {
+		metadata = &req.Msg.Metadata
+	}
+
 	err := s.service.UpdateProduct(ctx, product.UpdateProductParams{
-		RepoParams: repository.UpdateProductParams{
-			ID:             req.Msg.GetId(),
-			ProductModelID: req.Msg.ProductModelId,
-			Quantity:       req.Msg.Quantity,
-			Sold:           req.Msg.Sold,
-			AddPrice:       req.Msg.AddPrice,
-			IsActive:       req.Msg.IsActive,
-			Metadata:       req.Msg.Metadata,
-		},
-		Resources: req.Msg.Resources,
+		ID:             req.Msg.GetId(),
+		ProductModelID: req.Msg.ProductModelId,
+		Quantity:       req.Msg.Quantity,
+		Sold:           req.Msg.Sold,
+		AddPrice:       req.Msg.AddPrice,
+		IsActive:       req.Msg.IsActive,
+		CanCombine:     req.Msg.CanCombine,
+		Metadata:       metadata,
+		Resources:      resources,
 	})
 	if err != nil {
 		return nil, err

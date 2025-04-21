@@ -112,8 +112,9 @@ func (s *ImplementedPaymentServiceHandler) UpdateRefund(ctx context.Context, req
 	}
 
 	var (
-		method *model.RefundMethod
-		status *model.Status
+		method    *model.RefundMethod
+		status    *model.Status
+		resources *[]string
 	)
 	if req.Msg.Method != nil {
 		method = util.ToPtr(convertRefundMethod(*req.Msg.Method))
@@ -121,15 +122,19 @@ func (s *ImplementedPaymentServiceHandler) UpdateRefund(ctx context.Context, req
 	if req.Msg.Status != nil {
 		status = util.ToPtr(convertStatus(*req.Msg.Status))
 	}
+	if req.Msg.Resources != nil {
+		resources = &req.Msg.Resources
+	}
 
 	err = s.service.UpdateRefund(ctx, payment.UpdateRefundParams{
 		ID:        req.Msg.Id,
+		Role:      claims.Role,
 		UserID:    claims.UserID,
 		Method:    method,
 		Status:    status,
 		Reason:    req.Msg.Reason,
 		Address:   req.Msg.Address,
-		Resources: req.Msg.Resources,
+		Resources: resources,
 	})
 	if err != nil {
 		return nil, err

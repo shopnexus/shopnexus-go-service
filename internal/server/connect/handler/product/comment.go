@@ -68,7 +68,7 @@ func (s *ImplementedProductServiceHandler) CreateComment(ctx context.Context, re
 		return nil, err
 	}
 
-	err = s.service.CreateComment(ctx, product.CreateCommentParams{
+	_, err = s.service.CreateComment(ctx, product.CreateCommentParams{
 		AccountID: claims.UserID,
 		Type:      commentTypeToModel(req.Msg.Type),
 		DestID:    req.Msg.DestId,
@@ -88,12 +88,17 @@ func (s *ImplementedProductServiceHandler) UpdateComment(ctx context.Context, re
 		return nil, err
 	}
 
+	var resources *[]string
+	if req.Msg.Resources != nil {
+		resources = &req.Msg.Resources
+	}
+
 	err = s.service.UpdateComment(ctx, product.UpdateCommentParams{
 		Role:      claims.Role,
 		AccountID: claims.UserID,
 		ID:        req.Msg.Id,
 		Body:      req.Msg.Body,
-		Resources: req.Msg.Resources,
+		Resources: resources,
 	})
 	if err != nil {
 		return nil, err

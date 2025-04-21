@@ -3,7 +3,6 @@ package product
 import (
 	"context"
 	"shopnexus-go-service/internal/model"
-	"shopnexus-go-service/internal/repository"
 	"shopnexus-go-service/internal/service/product"
 
 	common_grpc "shopnexus-go-service/internal/server/connect/handler/common"
@@ -90,18 +89,27 @@ func (s *ImplementedProductServiceHandler) CreateProductModel(ctx context.Contex
 }
 
 func (s *ImplementedProductServiceHandler) UpdateProductModel(ctx context.Context, req *connect.Request[productv1.UpdateProductModelRequest]) (*connect.Response[productv1.UpdateProductModelResponse], error) {
+	var (
+		resources *[]string
+		tags      *[]string
+	)
+	if req.Msg.Resources != nil {
+		resources = &req.Msg.Resources
+	}
+	if req.Msg.Tags != nil {
+		tags = &req.Msg.Tags
+	}
+
 	err := s.service.UpdateProductModel(ctx, product.UpdateProductModelParams{
-		RepoParams: repository.UpdateProductModelParams{
-			ID:               req.Msg.Id,
-			Type:             req.Msg.Type,
-			BrandID:          req.Msg.BrandId,
-			Name:             req.Msg.Name,
-			Description:      req.Msg.Description,
-			ListPrice:        req.Msg.ListPrice,
-			DateManufactured: req.Msg.DateManufactured,
-		},
-		Resources: req.Msg.Resources,
-		Tags:      req.Msg.Tags,
+		ID:               req.Msg.Id,
+		Type:             req.Msg.Type,
+		BrandID:          req.Msg.BrandId,
+		Name:             req.Msg.Name,
+		Description:      req.Msg.Description,
+		ListPrice:        req.Msg.ListPrice,
+		DateManufactured: req.Msg.DateManufactured,
+		Resources:        resources,
+		Tags:             tags,
 	})
 	if err != nil {
 		return nil, err
