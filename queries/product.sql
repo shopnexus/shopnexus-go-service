@@ -4,19 +4,19 @@ WITH filtered_product AS (
     FROM product.base p
     WHERE p.id = sqlc.arg('id')
 ),
-filtered_resource AS (
+filtered_resources AS (
     SELECT 
         res.owner_id,
         array_agg(res.url ORDER BY res.order ASC) AS resources
     FROM product.resource res
-    WHERE res.url IS NOT NULL AND res.owner_id = sqlc.arg('id')
+    WHERE res.owner_id = sqlc.arg('id') AND res.type = 'PRODUCT'
     GROUP BY res.owner_id
 )
 SELECT 
     p.*,
-    COALESCE(r.resources, '{}') AS resources
+    COALESCE(res.resources, '{}')::text[] AS resources
 FROM filtered_product p
-LEFT JOIN filtered_resource r ON r.owner_id = p.id;
+LEFT JOIN filtered_resources res ON res.owner_id = p.id;
 
 -- name: CountProducts :one
 SELECT COUNT(id)
@@ -57,19 +57,19 @@ WITH filtered_product AS (
         (p.date_created <= sqlc.narg('date_created_to') OR sqlc.narg('date_created_to') IS NULL)
     )
 ),
-filtered_resource AS (
+filtered_resources AS (
     SELECT 
         res.owner_id,
         array_agg(res.url ORDER BY res.order ASC) AS resources
     FROM product.resource res
-    WHERE res.url IS NOT NULL AND res.owner_id IN (SELECT id FROM filtered_product)
+    WHERE res.owner_id IN (SELECT id FROM filtered_product) AND res.type = 'PRODUCT'
     GROUP BY res.owner_id
 )
 SELECT
     p.*,
-    COALESCE(r.resources, '{}') AS resources
+    COALESCE(res.resources, '{}')::text[] AS resources
 FROM filtered_product p
-LEFT JOIN filtered_resource r ON r.owner_id = p.id
+LEFT JOIN filtered_resources res ON res.owner_id = p.id
 ORDER BY date_created DESC
 LIMIT sqlc.arg('limit')
 OFFSET sqlc.arg('offset');

@@ -9,14 +9,14 @@ filtered_resources AS (
         res.owner_id,
         array_agg(res.url ORDER BY res.order ASC) AS resources
     FROM product.resource res
-    WHERE res.owner_id = sqlc.arg('id')
+    WHERE res.owner_id = sqlc.arg('id') AND res.type = 'BRAND'
     GROUP BY res.owner_id
 )
 SELECT 
     b.*,
-    COALESCE(r.resources, '{}') AS resources
+    COALESCE(res.resources, '{}')::text[] AS resources
 FROM filtered_brand b
-LEFT JOIN filtered_resources r ON r.owner_id = b.id;
+LEFT JOIN filtered_resources res ON res.owner_id = b.id;
 
 -- name: CountBrands :one
 WITH filtered_brands AS (
@@ -42,14 +42,14 @@ WITH filtered_brands AS (
 filtered_resources AS (
   SELECT res.owner_id, array_agg(res.url ORDER BY res.order ASC) AS resources
   FROM product.resource res
-  WHERE res.owner_id IN (SELECT id FROM filtered_brands)
+  WHERE res.owner_id IN (SELECT id FROM filtered_brands) AND res.type = 'BRAND'
   GROUP BY res.owner_id
 )
 SELECT
     b.*, 
-    COALESCE(r.resources, '{}') AS resources
+    COALESCE(res.resources, '{}')::text[] AS resources
 FROM filtered_brands b
-LEFT JOIN filtered_resources r ON r.owner_id = b.id
+LEFT JOIN filtered_resources res ON res.owner_id = b.id
 ORDER BY b.name DESC
 LIMIT sqlc.arg('limit')
 OFFSET sqlc.arg('offset');

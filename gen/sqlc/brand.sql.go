@@ -74,21 +74,21 @@ filtered_resources AS (
         res.owner_id,
         array_agg(res.url ORDER BY res.order ASC) AS resources
     FROM product.resource res
-    WHERE res.owner_id = $1
+    WHERE res.owner_id = $1 AND res.type = 'BRAND'
     GROUP BY res.owner_id
 )
 SELECT 
     b.id, b.name, b.description,
-    COALESCE(r.resources, '{}') AS resources
+    COALESCE(res.resources, '{}')::text[] AS resources
 FROM filtered_brand b
-LEFT JOIN filtered_resources r ON r.owner_id = b.id
+LEFT JOIN filtered_resources res ON res.owner_id = b.id
 `
 
 type GetBrandRow struct {
 	ID          int64
 	Name        string
 	Description string
-	Resources   interface{}
+	Resources   []string
 }
 
 func (q *Queries) GetBrand(ctx context.Context, id int64) (GetBrandRow, error) {
@@ -115,14 +115,14 @@ WITH filtered_brands AS (
 filtered_resources AS (
   SELECT res.owner_id, array_agg(res.url ORDER BY res.order ASC) AS resources
   FROM product.resource res
-  WHERE res.owner_id IN (SELECT id FROM filtered_brands)
+  WHERE res.owner_id IN (SELECT id FROM filtered_brands) AND res.type = 'BRAND'
   GROUP BY res.owner_id
 )
 SELECT
     b.id, b.name, b.description, 
-    COALESCE(r.resources, '{}') AS resources
+    COALESCE(res.resources, '{}')::text[] AS resources
 FROM filtered_brands b
-LEFT JOIN filtered_resources r ON r.owner_id = b.id
+LEFT JOIN filtered_resources res ON res.owner_id = b.id
 ORDER BY b.name DESC
 LIMIT $2
 OFFSET $1
@@ -139,7 +139,7 @@ type ListBrandsRow struct {
 	ID          int64
 	Name        string
 	Description string
-	Resources   interface{}
+	Resources   []string
 }
 
 func (q *Queries) ListBrands(ctx context.Context, arg ListBrandsParams) ([]ListBrandsRow, error) {

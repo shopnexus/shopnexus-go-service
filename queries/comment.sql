@@ -9,14 +9,14 @@ filtered_resources AS (
         res.owner_id,
         array_agg(res.url ORDER BY res.order ASC) AS resources
     FROM product.resource res
-    WHERE res.owner_id = sqlc.arg('id')
+    WHERE res.owner_id = sqlc.arg('id') AND res.type = 'COMMENT'
     GROUP BY res.owner_id
 )
 SELECT 
     c.*,
-    COALESCE(r.resources, '{}') AS resources
+    COALESCE(res.resources, '{}')::text[] AS resources
 FROM filtered_comment c
-LEFT JOIN filtered_resources r ON r.owner_id = c.id;
+LEFT JOIN filtered_resources res ON res.owner_id = c.id;
 
 -- name: CountComments :one
 SELECT COUNT(id) FROM product.comment
@@ -57,14 +57,14 @@ filtered_resources AS (
         res.owner_id,
         array_agg(res.url ORDER BY res.order ASC) AS resources
     FROM product.resource res
-    WHERE res.owner_id IN (SELECT id FROM filtered_comment)
+    WHERE res.owner_id IN (SELECT id FROM filtered_comment) AND res.type = 'COMMENT'
     GROUP BY res.owner_id
 )
 SELECT 
     c.*,
-    COALESCE(r.resources, '{}') AS resources
+    COALESCE(res.resources, '{}')::text[] AS resources
 FROM filtered_comment c
-LEFT JOIN filtered_resources r ON r.owner_id = c.id
+LEFT JOIN filtered_resources res ON res.owner_id = c.id
 ORDER BY c.date_created DESC
 LIMIT sqlc.arg('limit')
 OFFSET sqlc.arg('offset');

@@ -9,7 +9,7 @@ filtered_resources AS (
         res.owner_id,
         array_agg(res.url ORDER BY res.order ASC) AS resources
     FROM product.resource res
-    WHERE res.owner_id = sqlc.arg('id')
+    WHERE res.owner_id = sqlc.arg('id') AND res.type = 'PRODUCT_MODEL'
     GROUP BY res.owner_id
 ),
 filtered_tags AS (
@@ -22,10 +22,10 @@ filtered_tags AS (
 )
 SELECT 
     pm.*,
-    COALESCE(r.resources, '{}') AS resources,
+    COALESCE(res.resources, '{}')::text[] AS resources,
     COALESCE(t.tags, '{}') AS tags
 FROM filtered_model pm
-LEFT JOIN filtered_resources r ON r.owner_id = pm.id
+LEFT JOIN filtered_resources res ON res.owner_id = pm.id
 LEFT JOIN filtered_tags t ON t.product_model_id = pm.id;
 
 -- name: GetProductSerialIDs :many
@@ -85,7 +85,7 @@ filtered_resources AS (
         res.owner_id,
         array_agg(res.url ORDER BY res.order ASC) AS resources
     FROM product.resource res
-    WHERE res.owner_id IN (SELECT id FROM filtered_models)
+    WHERE res.owner_id IN (SELECT id FROM filtered_models) AND res.type = 'PRODUCT_MODEL'
     GROUP BY res.owner_id
 ),
 filtered_tags AS (
@@ -98,10 +98,10 @@ filtered_tags AS (
 )
 SELECT 
     pm.*,
-    COALESCE(r.resources, '{}') AS resources,
+    COALESCE(res.resources, '{}')::text[] AS resources,
     COALESCE(t.tags, '{}') AS tags
 FROM filtered_models pm
-LEFT JOIN filtered_resources r ON r.owner_id = pm.id
+LEFT JOIN filtered_resources res ON res.owner_id = pm.id
 LEFT JOIN filtered_tags t ON t.product_model_id = pm.id
 ORDER BY pm.date_manufactured DESC
 LIMIT sqlc.arg('limit')

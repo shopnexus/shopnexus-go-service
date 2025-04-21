@@ -132,19 +132,19 @@ WITH filtered_product AS (
     FROM product.base p
     WHERE p.id = $1
 ),
-filtered_resource AS (
+filtered_resources AS (
     SELECT 
         res.owner_id,
         array_agg(res.url ORDER BY res.order ASC) AS resources
     FROM product.resource res
-    WHERE res.url IS NOT NULL AND res.owner_id = $1
+    WHERE res.owner_id = $1 AND res.type = 'PRODUCT'
     GROUP BY res.owner_id
 )
 SELECT 
     p.id, p.product_model_id, p.quantity, p.sold, p.add_price, p.is_active, p.can_combine, p.metadata, p.date_created, p.date_updated,
-    COALESCE(r.resources, '{}') AS resources
+    COALESCE(res.resources, '{}')::text[] AS resources
 FROM filtered_product p
-LEFT JOIN filtered_resource r ON r.owner_id = p.id
+LEFT JOIN filtered_resources res ON res.owner_id = p.id
 `
 
 type GetProductRow struct {
@@ -158,7 +158,7 @@ type GetProductRow struct {
 	Metadata       []byte
 	DateCreated    pgtype.Timestamptz
 	DateUpdated    pgtype.Timestamptz
-	Resources      interface{}
+	Resources      []string
 }
 
 func (q *Queries) GetProduct(ctx context.Context, id int64) (GetProductRow, error) {
@@ -200,19 +200,19 @@ WITH filtered_product AS (
         (p.date_created <= $15 OR $15 IS NULL)
     )
 ),
-filtered_resource AS (
+filtered_resources AS (
     SELECT 
         res.owner_id,
         array_agg(res.url ORDER BY res.order ASC) AS resources
     FROM product.resource res
-    WHERE res.url IS NOT NULL AND res.owner_id IN (SELECT id FROM filtered_product)
+    WHERE res.owner_id IN (SELECT id FROM filtered_product) AND res.type = 'PRODUCT'
     GROUP BY res.owner_id
 )
 SELECT
     p.id, p.product_model_id, p.quantity, p.sold, p.add_price, p.is_active, p.can_combine, p.metadata, p.date_created, p.date_updated,
-    COALESCE(r.resources, '{}') AS resources
+    COALESCE(res.resources, '{}')::text[] AS resources
 FROM filtered_product p
-LEFT JOIN filtered_resource r ON r.owner_id = p.id
+LEFT JOIN filtered_resources res ON res.owner_id = p.id
 ORDER BY date_created DESC
 LIMIT $2
 OFFSET $1
@@ -247,7 +247,7 @@ type ListProductsRow struct {
 	Metadata       []byte
 	DateCreated    pgtype.Timestamptz
 	DateUpdated    pgtype.Timestamptz
-	Resources      interface{}
+	Resources      []string
 }
 
 func (q *Queries) ListProducts(ctx context.Context, arg ListProductsParams) ([]ListProductsRow, error) {

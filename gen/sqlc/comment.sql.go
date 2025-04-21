@@ -137,14 +137,14 @@ filtered_resources AS (
         res.owner_id,
         array_agg(res.url ORDER BY res.order ASC) AS resources
     FROM product.resource res
-    WHERE res.owner_id = $1
+    WHERE res.owner_id = $1 AND res.type = 'COMMENT'
     GROUP BY res.owner_id
 )
 SELECT 
     c.id, c.type, c.account_id, c.dest_id, c.body, c.upvote, c.downvote, c.score, c.date_created, c.date_updated,
-    COALESCE(r.resources, '{}') AS resources
+    COALESCE(res.resources, '{}')::text[] AS resources
 FROM filtered_comment c
-LEFT JOIN filtered_resources r ON r.owner_id = c.id
+LEFT JOIN filtered_resources res ON res.owner_id = c.id
 `
 
 type GetCommentRow struct {
@@ -158,7 +158,7 @@ type GetCommentRow struct {
 	Score       int32
 	DateCreated pgtype.Timestamptz
 	DateUpdated pgtype.Timestamptz
-	Resources   interface{}
+	Resources   []string
 }
 
 func (q *Queries) GetComment(ctx context.Context, id int64) (GetCommentRow, error) {
@@ -203,14 +203,14 @@ filtered_resources AS (
         res.owner_id,
         array_agg(res.url ORDER BY res.order ASC) AS resources
     FROM product.resource res
-    WHERE res.owner_id IN (SELECT id FROM filtered_comment)
+    WHERE res.owner_id IN (SELECT id FROM filtered_comment) AND res.type = 'COMMENT'
     GROUP BY res.owner_id
 )
 SELECT 
     c.id, c.type, c.account_id, c.dest_id, c.body, c.upvote, c.downvote, c.score, c.date_created, c.date_updated,
-    COALESCE(r.resources, '{}') AS resources
+    COALESCE(res.resources, '{}')::text[] AS resources
 FROM filtered_comment c
-LEFT JOIN filtered_resources r ON r.owner_id = c.id
+LEFT JOIN filtered_resources res ON res.owner_id = c.id
 ORDER BY c.date_created DESC
 LIMIT $2
 OFFSET $1
@@ -244,7 +244,7 @@ type ListCommentsRow struct {
 	Score       int32
 	DateCreated pgtype.Timestamptz
 	DateUpdated pgtype.Timestamptz
-	Resources   interface{}
+	Resources   []string
 }
 
 func (q *Queries) ListComments(ctx context.Context, arg ListCommentsParams) ([]ListCommentsRow, error) {

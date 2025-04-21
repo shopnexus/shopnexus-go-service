@@ -184,19 +184,19 @@ WITH filtered_refund AS (
         (p.user_id = $2 OR $2 IS NULL)
     )
 ),
-filtered_resource AS (
+filtered_resources AS (
     SELECT 
         res.owner_id,
         array_agg(res.url ORDER BY res.order ASC) AS resources
     FROM product.resource res
-    WHERE res.url IS NOT NULL AND res.owner_id = $1
+    WHERE res.owner_id = $1 AND res.type = 'REFUND'
     GROUP BY res.owner_id
 )
 SELECT 
     r.id, r.product_on_payment_id, r.method, r.status, r.reason, r.address, r.date_created, r.date_updated,
-    COALESCE(res.resources, '{}') AS resources
+    COALESCE(res.resources, '{}')::text[] AS resources
 FROM filtered_refund r
-LEFT JOIN filtered_resource res ON res.owner_id = r.id
+LEFT JOIN filtered_resources res ON res.owner_id = r.id
 `
 
 type GetRefundParams struct {
@@ -213,7 +213,7 @@ type GetRefundRow struct {
 	Address            string
 	DateCreated        pgtype.Timestamptz
 	DateUpdated        pgtype.Timestamptz
-	Resources          interface{}
+	Resources          []string
 }
 
 func (q *Queries) GetRefund(ctx context.Context, arg GetRefundParams) (GetRefundRow, error) {
@@ -250,19 +250,19 @@ WITH filtered_refund AS (
         (r.date_created <= $10 OR $10 IS NULL)
     )
 ),
-filtered_resource AS (
+filtered_resources AS (
     SELECT 
         res.owner_id,
         array_agg(res.url ORDER BY res.order ASC) AS resources
     FROM product.resource res
-    WHERE res.url IS NOT NULL AND res.owner_id IN (SELECT id FROM filtered_refund)
+    WHERE res.owner_id IN (SELECT id FROM filtered_refund) AND res.type = 'REFUND'
     GROUP BY res.owner_id
 )
 SELECT 
     r.id, r.product_on_payment_id, r.method, r.status, r.reason, r.address, r.date_created, r.date_updated,
-    COALESCE(res.resources, '{}') AS resources
+    COALESCE(res.resources, '{}')::text[] AS resources
 FROM filtered_refund r
-LEFT JOIN filtered_resource res ON res.owner_id = r.id
+LEFT JOIN filtered_resources res ON res.owner_id = r.id
 ORDER BY r.date_created DESC
 LIMIT $2
 OFFSET $1
@@ -290,7 +290,7 @@ type ListRefundsRow struct {
 	Address            string
 	DateCreated        pgtype.Timestamptz
 	DateUpdated        pgtype.Timestamptz
-	Resources          interface{}
+	Resources          []string
 }
 
 func (q *Queries) ListRefunds(ctx context.Context, arg ListRefundsParams) ([]ListRefundsRow, error) {

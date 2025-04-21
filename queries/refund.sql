@@ -22,19 +22,19 @@ WITH filtered_refund AS (
         (p.user_id = sqlc.narg('user_id') OR sqlc.narg('user_id') IS NULL)
     )
 ),
-filtered_resource AS (
+filtered_resources AS (
     SELECT 
         res.owner_id,
         array_agg(res.url ORDER BY res.order ASC) AS resources
     FROM product.resource res
-    WHERE res.url IS NOT NULL AND res.owner_id = sqlc.arg('id')
+    WHERE res.owner_id = sqlc.arg('id') AND res.type = 'REFUND'
     GROUP BY res.owner_id
 )
 SELECT 
     r.*,
-    COALESCE(res.resources, '{}') AS resources
+    COALESCE(res.resources, '{}')::text[] AS resources
 FROM filtered_refund r
-LEFT JOIN filtered_resource res ON res.owner_id = r.id;
+LEFT JOIN filtered_resources res ON res.owner_id = r.id;
 
 -- name: CountRefunds :one
 SELECT COUNT(r.id)
@@ -69,19 +69,19 @@ WITH filtered_refund AS (
         (r.date_created <= sqlc.narg('date_created_to') OR sqlc.narg('date_created_to') IS NULL)
     )
 ),
-filtered_resource AS (
+filtered_resources AS (
     SELECT 
         res.owner_id,
         array_agg(res.url ORDER BY res.order ASC) AS resources
     FROM product.resource res
-    WHERE res.url IS NOT NULL AND res.owner_id IN (SELECT id FROM filtered_refund)
+    WHERE res.owner_id IN (SELECT id FROM filtered_refund) AND res.type = 'REFUND'
     GROUP BY res.owner_id
 )
 SELECT 
     r.*,
-    COALESCE(res.resources, '{}') AS resources
+    COALESCE(res.resources, '{}')::text[] AS resources
 FROM filtered_refund r
-LEFT JOIN filtered_resource res ON res.owner_id = r.id
+LEFT JOIN filtered_resources res ON res.owner_id = r.id
 ORDER BY r.date_created DESC
 LIMIT sqlc.arg('limit')
 OFFSET sqlc.arg('offset');

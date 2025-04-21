@@ -127,7 +127,7 @@ filtered_resources AS (
         res.owner_id,
         array_agg(res.url ORDER BY res.order ASC) AS resources
     FROM product.resource res
-    WHERE res.owner_id = $1
+    WHERE res.owner_id = $1 AND res.type = 'PRODUCT_MODEL'
     GROUP BY res.owner_id
 ),
 filtered_tags AS (
@@ -140,10 +140,10 @@ filtered_tags AS (
 )
 SELECT 
     pm.id, pm.type, pm.brand_id, pm.name, pm.description, pm.list_price, pm.date_manufactured,
-    COALESCE(r.resources, '{}') AS resources,
+    COALESCE(res.resources, '{}')::text[] AS resources,
     COALESCE(t.tags, '{}') AS tags
 FROM filtered_model pm
-LEFT JOIN filtered_resources r ON r.owner_id = pm.id
+LEFT JOIN filtered_resources res ON res.owner_id = pm.id
 LEFT JOIN filtered_tags t ON t.product_model_id = pm.id
 `
 
@@ -155,7 +155,7 @@ type GetProductModelRow struct {
 	Description      string
 	ListPrice        int64
 	DateManufactured pgtype.Timestamptz
-	Resources        interface{}
+	Resources        []string
 	Tags             interface{}
 }
 
@@ -222,7 +222,7 @@ filtered_resources AS (
         res.owner_id,
         array_agg(res.url ORDER BY res.order ASC) AS resources
     FROM product.resource res
-    WHERE res.owner_id IN (SELECT id FROM filtered_models)
+    WHERE res.owner_id IN (SELECT id FROM filtered_models) AND res.type = 'PRODUCT_MODEL'
     GROUP BY res.owner_id
 ),
 filtered_tags AS (
@@ -235,10 +235,10 @@ filtered_tags AS (
 )
 SELECT 
     pm.id, pm.type, pm.brand_id, pm.name, pm.description, pm.list_price, pm.date_manufactured,
-    COALESCE(r.resources, '{}') AS resources,
+    COALESCE(res.resources, '{}')::text[] AS resources,
     COALESCE(t.tags, '{}') AS tags
 FROM filtered_models pm
-LEFT JOIN filtered_resources r ON r.owner_id = pm.id
+LEFT JOIN filtered_resources res ON res.owner_id = pm.id
 LEFT JOIN filtered_tags t ON t.product_model_id = pm.id
 ORDER BY pm.date_manufactured DESC
 LIMIT $2
@@ -266,7 +266,7 @@ type ListProductModelsRow struct {
 	Description      string
 	ListPrice        int64
 	DateManufactured pgtype.Timestamptz
-	Resources        interface{}
+	Resources        []string
 	Tags             interface{}
 }
 
