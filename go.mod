@@ -12,6 +12,7 @@ require (
 	github.com/golang-jwt/jwt/v5 v5.2.2
 	github.com/google/uuid v1.6.0
 	github.com/jackc/pgx/v5 v5.7.4
+	github.com/sergi/go-diff v1.3.1
 	github.com/shopnexus/shopnexus-protobuf-gen-go v0.0.0-20250317103557-4e045cdf95b5
 	github.com/tus/tusd/v2 v2.8.0
 	golang.org/x/crypto v0.36.0
