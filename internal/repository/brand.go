@@ -10,21 +10,16 @@ import (
 )
 
 func (r *RepositoryImpl) GetBrand(ctx context.Context, id int64) (model.Brand, error) {
-	brand, err := r.sqlc.GetBrand(ctx, id)
-	if err != nil {
-		return model.Brand{}, err
-	}
-
-	resources, err := r.GetResources(ctx, brand.ID, model.ResourceTypeBrand)
+	row, err := r.sqlc.GetBrand(ctx, id)
 	if err != nil {
 		return model.Brand{}, err
 	}
 
 	return model.Brand{
-		ID:          brand.ID,
-		Name:        brand.Name,
-		Description: brand.Description,
-		Resources:   resources,
+		ID:          row.ID,
+		Name:        row.Name,
+		Description: row.Description,
+		Resources:   row.Resources,
 	}, nil
 }
 
@@ -42,7 +37,7 @@ func (r *RepositoryImpl) CountBrands(ctx context.Context, params ListBrandsParam
 }
 
 func (r *RepositoryImpl) ListBrands(ctx context.Context, params ListBrandsParams) ([]model.Brand, error) {
-	brands, err := r.sqlc.ListBrands(ctx, sqlc.ListBrandsParams{
+	rows, err := r.sqlc.ListBrands(ctx, sqlc.ListBrandsParams{
 		Offset:      params.Offset(),
 		Limit:       params.Limit,
 		Name:        *pgxutil.PtrToPgtype(&pgtype.Text{}, params.Name),
@@ -52,18 +47,13 @@ func (r *RepositoryImpl) ListBrands(ctx context.Context, params ListBrandsParams
 		return nil, err
 	}
 
-	result := make([]model.Brand, len(brands))
-	for i, brand := range brands {
-		resources, err := r.GetResources(ctx, brand.ID, model.ResourceTypeBrand)
-		if err != nil {
-			return nil, err
-		}
-
+	result := make([]model.Brand, len(rows))
+	for i, row := range rows {
 		result[i] = model.Brand{
-			ID:          brand.ID,
-			Name:        brand.Name,
-			Description: brand.Description,
-			Resources:   resources,
+			ID:          row.ID,
+			Name:        row.Name,
+			Description: row.Description,
+			Resources:   row.Resources,
 		}
 	}
 	return result, nil

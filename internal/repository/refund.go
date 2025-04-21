@@ -37,11 +37,6 @@ func (r *RepositoryImpl) GetRefund(ctx context.Context, params GetRefundParams) 
 		return model.Refund{}, err
 	}
 
-	resources, err := r.GetResources(ctx, row.ID, model.ResourceTypeRefund)
-	if err != nil {
-		return model.Refund{}, err
-	}
-
 	return model.Refund{
 		ID:                 row.ID,
 		ProductOnPaymentID: row.ProductOnPaymentID,
@@ -51,7 +46,7 @@ func (r *RepositoryImpl) GetRefund(ctx context.Context, params GetRefundParams) 
 		Address:            row.Address,
 		DateCreated:        row.DateCreated.Time.UnixMilli(),
 		DateUpdated:        row.DateUpdated.Time.UnixMilli(),
-		Resources:          resources,
+		Resources:          row.Resources,
 	}, nil
 }
 
@@ -99,11 +94,6 @@ func (r *RepositoryImpl) ListRefunds(ctx context.Context, params ListRefundsPara
 
 	var refunds []model.Refund
 	for _, row := range rows {
-		resources, err := r.GetResources(ctx, row.ID, model.ResourceTypeRefund)
-		if err != nil {
-			return nil, err
-		}
-
 		refunds = append(refunds, model.Refund{
 			ID:                 row.ID,
 			ProductOnPaymentID: row.ProductOnPaymentID,
@@ -113,7 +103,7 @@ func (r *RepositoryImpl) ListRefunds(ctx context.Context, params ListRefundsPara
 			Address:            row.Address,
 			DateCreated:        row.DateCreated.Time.UnixMilli(),
 			DateUpdated:        row.DateUpdated.Time.UnixMilli(),
-			Resources:          resources,
+			Resources:          row.Resources,
 		})
 	}
 

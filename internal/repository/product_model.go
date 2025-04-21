@@ -11,30 +11,25 @@ import (
 )
 
 func (r *RepositoryImpl) GetProductModel(ctx context.Context, id int64) (model.ProductModel, error) {
-	productModel, err := r.sqlc.GetProductModel(ctx, id)
+	row, err := r.sqlc.GetProductModel(ctx, id)
 	if err != nil {
 		return model.ProductModel{}, err
 	}
 
-	resources, err := r.GetResources(ctx, productModel.ID, model.ResourceTypeProductModel)
-	if err != nil {
-		return model.ProductModel{}, err
-	}
-
-	tags, err := r.GetTags(ctx, productModel.ID)
+	tags, err := r.GetTags(ctx, row.ID)
 	if err != nil {
 		return model.ProductModel{}, err
 	}
 
 	return model.ProductModel{
-		ID:               productModel.ID,
-		Type:             productModel.Type,
-		BrandID:          productModel.BrandID,
-		Name:             productModel.Name,
-		Description:      productModel.Description,
-		ListPrice:        productModel.ListPrice,
-		DateManufactured: productModel.DateManufactured.Time.UnixMilli(),
-		Resources:        resources,
+		ID:               row.ID,
+		Type:             row.Type,
+		BrandID:          row.BrandID,
+		Name:             row.Name,
+		Description:      row.Description,
+		ListPrice:        row.ListPrice,
+		DateManufactured: row.DateManufactured.Time.UnixMilli(),
+		Resources:        row.Resources,
 		Tags:             tags,
 	}, nil
 }
@@ -69,7 +64,7 @@ func (r *RepositoryImpl) CountProductModels(ctx context.Context, params ListProd
 }
 
 func (r *RepositoryImpl) ListProductModels(ctx context.Context, params ListProductModelsParams) ([]model.ProductModel, error) {
-	productModels, err := r.sqlc.ListProductModels(ctx, sqlc.ListProductModelsParams{
+	rows, err := r.sqlc.ListProductModels(ctx, sqlc.ListProductModelsParams{
 		Offset:               params.Offset(),
 		Limit:                params.Limit,
 		Type:                 *pgxutil.PtrToPgtype(&pgtype.Int8{}, params.Type),
@@ -85,27 +80,22 @@ func (r *RepositoryImpl) ListProductModels(ctx context.Context, params ListProdu
 		return nil, err
 	}
 
-	result := make([]model.ProductModel, len(productModels))
-	for i, productModel := range productModels {
-		resources, err := r.GetResources(ctx, productModel.ID, model.ResourceTypeProductModel)
-		if err != nil {
-			return nil, err
-		}
-
-		tags, err := r.GetTags(ctx, productModel.ID)
+	result := make([]model.ProductModel, len(rows))
+	for i, row := range rows {
+		tags, err := r.GetTags(ctx, row.ID)
 		if err != nil {
 			return nil, err
 		}
 
 		result[i] = model.ProductModel{
-			ID:               productModel.ID,
-			Type:             productModel.Type,
-			BrandID:          productModel.BrandID,
-			Name:             productModel.Name,
-			Description:      productModel.Description,
-			ListPrice:        productModel.ListPrice,
-			DateManufactured: productModel.DateManufactured.Time.UnixMilli(),
-			Resources:        resources,
+			ID:               row.ID,
+			Type:             row.Type,
+			BrandID:          row.BrandID,
+			Name:             row.Name,
+			Description:      row.Description,
+			ListPrice:        row.ListPrice,
+			DateManufactured: row.DateManufactured.Time.UnixMilli(),
+			Resources:        row.Resources,
 			Tags:             tags,
 		}
 	}

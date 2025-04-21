@@ -22,11 +22,6 @@ func (r *RepositoryImpl) GetProduct(ctx context.Context, id int64) (model.Produc
 		return model.Product{}, err
 	}
 
-	resources, err := r.GetResources(ctx, row.ID, model.ResourceTypeProduct)
-	if err != nil {
-		return model.Product{}, err
-	}
-
 	return model.Product{
 		ID:             row.ID,
 		ProductModelID: row.ProductModelID,
@@ -38,7 +33,7 @@ func (r *RepositoryImpl) GetProduct(ctx context.Context, id int64) (model.Produc
 		Metadata:       row.Metadata,
 		DateCreated:    row.DateCreated.Time.UnixMilli(),
 		DateUpdated:    row.DateUpdated.Time.UnixMilli(),
-		Resources:      resources,
+		Resources:      row.Resources,
 	}, nil
 }
 
@@ -78,7 +73,7 @@ func (r *RepositoryImpl) CountProducts(ctx context.Context, params ListProductsP
 }
 
 func (r *RepositoryImpl) ListProducts(ctx context.Context, params ListProductsParams) ([]model.Product, error) {
-	products, err := r.sqlc.ListProducts(ctx, sqlc.ListProductsParams{
+	productRows, err := r.sqlc.ListProducts(ctx, sqlc.ListProductsParams{
 		Offset:          params.Offset(),
 		Limit:           params.Limit,
 		ID:              *pgxutil.PtrToPgtype(&pgtype.Int8{}, params.ID),
@@ -99,25 +94,20 @@ func (r *RepositoryImpl) ListProducts(ctx context.Context, params ListProductsPa
 		return nil, err
 	}
 
-	result := make([]model.Product, len(products))
-	for i, product := range products {
-		resources, err := r.GetResources(ctx, product.ID, model.ResourceTypeProduct)
-		if err != nil {
-			return nil, err
-		}
-
+	result := make([]model.Product, len(productRows))
+	for i, productRow := range productRows {
 		result[i] = model.Product{
-			ID:             product.ID,
-			ProductModelID: product.ProductModelID,
-			Quantity:       product.Quantity,
-			Sold:           product.Sold,
-			AddPrice:       product.AddPrice,
-			IsActive:       product.IsActive,
-			CanCombine:     product.CanCombine,
-			Metadata:       product.Metadata,
-			DateCreated:    product.DateCreated.Time.UnixMilli(),
-			DateUpdated:    product.DateUpdated.Time.UnixMilli(),
-			Resources:      resources,
+			ID:             productRow.ID,
+			ProductModelID: productRow.ProductModelID,
+			Quantity:       productRow.Quantity,
+			Sold:           productRow.Sold,
+			AddPrice:       productRow.AddPrice,
+			IsActive:       productRow.IsActive,
+			CanCombine:     productRow.CanCombine,
+			Metadata:       productRow.Metadata,
+			DateCreated:    productRow.DateCreated.Time.UnixMilli(),
+			DateUpdated:    productRow.DateUpdated.Time.UnixMilli(),
+			Resources:      productRow.Resources,
 		}
 	}
 

@@ -15,11 +15,6 @@ func (r *RepositoryImpl) GetComment(ctx context.Context, id int64) (model.Commen
 		return model.Comment{}, err
 	}
 
-	resources, err := r.GetResources(ctx, row.ID, model.ResourceTypeComment)
-	if err != nil {
-		return model.Comment{}, err
-	}
-
 	return model.Comment{
 		ID:          row.ID,
 		Type:        model.CommentType(row.Type),
@@ -31,7 +26,7 @@ func (r *RepositoryImpl) GetComment(ctx context.Context, id int64) (model.Commen
 		Score:       row.Score,
 		DateCreated: row.DateCreated.Time.UnixMilli(),
 		DateUpdated: row.DateUpdated.Time.UnixMilli(),
-		Resources:   resources,
+		Resources:   row.Resources,
 	}, nil
 }
 
@@ -91,11 +86,6 @@ func (r *RepositoryImpl) ListComments(ctx context.Context, params ListCommentsPa
 
 	comments := make([]model.Comment, 0, len(rows))
 	for _, row := range rows {
-		resources, err := r.GetResources(ctx, row.ID, model.ResourceTypeComment)
-		if err != nil {
-			return nil, err
-		}
-
 		comments = append(comments, model.Comment{
 			ID:          row.ID,
 			Type:        model.CommentType(row.Type),
@@ -107,7 +97,7 @@ func (r *RepositoryImpl) ListComments(ctx context.Context, params ListCommentsPa
 			Score:       row.Score,
 			DateCreated: row.DateCreated.Time.UnixMilli(),
 			DateUpdated: row.DateUpdated.Time.UnixMilli(),
-			Resources:   resources,
+			Resources:   row.Resources,
 		})
 	}
 
