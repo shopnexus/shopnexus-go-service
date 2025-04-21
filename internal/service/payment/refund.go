@@ -6,7 +6,6 @@ import (
 	"shopnexus-go-service/internal/model"
 	repository "shopnexus-go-service/internal/repository"
 	"shopnexus-go-service/internal/service/account"
-	"shopnexus-go-service/internal/util"
 )
 
 type GetRefundParams struct {
@@ -123,12 +122,9 @@ func (s *PaymentService) CreateRefund(ctx context.Context, params CreateRefundPa
 		Status:             model.StatusPending,
 		Reason:             params.Reason,
 		Address:            params.Address,
+		Resources:          params.Resources,
 	})
 	if err != nil {
-		return model.Refund{}, err
-	}
-
-	if err = txRepo.AddResources(ctx, refund.ID, params.Resources); err != nil {
 		return model.Refund{}, err
 	}
 
@@ -141,12 +137,13 @@ func (s *PaymentService) CreateRefund(ctx context.Context, params CreateRefundPa
 
 type UpdateRefundParams struct {
 	ID        int64
+	Role      model.Role
 	UserID    int64
 	Method    *model.RefundMethod
 	Status    *model.Status
 	Reason    *string
 	Address   *string
-	Resources []string
+	Resources *[]string
 }
 
 func (s *PaymentService) UpdateRefund(ctx context.Context, params UpdateRefundParams) error {
@@ -157,12 +154,33 @@ func (s *PaymentService) UpdateRefund(ctx context.Context, params UpdateRefundPa
 	defer txRepo.Rollback(ctx)
 
 	repoParams := repository.UpdateRefundParams{
-		ID:      params.ID,
-		UserID:  &params.UserID,
-		Method:  params.Method,
-		Status:  params.Status,
-		Reason:  params.Reason,
-		Address: params.Address,
+		ID:        params.ID,
+		Method:    params.Method,
+		Status:    params.Status,
+		Reason:    params.Reason,
+		Address:   params.Address,
+		Resources: params.Resources,
+	}
+
+	// User only can update their own refunds
+	if params.Role == model.RoleUser {
+		repoParams.UserID = &params.UserID
+		if params.Status != nil {
+			return fmt.Errorf("user %d has no permission to update refund status: %w", params.UserID, model.ErrForbidden)
+		}
+	}
+
+	if params.Status != nil {
+		// Check if account has permission to update refund status
+		if ok, err := s.accountSvc.HasPermission(ctx, account.HasPermissionParams{
+			AccountID: params.UserID,
+			Role:      &params.Role,
+			Permissions: []model.Permission{
+				model.PermissionUpdateRefund,
+			},
+		}); !ok {
+			return fmt.Errorf("account %d has no permission to update refund status: %w", params.UserID, err)
+		}
 	}
 
 	// Method drop_off must not contains address
@@ -170,41 +188,9 @@ func (s *PaymentService) UpdateRefund(ctx context.Context, params UpdateRefundPa
 		repoParams.Address = nil
 	}
 
-	if params.Status != nil {
-		// Check if account has permission to update refund status
-		if ok, err := s.accountSvc.HasPermission(ctx, account.HasPermissionParams{
-			AccountID: params.UserID,
-			Permissions: []model.Permission{
-				model.PermissionUpdateRefund,
-			},
-		}); !ok {
-			return fmt.Errorf("account %d has no permission to update refund status: %w", params.UserID, err)
-		}
-
-		// remove the repoParams.UserID
-		repoParams.UserID = nil
-	}
-
 	if err = txRepo.UpdateRefund(ctx, repoParams); err != nil {
 		return err
 	}
 
-	current, err := txRepo.GetResources(ctx, params.ID)
-	if err != nil {
-		return err
-	}
-
-	added, removed := util.Diff(current, params.Resources)
-	if err := txRepo.AddResources(ctx, params.ID, added); err != nil {
-		return err
-	}
-	if err := txRepo.RemoveResources(ctx, params.ID, removed); err != nil {
-		return err
-	}
-
-	if err = txRepo.Commit(ctx); err != nil {
-		return err
-	}
-
-	return nil
+	return txRepo.Commit(ctx)
 }
