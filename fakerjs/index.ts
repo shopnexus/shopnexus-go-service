@@ -566,10 +566,10 @@ async function createPayments(
 
   // Set the next value for payment and product_on_payment sequences
   await prisma.$executeRawUnsafe(
-    `ALTER SEQUENCE product.payment_id_seq RESTART WITH ${BigInt(count + 1)}`
+    `ALTER SEQUENCE payment.base_id_seq RESTART WITH ${BigInt(count + 1)}`
   );
   await prisma.$executeRawUnsafe(
-    `ALTER SEQUENCE product.product_on_payment_id_seq RESTART WITH ${BigInt(
+    `ALTER SEQUENCE payment.product_on_payment_id_seq RESTART WITH ${BigInt(
       productOnPaymentData.length + 1
     )}`
   );
@@ -651,7 +651,7 @@ async function createRefunds(prisma: TxPrisma, payments: any[], count: number) {
 
   // Set the next value for the refund sequence
   await prisma.$executeRawUnsafe(
-    `ALTER SEQUENCE product.refund_id_seq RESTART WITH ${BigInt(
+    `ALTER SEQUENCE payment.refund_id_seq RESTART WITH ${BigInt(
       refundCount + 1
     )}`
   );
