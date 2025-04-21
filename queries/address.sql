@@ -9,6 +9,8 @@ WHERE (
 SELECT COUNT(*) FROM "account".address
 WHERE (
   (user_id = sqlc.narg('user_id') OR sqlc.narg('user_id') IS NULL) AND
+  (full_name ILIKE '%' || sqlc.narg('full_name') || '%' OR sqlc.narg('full_name') IS NULL) AND
+  (phone ILIKE '%' || sqlc.narg('phone') || '%' OR sqlc.narg('phone') IS NULL) AND
   (address ILIKE '%' || sqlc.narg('address') || '%' OR sqlc.narg('address') IS NULL) AND
   (city ILIKE '%' || sqlc.narg('city') || '%' OR sqlc.narg('city') IS NULL) AND
   (province ILIKE '%' || sqlc.narg('province') || '%' OR sqlc.narg('province') IS NULL) AND
@@ -19,6 +21,8 @@ WHERE (
 SELECT * FROM "account".address
 WHERE (
   (user_id = sqlc.narg('user_id') OR sqlc.narg('user_id') IS NULL) AND
+  (full_name ILIKE '%' || sqlc.narg('full_name') || '%' OR sqlc.narg('full_name') IS NULL) AND
+  (phone ILIKE '%' || sqlc.narg('phone') || '%' OR sqlc.narg('phone') IS NULL) AND
   (address ILIKE '%' || sqlc.narg('address') || '%' OR sqlc.narg('address') IS NULL) AND
   (city ILIKE '%' || sqlc.narg('city') || '%' OR sqlc.narg('city') IS NULL) AND
   (province ILIKE '%' || sqlc.narg('province') || '%' OR sqlc.narg('province') IS NULL) AND
@@ -29,13 +33,15 @@ LIMIT sqlc.arg('limit')
 OFFSET sqlc.arg('offset');
 
 -- name: CreateAddress :one
-INSERT INTO "account".address (user_id, address, city, province, country)
-VALUES ($1, $2, $3, $4, $5)
+INSERT INTO "account".address (user_id, full_name, phone, address, city, province, country)
+VALUES ($1, $2, $3, $4, $5, $6, $7)
 RETURNING *;
 
 -- name: UpdateAddress :one
 UPDATE "account".address
 SET
+  full_name = COALESCE(sqlc.narg('full_name'), full_name),
+  phone = COALESCE(sqlc.narg('phone'), phone),
   address = COALESCE(sqlc.narg('address'), address),
   city = COALESCE(sqlc.narg('city'), city),
   province = COALESCE(sqlc.narg('province'), province),

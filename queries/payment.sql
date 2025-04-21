@@ -100,7 +100,13 @@ SET
     status = COALESCE(sqlc.narg('status'), status),
     address = COALESCE(sqlc.narg('address'), address),
     total = COALESCE(sqlc.narg('total'), total)
-WHERE id = $1;
+WHERE (
+  id = $1 AND
+  (user_id = sqlc.narg('user_id') OR sqlc.narg('user_id') IS NULL)
+);
 
 -- name: DeletePayment :exec
-DELETE FROM payment.base WHERE id = $1;
+DELETE FROM payment.base WHERE (
+  id = $1 AND
+  (user_id = sqlc.narg('user_id') OR sqlc.narg('user_id') IS NULL)
+);

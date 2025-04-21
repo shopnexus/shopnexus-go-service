@@ -1,11 +1,22 @@
 -- name: GetBrand :one
+WITH filtered_brand AS (
+    SELECT b.*
+    FROM product.brand b
+    WHERE b.id = sqlc.arg('id')
+),
+filtered_resources AS (
+    SELECT 
+        res.owner_id,
+        array_agg(res.url ORDER BY res.order ASC) AS resources
+    FROM product.resource res
+    WHERE res.owner_id = sqlc.arg('id')
+    GROUP BY res.owner_id
+)
 SELECT 
     b.*,
-    COALESCE(array_agg(DISTINCT res.url) FILTER (WHERE res.url IS NOT NULL), '{}')::text[] as resources
-FROM product.brand b
-LEFT JOIN product.resource res ON res.owner_id = b.id
-WHERE b.id = $1
-GROUP BY b.id;
+    COALESCE(r.resources, '{}') AS resources
+FROM filtered_brand b
+LEFT JOIN filtered_resources r ON r.owner_id = b.id;
 
 -- name: CountBrands :one
 WITH filtered_brands AS (
@@ -20,36 +31,33 @@ SELECT COUNT(id)
 FROM filtered_brands;
 
 -- name: ListBrands :many
-SELECT
-  b.*, 
-  COALESCE(array_agg(DISTINCT res.url) FILTER (WHERE res.url IS NOT NULL), '{}')::text[] as resources
-FROM product.brand b
-LEFT JOIN product.resource res ON res.owner_id = b.id
-WHERE (
-  (name ILIKE '%' || sqlc.narg('name') || '%' OR sqlc.narg('name') IS NULL) AND
-  (description ILIKE '%' || sqlc.narg('description') || '%' OR sqlc.narg('description') IS NULL)
+WITH filtered_brands AS (
+  SELECT b.*
+  FROM product.brand b
+  WHERE (
+    (name ILIKE '%' || sqlc.narg('name') || '%' OR sqlc.narg('name') IS NULL) AND
+    (description ILIKE '%' || sqlc.narg('description') || '%' OR sqlc.narg('description') IS NULL)
+  )
+),
+filtered_resources AS (
+  SELECT res.owner_id, array_agg(res.url ORDER BY res.order ASC) AS resources
+  FROM product.resource res
+  WHERE res.owner_id IN (SELECT id FROM filtered_brands)
+  GROUP BY res.owner_id
 )
-GROUP BY b.id
+SELECT
+    b.*, 
+    COALESCE(r.resources, '{}') AS resources
+FROM filtered_brands b
+LEFT JOIN filtered_resources r ON r.owner_id = b.id
+ORDER BY b.name DESC
 LIMIT sqlc.arg('limit')
 OFFSET sqlc.arg('offset');
 
 -- name: CreateBrand :one
-WITH inserted_brand AS (
-    INSERT INTO product.brand (name, description)
-    VALUES ($1, $2)
-    RETURNING *
-),
-inserted_resources AS (
-    INSERT INTO product.resource (owner_id, url)
-    SELECT id, unnest(sqlc.arg('resources')::text[]) FROM inserted_brand
-    RETURNING url
-)
-SELECT 
-    b.id,
-    COALESCE(array_agg(DISTINCT res.url) FILTER (WHERE res.url IS NOT NULL), '{}')::text[] as resources
-FROM inserted_brand b
-LEFT JOIN inserted_resources res ON true
-GROUP BY b.id;
+INSERT INTO product.brand (name, description)
+VALUES ($1, $2)
+RETURNING *;
 
 -- name: UpdateBrand :exec
 UPDATE product.brand

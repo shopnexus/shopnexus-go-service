@@ -11,7 +11,8 @@ VALUES ($1);
 
 -- name: GetCartItems :many
 SELECT * FROM "account".item_on_cart
-WHERE cart_id = $1;
+WHERE cart_id = $1
+ORDER BY date_created DESC;
 
 -- name: AddCartItem :one
 INSERT INTO "account".item_on_cart (cart_id, product_id, quantity)
