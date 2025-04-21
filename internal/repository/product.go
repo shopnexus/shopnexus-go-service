@@ -22,6 +22,11 @@ func (r *RepositoryImpl) GetProduct(ctx context.Context, id int64) (model.Produc
 		return model.Product{}, err
 	}
 
+	resources, err := r.GetResources(ctx, row.ID, model.ResourceTypeProduct)
+	if err != nil {
+		return model.Product{}, err
+	}
+
 	return model.Product{
 		ID:             row.ID,
 		ProductModelID: row.ProductModelID,
@@ -33,7 +38,7 @@ func (r *RepositoryImpl) GetProduct(ctx context.Context, id int64) (model.Produc
 		Metadata:       row.Metadata,
 		DateCreated:    row.DateCreated.Time.UnixMilli(),
 		DateUpdated:    row.DateUpdated.Time.UnixMilli(),
-		Resources:      row.Resources,
+		Resources:      resources,
 	}, nil
 }
 
@@ -96,6 +101,11 @@ func (r *RepositoryImpl) ListProducts(ctx context.Context, params ListProductsPa
 
 	result := make([]model.Product, len(products))
 	for i, product := range products {
+		resources, err := r.GetResources(ctx, product.ID, model.ResourceTypeProduct)
+		if err != nil {
+			return nil, err
+		}
+
 		result[i] = model.Product{
 			ID:             product.ID,
 			ProductModelID: product.ProductModelID,
@@ -107,7 +117,7 @@ func (r *RepositoryImpl) ListProducts(ctx context.Context, params ListProductsPa
 			Metadata:       product.Metadata,
 			DateCreated:    product.DateCreated.Time.UnixMilli(),
 			DateUpdated:    product.DateUpdated.Time.UnixMilli(),
-			Resources:      product.Resources,
+			Resources:      resources,
 		}
 	}
 
@@ -123,9 +133,12 @@ func (r *RepositoryImpl) CreateProduct(ctx context.Context, product model.Produc
 		CanCombine:     product.CanCombine,
 		IsActive:       product.IsActive,
 		Metadata:       product.Metadata,
-		Resources:      product.Resources,
 	})
 	if err != nil {
+		return model.Product{}, err
+	}
+
+	if err := r.AddResources(ctx, row.ID, model.ResourceTypeProduct, product.Resources); err != nil {
 		return model.Product{}, err
 	}
 
@@ -140,7 +153,7 @@ func (r *RepositoryImpl) CreateProduct(ctx context.Context, product model.Produc
 		Metadata:       product.Metadata,
 		DateCreated:    time.Now().UnixMilli(),
 		DateUpdated:    time.Now().UnixMilli(),
-		Resources:      row.Resources,
+		Resources:      product.Resources,
 	}, nil
 }
 
@@ -152,11 +165,12 @@ type UpdateProductParams struct {
 	AddPrice       *int64
 	CanCombine     *bool
 	IsActive       *bool
-	Metadata       []byte
+	Metadata       *[]byte
+	Resources      *[]string
 }
 
 func (r *RepositoryImpl) UpdateProduct(ctx context.Context, params UpdateProductParams) error {
-	return r.sqlc.UpdateProduct(ctx, sqlc.UpdateProductParams{
+	repoParams := sqlc.UpdateProductParams{
 		ID:             params.ID,
 		ProductModelID: *pgxutil.PtrToPgtype(&pgtype.Int8{}, params.ProductModelID),
 		Quantity:       *pgxutil.PtrToPgtype(&pgtype.Int8{}, params.Quantity),
@@ -164,8 +178,19 @@ func (r *RepositoryImpl) UpdateProduct(ctx context.Context, params UpdateProduct
 		AddPrice:       *pgxutil.PtrToPgtype(&pgtype.Int8{}, params.AddPrice),
 		CanCombine:     *pgxutil.PtrToPgtype(&pgtype.Bool{}, params.CanCombine),
 		IsActive:       *pgxutil.PtrToPgtype(&pgtype.Bool{}, params.IsActive),
-		Metadata:       params.Metadata,
-	})
+	}
+
+	if params.Metadata != nil {
+		repoParams.Metadata = *params.Metadata
+	}
+
+	if params.Resources != nil {
+		if err := r.UpdateResources(ctx, params.ID, model.ResourceTypeProduct, *params.Resources); err != nil {
+			return err
+		}
+	}
+
+	return r.sqlc.UpdateProduct(ctx, repoParams)
 }
 
 func (r *RepositoryImpl) UpdateProductSold(ctx context.Context, ids []int64, amount int64) error {
@@ -177,22 +202,4 @@ func (r *RepositoryImpl) UpdateProductSold(ctx context.Context, ids []int64, amo
 
 func (r *RepositoryImpl) DeleteProduct(ctx context.Context, id int64) error {
 	return r.sqlc.DeleteProduct(ctx, id)
-}
-
-func (r *RepositoryImpl) GetResources(ctx context.Context, ownerID int64) ([]string, error) {
-	return r.sqlc.GetResources(ctx, ownerID)
-}
-
-func (r *RepositoryImpl) AddResources(ctx context.Context, ownerID int64, resouces []string) error {
-	return r.sqlc.AddResources(ctx, sqlc.AddResourcesParams{
-		OwnerID:   ownerID,
-		Resources: resouces,
-	})
-}
-
-func (r *RepositoryImpl) RemoveResources(ctx context.Context, ownerID int64, resources []string) error {
-	return r.sqlc.RemoveResources(ctx, sqlc.RemoveResourcesParams{
-		OwnerID:   ownerID,
-		Resources: resources,
-	})
 }

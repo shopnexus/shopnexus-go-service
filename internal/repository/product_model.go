@@ -16,6 +16,16 @@ func (r *RepositoryImpl) GetProductModel(ctx context.Context, id int64) (model.P
 		return model.ProductModel{}, err
 	}
 
+	resources, err := r.GetResources(ctx, productModel.ID, model.ResourceTypeProductModel)
+	if err != nil {
+		return model.ProductModel{}, err
+	}
+
+	tags, err := r.GetTags(ctx, productModel.ID)
+	if err != nil {
+		return model.ProductModel{}, err
+	}
+
 	return model.ProductModel{
 		ID:               productModel.ID,
 		Type:             productModel.Type,
@@ -24,8 +34,8 @@ func (r *RepositoryImpl) GetProductModel(ctx context.Context, id int64) (model.P
 		Description:      productModel.Description,
 		ListPrice:        productModel.ListPrice,
 		DateManufactured: productModel.DateManufactured.Time.UnixMilli(),
-		Resources:        productModel.Resources,
-		Tags:             productModel.Tags,
+		Resources:        resources,
+		Tags:             tags,
 	}, nil
 }
 
@@ -77,6 +87,16 @@ func (r *RepositoryImpl) ListProductModels(ctx context.Context, params ListProdu
 
 	result := make([]model.ProductModel, len(productModels))
 	for i, productModel := range productModels {
+		resources, err := r.GetResources(ctx, productModel.ID, model.ResourceTypeProductModel)
+		if err != nil {
+			return nil, err
+		}
+
+		tags, err := r.GetTags(ctx, productModel.ID)
+		if err != nil {
+			return nil, err
+		}
+
 		result[i] = model.ProductModel{
 			ID:               productModel.ID,
 			Type:             productModel.Type,
@@ -85,8 +105,8 @@ func (r *RepositoryImpl) ListProductModels(ctx context.Context, params ListProdu
 			Description:      productModel.Description,
 			ListPrice:        productModel.ListPrice,
 			DateManufactured: productModel.DateManufactured.Time.UnixMilli(),
-			Resources:        productModel.Resources,
-			Tags:             productModel.Tags,
+			Resources:        resources,
+			Tags:             tags,
 		}
 	}
 
@@ -101,10 +121,16 @@ func (r *RepositoryImpl) CreateProductModel(ctx context.Context, productModel mo
 		Description:      productModel.Description,
 		ListPrice:        productModel.ListPrice,
 		DateManufactured: *pgxutil.PtrToPgtype(&pgtype.Timestamptz{}, util.PtrMilisToTime(&productModel.DateManufactured)),
-		Resources:        productModel.Resources,
-		Tags:             productModel.Tags,
 	})
 	if err != nil {
+		return model.ProductModel{}, err
+	}
+
+	if err = r.AddResources(ctx, row.ID, model.ResourceTypeProductModel, productModel.Resources); err != nil {
+		return model.ProductModel{}, err
+	}
+
+	if err = r.AddTags(ctx, row.ID, productModel.Tags); err != nil {
 		return model.ProductModel{}, err
 	}
 
@@ -116,8 +142,8 @@ func (r *RepositoryImpl) CreateProductModel(ctx context.Context, productModel mo
 		Description:      productModel.Description,
 		ListPrice:        productModel.ListPrice,
 		DateManufactured: productModel.DateManufactured,
-		Resources:        row.Resources,
-		Tags:             row.Tags,
+		Resources:        productModel.Resources,
+		Tags:             productModel.Tags,
 	}, nil
 }
 
@@ -129,10 +155,12 @@ type UpdateProductModelParams struct {
 	Description      *string
 	ListPrice        *int64
 	DateManufactured *int64
+	Resources        *[]string
+	Tags             *[]string
 }
 
 func (r *RepositoryImpl) UpdateProductModel(ctx context.Context, params UpdateProductModelParams) error {
-	return r.sqlc.UpdateProductModel(ctx, sqlc.UpdateProductModelParams{
+	row, err := r.sqlc.UpdateProductModel(ctx, sqlc.UpdateProductModelParams{
 		ID:               params.ID,
 		Type:             *pgxutil.PtrToPgtype(&pgtype.Int8{}, params.Type),
 		BrandID:          *pgxutil.PtrToPgtype(&pgtype.Int8{}, params.BrandID),
@@ -141,6 +169,23 @@ func (r *RepositoryImpl) UpdateProductModel(ctx context.Context, params UpdatePr
 		ListPrice:        *pgxutil.PtrToPgtype(&pgtype.Int8{}, params.ListPrice),
 		DateManufactured: *pgxutil.PtrToPgtype(&pgtype.Timestamptz{}, util.PtrMilisToTime(params.DateManufactured)),
 	})
+	if err != nil {
+		return err
+	}
+
+	if params.Resources != nil {
+		if err = r.UpdateResources(ctx, row.ID, model.ResourceTypeProductModel, *params.Resources); err != nil {
+			return err
+		}
+	}
+
+	if params.Tags != nil {
+		if err = r.UpdateTags(ctx, row.ID, *params.Tags); err != nil {
+			return err
+		}
+	}
+
+	return nil
 }
 
 func (r *RepositoryImpl) DeleteProductModel(ctx context.Context, id int64) error {

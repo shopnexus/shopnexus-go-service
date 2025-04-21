@@ -15,11 +15,16 @@ func (r *RepositoryImpl) GetBrand(ctx context.Context, id int64) (model.Brand, e
 		return model.Brand{}, err
 	}
 
+	resources, err := r.GetResources(ctx, brand.ID, model.ResourceTypeBrand)
+	if err != nil {
+		return model.Brand{}, err
+	}
+
 	return model.Brand{
 		ID:          brand.ID,
 		Name:        brand.Name,
 		Description: brand.Description,
-		Resources:   brand.Resources,
+		Resources:   resources,
 	}, nil
 }
 
@@ -49,11 +54,16 @@ func (r *RepositoryImpl) ListBrands(ctx context.Context, params ListBrandsParams
 
 	result := make([]model.Brand, len(brands))
 	for i, brand := range brands {
+		resources, err := r.GetResources(ctx, brand.ID, model.ResourceTypeBrand)
+		if err != nil {
+			return nil, err
+		}
+
 		result[i] = model.Brand{
 			ID:          brand.ID,
 			Name:        brand.Name,
 			Description: brand.Description,
-			Resources:   brand.Resources,
+			Resources:   resources,
 		}
 	}
 	return result, nil
@@ -63,9 +73,12 @@ func (r *RepositoryImpl) CreateBrand(ctx context.Context, brand model.Brand) (mo
 	row, err := r.sqlc.CreateBrand(ctx, sqlc.CreateBrandParams{
 		Name:        brand.Name,
 		Description: brand.Description,
-		Resources:   brand.Resources,
 	})
 	if err != nil {
+		return model.Brand{}, err
+	}
+
+	if err = r.AddResources(ctx, row.ID, model.ResourceTypeBrand, brand.Resources); err != nil {
 		return model.Brand{}, err
 	}
 
@@ -73,7 +86,7 @@ func (r *RepositoryImpl) CreateBrand(ctx context.Context, brand model.Brand) (mo
 		ID:          row.ID,
 		Name:        brand.Name,
 		Description: brand.Description,
-		Resources:   row.Resources,
+		Resources:   brand.Resources,
 	}, nil
 }
 

@@ -240,6 +240,7 @@ func (r *RepositoryImpl) CreatePayment(ctx context.Context, payment model.Paymen
 
 type UpdatePaymentParams struct {
 	ID      int64
+	UserID  *int64
 	Method  *model.PaymentMethod
 	Status  *model.Status
 	Address *string
@@ -249,6 +250,7 @@ type UpdatePaymentParams struct {
 func (r *RepositoryImpl) UpdatePayment(ctx context.Context, params UpdatePaymentParams) error {
 	err := r.sqlc.UpdatePayment(ctx, sqlc.UpdatePaymentParams{
 		ID:      params.ID,
+		UserID:  *pgxutil.PtrToPgtype(&pgtype.Int8{}, params.UserID),
 		Method:  *pgxutil.PtrBrandedToPgType(&sqlc.NullPaymentPaymentMethod{}, params.Method),
 		Status:  *pgxutil.PtrBrandedToPgType(&sqlc.NullPaymentStatus{}, params.Status),
 		Address: *pgxutil.PtrToPgtype(&pgtype.Text{}, params.Address),
@@ -261,6 +263,14 @@ func (r *RepositoryImpl) UpdatePayment(ctx context.Context, params UpdatePayment
 	return nil
 }
 
-func (r *RepositoryImpl) DeletePayment(ctx context.Context, paymentID int64) error {
-	return r.sqlc.DeletePayment(ctx, paymentID)
+type DeletePaymentParams struct {
+	ID     int64
+	UserID *int64
+}
+
+func (r *RepositoryImpl) DeletePayment(ctx context.Context, params DeletePaymentParams) error {
+	return r.sqlc.DeletePayment(ctx, sqlc.DeletePaymentParams{
+		ID:     params.ID,
+		UserID: *pgxutil.PtrToPgtype(&pgtype.Int8{}, params.UserID),
+	})
 }

@@ -44,9 +44,10 @@ type Repository interface {
 	UpdateProduct(ctx context.Context, params UpdateProductParams) error
 	UpdateProductSold(ctx context.Context, ids []int64, amount int64) error
 	DeleteProduct(ctx context.Context, id int64) error
-	GetResources(ctx context.Context, ownerID int64) ([]string, error)
-	AddResources(ctx context.Context, ownerID int64, resources []string) error
-	RemoveResources(ctx context.Context, ownerID int64, resources []string) error
+	GetResources(ctx context.Context, ownerID int64, resourceType model.ResourceType) ([]string, error)
+	AddResources(ctx context.Context, ownerID int64, resourceType model.ResourceType, resources []string) error
+	UpdateResources(ctx context.Context, ownerID int64, resourceType model.ResourceType, resources []string) error
+	EmptyResources(ctx context.Context, ownerID int64, resourceType model.ResourceType) error
 
 	// Product Model methods
 	GetProductModel(ctx context.Context, id int64) (model.ProductModel, error)
@@ -85,7 +86,7 @@ type Repository interface {
 	ListPayments(ctx context.Context, params ListPaymentsParams) ([]model.Payment, error)
 	CreatePayment(ctx context.Context, payment model.Payment) (model.Payment, error)
 	UpdatePayment(ctx context.Context, params UpdatePaymentParams) error
-	DeletePayment(ctx context.Context, paymentID int64) error
+	DeletePayment(ctx context.Context, params DeletePaymentParams) error
 
 	// Refund methods
 	ExistsRefund(ctx context.Context, params ExistsRefundParams) (bool, error)
@@ -115,12 +116,13 @@ type Repository interface {
 	GetTags(ctx context.Context, productModelID int64) ([]string, error)
 	AddTags(ctx context.Context, productModelID int64, tags []string) error
 	RemoveTags(ctx context.Context, productModelID int64, tags []string) error
+	UpdateTags(ctx context.Context, productModelID int64, tags []string) error
 
 	// Comment methods
 	GetComment(ctx context.Context, id int64) (model.Comment, error)
 	CountComments(ctx context.Context, params ListCommentsParams) (int64, error)
 	ListComments(ctx context.Context, params ListCommentsParams) ([]model.Comment, error)
-	CreateComment(ctx context.Context, comment model.Comment) error
+	CreateComment(ctx context.Context, comment model.Comment) (model.Comment, error)
 	UpdateComment(ctx context.Context, params UpdateCommentParams) error
 	DeleteComment(ctx context.Context, params DeleteCommentParams) error
 

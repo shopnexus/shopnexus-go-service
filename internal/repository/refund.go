@@ -37,6 +37,11 @@ func (r *RepositoryImpl) GetRefund(ctx context.Context, params GetRefundParams) 
 		return model.Refund{}, err
 	}
 
+	resources, err := r.GetResources(ctx, row.ID, model.ResourceTypeRefund)
+	if err != nil {
+		return model.Refund{}, err
+	}
+
 	return model.Refund{
 		ID:                 row.ID,
 		ProductOnPaymentID: row.ProductOnPaymentID,
@@ -44,9 +49,9 @@ func (r *RepositoryImpl) GetRefund(ctx context.Context, params GetRefundParams) 
 		Status:             model.Status(row.Status),
 		Reason:             row.Reason,
 		Address:            row.Address,
-		Resources:          row.Resources,
 		DateCreated:        row.DateCreated.Time.UnixMilli(),
 		DateUpdated:        row.DateUpdated.Time.UnixMilli(),
+		Resources:          resources,
 	}, nil
 }
 
@@ -94,6 +99,11 @@ func (r *RepositoryImpl) ListRefunds(ctx context.Context, params ListRefundsPara
 
 	var refunds []model.Refund
 	for _, row := range rows {
+		resources, err := r.GetResources(ctx, row.ID, model.ResourceTypeRefund)
+		if err != nil {
+			return nil, err
+		}
+
 		refunds = append(refunds, model.Refund{
 			ID:                 row.ID,
 			ProductOnPaymentID: row.ProductOnPaymentID,
@@ -101,9 +111,9 @@ func (r *RepositoryImpl) ListRefunds(ctx context.Context, params ListRefundsPara
 			Status:             model.Status(row.Status),
 			Reason:             row.Reason,
 			Address:            row.Address,
-			Resources:          row.Resources,
 			DateCreated:        row.DateCreated.Time.UnixMilli(),
 			DateUpdated:        row.DateUpdated.Time.UnixMilli(),
+			Resources:          resources,
 		})
 	}
 
@@ -117,9 +127,12 @@ func (r *RepositoryImpl) CreateRefund(ctx context.Context, refund model.Refund) 
 		Status:             sqlc.PaymentStatus(refund.Status),
 		Reason:             refund.Reason,
 		Address:            refund.Address,
-		Resources:          refund.Resources,
 	})
 	if err != nil {
+		return model.Refund{}, err
+	}
+
+	if err := r.AddResources(ctx, row.ID, model.ResourceTypeRefund, refund.Resources); err != nil {
 		return model.Refund{}, err
 	}
 
@@ -130,19 +143,20 @@ func (r *RepositoryImpl) CreateRefund(ctx context.Context, refund model.Refund) 
 		Status:             refund.Status,
 		Reason:             refund.Reason,
 		Address:            refund.Address,
-		Resources:          row.Resources,
 		DateCreated:        time.Now().UnixMilli(),
 		DateUpdated:        time.Now().UnixMilli(),
+		Resources:          refund.Resources,
 	}, nil
 }
 
 type UpdateRefundParams struct {
-	ID      int64
-	UserID  *int64
-	Method  *model.RefundMethod
-	Status  *model.Status
-	Reason  *string
-	Address *string
+	ID        int64
+	UserID    *int64
+	Method    *model.RefundMethod
+	Status    *model.Status
+	Reason    *string
+	Address   *string
+	Resources *[]string
 }
 
 func (r *RepositoryImpl) UpdateRefund(ctx context.Context, params UpdateRefundParams) error {
@@ -154,6 +168,12 @@ func (r *RepositoryImpl) UpdateRefund(ctx context.Context, params UpdateRefundPa
 		Reason:  *pgxutil.PtrToPgtype(&pgtype.Text{}, params.Reason),
 		Address: *pgxutil.PtrToPgtype(&pgtype.Text{}, params.Address),
 	})
+
+	if params.Resources != nil {
+		if err := r.UpdateResources(ctx, params.ID, model.ResourceTypeRefund, *params.Resources); err != nil {
+			return err
+		}
+	}
 
 	return err
 }

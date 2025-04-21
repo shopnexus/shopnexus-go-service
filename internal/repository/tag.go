@@ -5,6 +5,7 @@ import (
 	"shopnexus-go-service/gen/sqlc"
 	pgxutil "shopnexus-go-service/internal/db/pgx"
 	"shopnexus-go-service/internal/model"
+	"shopnexus-go-service/internal/util"
 
 	"github.com/jackc/pgx/v5/pgtype"
 )
@@ -101,4 +102,22 @@ func (r *RepositoryImpl) RemoveTags(ctx context.Context, productModelID int64, t
 		ProductModelID: productModelID,
 		Tags:           tags,
 	})
+}
+
+func (r *RepositoryImpl) UpdateTags(ctx context.Context, productModelID int64, tags []string) error {
+	current, err := r.GetTags(ctx, productModelID)
+	if err != nil {
+		return err
+	}
+
+	added, removed := util.Diff(current, tags)
+	if err := r.AddTags(ctx, productModelID, added); err != nil {
+		return err
+	}
+
+	if err := r.RemoveTags(ctx, productModelID, removed); err != nil {
+		return err
+	}
+
+	return nil
 }

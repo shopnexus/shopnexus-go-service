@@ -15,6 +15,11 @@ func (r *RepositoryImpl) GetComment(ctx context.Context, id int64) (model.Commen
 		return model.Comment{}, err
 	}
 
+	resources, err := r.GetResources(ctx, row.ID, model.ResourceTypeComment)
+	if err != nil {
+		return model.Comment{}, err
+	}
+
 	return model.Comment{
 		ID:          row.ID,
 		Type:        model.CommentType(row.Type),
@@ -26,7 +31,7 @@ func (r *RepositoryImpl) GetComment(ctx context.Context, id int64) (model.Commen
 		Score:       row.Score,
 		DateCreated: row.DateCreated.Time.UnixMilli(),
 		DateUpdated: row.DateUpdated.Time.UnixMilli(),
-		Resources:   row.Resources,
+		Resources:   resources,
 	}, nil
 }
 
@@ -86,6 +91,11 @@ func (r *RepositoryImpl) ListComments(ctx context.Context, params ListCommentsPa
 
 	comments := make([]model.Comment, 0, len(rows))
 	for _, row := range rows {
+		resources, err := r.GetResources(ctx, row.ID, model.ResourceTypeComment)
+		if err != nil {
+			return nil, err
+		}
+
 		comments = append(comments, model.Comment{
 			ID:          row.ID,
 			Type:        model.CommentType(row.Type),
@@ -97,15 +107,15 @@ func (r *RepositoryImpl) ListComments(ctx context.Context, params ListCommentsPa
 			Score:       row.Score,
 			DateCreated: row.DateCreated.Time.UnixMilli(),
 			DateUpdated: row.DateUpdated.Time.UnixMilli(),
-			Resources:   row.Resources,
+			Resources:   resources,
 		})
 	}
 
 	return comments, nil
 }
 
-func (r *RepositoryImpl) CreateComment(ctx context.Context, comment model.Comment) error {
-	return r.sqlc.CreateComment(ctx, sqlc.CreateCommentParams{
+func (r *RepositoryImpl) CreateComment(ctx context.Context, comment model.Comment) (model.Comment, error) {
+	row, err := r.sqlc.CreateComment(ctx, sqlc.CreateCommentParams{
 		AccountID: comment.AccountID,
 		Type:      sqlc.ProductCommentType(comment.Type),
 		DestID:    comment.DestID,
@@ -114,6 +124,27 @@ func (r *RepositoryImpl) CreateComment(ctx context.Context, comment model.Commen
 		Downvote:  comment.Downvote,
 		Score:     comment.Score,
 	})
+	if err != nil {
+		return model.Comment{}, err
+	}
+
+	if err = r.AddResources(ctx, row.ID, model.ResourceTypeComment, comment.Resources); err != nil {
+		return model.Comment{}, err
+	}
+
+	return model.Comment{
+		ID:          row.ID,
+		Type:        model.CommentType(row.Type),
+		AccountID:   row.AccountID,
+		DestID:      row.DestID,
+		Body:        row.Body,
+		Upvote:      row.Upvote,
+		Downvote:    row.Downvote,
+		Score:       row.Score,
+		DateCreated: row.DateCreated.Time.UnixMilli(),
+		DateUpdated: row.DateUpdated.Time.UnixMilli(),
+		Resources:   comment.Resources,
+	}, nil
 }
 
 type UpdateCommentParams struct {
@@ -123,10 +154,11 @@ type UpdateCommentParams struct {
 	Upvote    *int64
 	Downvote  *int64
 	Score     *int64
+	Resources *[]string
 }
 
 func (r *RepositoryImpl) UpdateComment(ctx context.Context, params UpdateCommentParams) error {
-	return r.sqlc.UpdateComment(ctx, sqlc.UpdateCommentParams{
+	row, err := r.sqlc.UpdateComment(ctx, sqlc.UpdateCommentParams{
 		ID:        params.ID,
 		AccountID: *pgxutil.PtrToPgtype(&pgtype.Int8{}, params.AccountID),
 		Body:      *pgxutil.PtrToPgtype(&pgtype.Text{}, params.Body),
@@ -134,6 +166,17 @@ func (r *RepositoryImpl) UpdateComment(ctx context.Context, params UpdateComment
 		Downvote:  *pgxutil.PtrToPgtype(&pgtype.Int8{}, params.Downvote),
 		Score:     *pgxutil.PtrToPgtype(&pgtype.Int4{}, params.Score),
 	})
+	if err != nil {
+		return err
+	}
+
+	if params.Resources != nil {
+		if err = r.UpdateResources(ctx, row.ID, model.ResourceTypeComment, *params.Resources); err != nil {
+			return err
+		}
+	}
+
+	return nil
 }
 
 type DeleteCommentParams struct {
