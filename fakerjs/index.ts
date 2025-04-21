@@ -14,6 +14,7 @@ import {
   Tag,
   ProductType,
   Refund,
+  ResourceType,
 } from "../node_modules/.prisma/client";
 
 type TxPrisma = Omit<
@@ -284,17 +285,22 @@ async function createAddresses(
   userAccounts: Account[],
   count: number
 ) {
-  const addressesData = Array.from({ length: count }, () => {
-    const userAccount =
-      userAccounts[Math.floor(Math.random() * userAccounts.length)];
-    return {
-      user_id: userAccount.id,
-      address: faker.location.streetAddress(),
-      city: faker.location.city(),
-      province: faker.location.state(),
-      country: faker.location.country(),
-    };
-  });
+  const addressesData: Prisma.AddressCreateManyInput[] = Array.from(
+    { length: count },
+    () => {
+      const userAccount =
+        userAccounts[Math.floor(Math.random() * userAccounts.length)];
+      return {
+        user_id: userAccount.id,
+        address: faker.location.streetAddress(),
+        city: faker.location.city(),
+        province: faker.location.state(),
+        country: faker.location.country(),
+        full_name: faker.person.fullName(),
+        phone: faker.phone.number({ style: "international" }),
+      };
+    }
+  );
 
   await prisma.address.createMany({
     data: addressesData,
@@ -352,7 +358,7 @@ async function createSales(
   brands: Brand[],
   count: number
 ) {
-  const salesData: any[] = [];
+  const salesData: Prisma.SaleCreateManyInput[] = [];
 
   for (let i = 0; i < count; i++) {
     const saleType = Math.random();
@@ -554,8 +560,10 @@ async function createRefunds(prisma: TxPrisma, payments: any[], count: number) {
     const resourceCount = Math.floor(Math.random() * 4);
     for (let j = 0; j < resourceCount; j++) {
       resourcesData.push({
+        type: ResourceType.REFUND,
         owner_id: refundId,
         url: faker.image.urlPicsumPhotos({ width: 800, height: 600 }),
+        order: j + 1,
       });
     }
   }
@@ -610,8 +618,10 @@ async function createComments(
     const resourceCount = Math.floor(Math.random() * 4);
     for (let j = 0; j < resourceCount; j++) {
       resourcesData.push({
+        type: ResourceType.COMMENT,
         owner_id: commentId,
         url: faker.image.urlPicsumPhotos({ width: 800, height: 600 }),
+        order: j + 1,
       });
     }
   };
@@ -635,6 +645,11 @@ async function createComments(
       CommentType.COMMENT
     );
   }
+
+  // Set the next value for the comment sequence
+  await prisma.$executeRawUnsafe(
+    `ALTER SEQUENCE product.comment_id_seq RESTART WITH ${commentId}`
+  );
 
   await prisma.comment.createMany({
     data: commentsData,
@@ -660,7 +675,7 @@ async function createResources(
   refunds: Refund[],
   count: number
 ) {
-  const resourcesData: any[] = [];
+  const resourcesData: Prisma.ResourceCreateManyInput[] = [];
 
   // Add resources for brands
   for (const brand of brands) {
@@ -668,8 +683,10 @@ async function createResources(
     const resourceCount = Math.floor(Math.random() * 3) + 1;
     for (let i = 0; i < resourceCount; i++) {
       resourcesData.push({
+        type: ResourceType.BRAND,
         owner_id: brand.id,
         url: faker.image.url({ width: 800, height: 600 }),
+        order: i + 1,
       });
     }
   }
@@ -680,8 +697,10 @@ async function createResources(
     const resourceCount = Math.floor(Math.random() * 4) + 2;
     for (let i = 0; i < resourceCount; i++) {
       resourcesData.push({
+        type: ResourceType.PRODUCT_MODEL,
         owner_id: productModel.id,
         url: faker.image.urlPicsumPhotos({ width: 800, height: 600 }),
+        order: i + 1,
       });
     }
   }
@@ -692,8 +711,10 @@ async function createResources(
     const resourceCount = Math.floor(Math.random() * 3) + 1;
     for (let i = 0; i < resourceCount; i++) {
       resourcesData.push({
+        type: ResourceType.PRODUCT,
         owner_id: product.id,
         url: faker.image.urlPicsumPhotos({ width: 800, height: 600 }),
+        order: i + 1,
       });
     }
   }
@@ -704,8 +725,10 @@ async function createResources(
     const resourceCount = Math.floor(Math.random() * 3);
     for (let i = 0; i < resourceCount; i++) {
       resourcesData.push({
+        type: ResourceType.REFUND,
         owner_id: refund.id,
         url: faker.image.urlPicsumPhotos({ width: 800, height: 600 }),
+        order: i + 1,
       });
     }
   }
