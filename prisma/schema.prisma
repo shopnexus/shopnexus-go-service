@@ -329,7 +329,7 @@ model ProductOnPayment {
   payment        Payment                           @relation(fields: [payment_id], references: [id], onUpdate: Cascade, onDelete: Cascade)
   product        Product                           @relation(fields: [product_id], references: [id], onUpdate: Cascade, onDelete: Cascade)
 
-  @@unique([payment_id, product_id])
+  // @@unique([payment_id, product_id]); Should not be unique, because product can be added multiple times (due to product.can_combine)
   @@map("product_on_payment")
   @@schema("payment")
 }

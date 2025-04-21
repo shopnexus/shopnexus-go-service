@@ -175,10 +175,6 @@ Table ProductOnPayment {
   quantity BigInt [not null]
   price BigInt [not null]
   total_price BigInt [not null]
-
-  indexes {
-    (payment_id, product_id) [unique]
-  }
 }
 
 Table Payment {
