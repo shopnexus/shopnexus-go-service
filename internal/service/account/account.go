@@ -36,7 +36,7 @@ type AccountServiceInterface interface {
 	// Address
 	GetAddress(ctx context.Context, params GetAddressParams) (model.Address, error)
 	ListAddresses(ctx context.Context, params ListAddressesParams) (model.PaginateResult[model.Address], error)
-	CreateAddress(ctx context.Context, params model.Address) (model.Address, error)
+	CreateAddress(ctx context.Context, params CreateAddressParams) (model.Address, error)
 	UpdateAddress(ctx context.Context, params UpdateAddressParams) (model.Address, error)
 	DeleteAddress(ctx context.Context, params DeleteAddressParams) error
 

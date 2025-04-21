@@ -34,7 +34,7 @@ type S3ServiceInterface interface {
 }
 
 // NewS3Service creates a new S3 client with the provided credentials
-func NewS3Service(repository *repository.RepositoryImpl) *S3Service {
+func NewS3Service(repository repository.Repository) *S3Service {
 	cfg := config.GetConfig().S3
 
 	// Create custom credentials provider
