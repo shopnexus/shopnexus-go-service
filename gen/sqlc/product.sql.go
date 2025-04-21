@@ -11,22 +11,6 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
-const addResources = `-- name: AddResources :exec
-INSERT INTO product.resource (owner_id, url)
-SELECT $1, unnest($2::text[])
-ON CONFLICT (owner_id, url) DO NOTHING
-`
-
-type AddResourcesParams struct {
-	OwnerID   int64
-	Resources []string
-}
-
-func (q *Queries) AddResources(ctx context.Context, arg AddResourcesParams) error {
-	_, err := q.db.Exec(ctx, addResources, arg.OwnerID, arg.Resources)
-	return err
-}
-
 const countProducts = `-- name: CountProducts :one
 SELECT COUNT(id)
 FROM product.base
@@ -85,29 +69,16 @@ func (q *Queries) CountProducts(ctx context.Context, arg CountProductsParams) (i
 }
 
 const createProduct = `-- name: CreateProduct :one
-WITH inserted_product AS (
-    INSERT INTO product.base (
-        product_model_id,
-        quantity,
-        sold,
-        add_price,
-        is_active,  
-        can_combine,
-        metadata
-    ) VALUES ($1, $2, $3, $4, $5, $6, $7)
-    RETURNING id, product_model_id, quantity, sold, add_price, is_active, can_combine, metadata, date_created, date_updated
-),
-inserted_resources AS (
-    INSERT INTO product.resource (owner_id, url)
-    SELECT id, unnest($8::text[]) FROM inserted_product
-    RETURNING url
-)
-SELECT
-    p.id,
-    COALESCE(array_agg(DISTINCT res.url) FILTER (WHERE res.url IS NOT NULL), '{}')::text[] as resources
-FROM inserted_product p
-LEFT JOIN inserted_resources res ON true
-GROUP BY p.id
+ INSERT INTO product.base (
+    product_model_id,
+    quantity,
+    sold,
+    add_price,
+    is_active,  
+    can_combine,
+    metadata
+) VALUES ($1, $2, $3, $4, $5, $6, $7)
+RETURNING id, product_model_id, quantity, sold, add_price, is_active, can_combine, metadata, date_created, date_updated
 `
 
 type CreateProductParams struct {
@@ -118,15 +89,9 @@ type CreateProductParams struct {
 	IsActive       bool
 	CanCombine     bool
 	Metadata       []byte
-	Resources      []string
 }
 
-type CreateProductRow struct {
-	ID        int64
-	Resources []string
-}
-
-func (q *Queries) CreateProduct(ctx context.Context, arg CreateProductParams) (CreateProductRow, error) {
+func (q *Queries) CreateProduct(ctx context.Context, arg CreateProductParams) (ProductBase, error) {
 	row := q.db.QueryRow(ctx, createProduct,
 		arg.ProductModelID,
 		arg.Quantity,
@@ -135,10 +100,20 @@ func (q *Queries) CreateProduct(ctx context.Context, arg CreateProductParams) (C
 		arg.IsActive,
 		arg.CanCombine,
 		arg.Metadata,
-		arg.Resources,
 	)
-	var i CreateProductRow
-	err := row.Scan(&i.ID, &i.Resources)
+	var i ProductBase
+	err := row.Scan(
+		&i.ID,
+		&i.ProductModelID,
+		&i.Quantity,
+		&i.Sold,
+		&i.AddPrice,
+		&i.IsActive,
+		&i.CanCombine,
+		&i.Metadata,
+		&i.DateCreated,
+		&i.DateUpdated,
+	)
 	return i, err
 }
 
@@ -152,13 +127,24 @@ func (q *Queries) DeleteProduct(ctx context.Context, id int64) error {
 }
 
 const getProduct = `-- name: GetProduct :one
+WITH filtered_product AS (
+    SELECT p.id, p.product_model_id, p.quantity, p.sold, p.add_price, p.is_active, p.can_combine, p.metadata, p.date_created, p.date_updated
+    FROM product.base p
+    WHERE p.id = $1
+),
+filtered_resource AS (
+    SELECT 
+        res.owner_id,
+        array_agg(res.url ORDER BY res.order ASC) AS resources
+    FROM product.resource res
+    WHERE res.url IS NOT NULL AND res.owner_id = $1
+    GROUP BY res.owner_id
+)
 SELECT 
     p.id, p.product_model_id, p.quantity, p.sold, p.add_price, p.is_active, p.can_combine, p.metadata, p.date_created, p.date_updated,
-    COALESCE(array_agg(DISTINCT res.url) FILTER (WHERE res.url IS NOT NULL), '{}')::text[] as resources
-FROM product.base p
-LEFT JOIN product.resource res ON res.owner_id = p.id
-WHERE id = $1
-GROUP BY p.id
+    COALESCE(r.resources, '{}') AS resources
+FROM filtered_product p
+LEFT JOIN filtered_resource r ON r.owner_id = p.id
 `
 
 type GetProductRow struct {
@@ -172,7 +158,7 @@ type GetProductRow struct {
 	Metadata       []byte
 	DateCreated    pgtype.Timestamptz
 	DateUpdated    pgtype.Timestamptz
-	Resources      []string
+	Resources      interface{}
 }
 
 func (q *Queries) GetProduct(ctx context.Context, id int64) (GetProductRow, error) {
@@ -194,60 +180,47 @@ func (q *Queries) GetProduct(ctx context.Context, id int64) (GetProductRow, erro
 	return i, err
 }
 
-const getResources = `-- name: GetResources :many
-SELECT url
-FROM product.resource
-WHERE owner_id = $1
-`
-
-func (q *Queries) GetResources(ctx context.Context, ownerID int64) ([]string, error) {
-	rows, err := q.db.Query(ctx, getResources, ownerID)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-	var items []string
-	for rows.Next() {
-		var url string
-		if err := rows.Scan(&url); err != nil {
-			return nil, err
-		}
-		items = append(items, url)
-	}
-	if err := rows.Err(); err != nil {
-		return nil, err
-	}
-	return items, nil
-}
-
 const listProducts = `-- name: ListProducts :many
+WITH filtered_product AS (
+    SELECT p.id, p.product_model_id, p.quantity, p.sold, p.add_price, p.is_active, p.can_combine, p.metadata, p.date_created, p.date_updated
+    FROM product.base p
+    WHERE (
+        (p.id = $3 OR $3 IS NULL) AND
+        (p.product_model_id = $4 OR $4 IS NULL) AND
+        (p.quantity >= $5 OR $5 IS NULL) AND
+        (p.quantity <= $6 OR $6 IS NULL) AND
+        (p.sold >= $7 OR $7 IS NULL) AND
+        (p.sold <= $8 OR $8 IS NULL) AND
+        (p.add_price >= $9 OR $9 IS NULL) AND
+        (p.add_price <= $10 OR $10 IS NULL) AND
+        (p.is_active = $11 OR $11 IS NULL) AND
+        (p.can_combine = $12 OR $12 IS NULL) AND
+        (p.metadata @> $13 OR $13 IS NULL) AND
+        (p.date_created >= $14 OR $14 IS NULL) AND
+        (p.date_created <= $15 OR $15 IS NULL)
+    )
+),
+filtered_resource AS (
+    SELECT 
+        res.owner_id,
+        array_agg(res.url ORDER BY res.order ASC) AS resources
+    FROM product.resource res
+    WHERE res.url IS NOT NULL AND res.owner_id IN (SELECT id FROM filtered_product)
+    GROUP BY res.owner_id
+)
 SELECT
     p.id, p.product_model_id, p.quantity, p.sold, p.add_price, p.is_active, p.can_combine, p.metadata, p.date_created, p.date_updated,
-    COALESCE(array_agg(DISTINCT res.url) FILTER (WHERE res.url IS NOT NULL), '{}')::text[] as resources
-FROM product.base p
-LEFT JOIN product.resource res ON res.owner_id = p.id
-WHERE (
-    (id = $1 OR $1 IS NULL) AND
-    (product_model_id = $2 OR $2 IS NULL) AND
-    (quantity >= $3 OR $3 IS NULL) AND
-    (quantity <= $4 OR $4 IS NULL) AND
-    (sold >= $5 OR $5 IS NULL) AND
-    (sold <= $6 OR $6 IS NULL) AND
-    (add_price >= $7 OR $7 IS NULL) AND
-    (add_price <= $8 OR $8 IS NULL) AND
-    (is_active = $9 OR $9 IS NULL) AND
-    (can_combine = $10 OR $10 IS NULL) AND
-    (metadata @> $11 OR $11 IS NULL) AND
-    (date_created >= $12 OR $12 IS NULL) AND
-    (date_created <= $13 OR $13 IS NULL)
-)
-GROUP BY p.id
+    COALESCE(r.resources, '{}') AS resources
+FROM filtered_product p
+LEFT JOIN filtered_resource r ON r.owner_id = p.id
 ORDER BY date_created DESC
-LIMIT $15
-OFFSET $14
+LIMIT $2
+OFFSET $1
 `
 
 type ListProductsParams struct {
+	Offset          int32
+	Limit           int32
 	ID              pgtype.Int8
 	ProductModelID  pgtype.Int8
 	QuantityFrom    pgtype.Int8
@@ -261,8 +234,6 @@ type ListProductsParams struct {
 	Metadata        []byte
 	DateCreatedFrom pgtype.Timestamptz
 	DateCreatedTo   pgtype.Timestamptz
-	Offset          int32
-	Limit           int32
 }
 
 type ListProductsRow struct {
@@ -276,11 +247,13 @@ type ListProductsRow struct {
 	Metadata       []byte
 	DateCreated    pgtype.Timestamptz
 	DateUpdated    pgtype.Timestamptz
-	Resources      []string
+	Resources      interface{}
 }
 
 func (q *Queries) ListProducts(ctx context.Context, arg ListProductsParams) ([]ListProductsRow, error) {
 	rows, err := q.db.Query(ctx, listProducts,
+		arg.Offset,
+		arg.Limit,
 		arg.ID,
 		arg.ProductModelID,
 		arg.QuantityFrom,
@@ -294,8 +267,6 @@ func (q *Queries) ListProducts(ctx context.Context, arg ListProductsParams) ([]L
 		arg.Metadata,
 		arg.DateCreatedFrom,
 		arg.DateCreatedTo,
-		arg.Offset,
-		arg.Limit,
 	)
 	if err != nil {
 		return nil, err
@@ -325,21 +296,6 @@ func (q *Queries) ListProducts(ctx context.Context, arg ListProductsParams) ([]L
 		return nil, err
 	}
 	return items, nil
-}
-
-const removeResources = `-- name: RemoveResources :exec
-DELETE FROM product.resource
-WHERE owner_id = $1 AND url = ANY($2::text[])
-`
-
-type RemoveResourcesParams struct {
-	OwnerID   int64
-	Resources []string
-}
-
-func (q *Queries) RemoveResources(ctx context.Context, arg RemoveResourcesParams) error {
-	_, err := q.db.Exec(ctx, removeResources, arg.OwnerID, arg.Resources)
-	return err
 }
 
 const updateProduct = `-- name: UpdateProduct :exec

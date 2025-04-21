@@ -66,8 +66,9 @@ func (q *Queries) ExistsCart(ctx context.Context, id int64) (bool, error) {
 }
 
 const getCartItems = `-- name: GetCartItems :many
-SELECT cart_id, product_id, quantity FROM "account".item_on_cart
+SELECT cart_id, product_id, quantity, date_created FROM "account".item_on_cart
 WHERE cart_id = $1
+ORDER BY date_created DESC
 `
 
 func (q *Queries) GetCartItems(ctx context.Context, cartID int64) ([]AccountItemOnCart, error) {
@@ -79,7 +80,12 @@ func (q *Queries) GetCartItems(ctx context.Context, cartID int64) ([]AccountItem
 	var items []AccountItemOnCart
 	for rows.Next() {
 		var i AccountItemOnCart
-		if err := rows.Scan(&i.CartID, &i.ProductID, &i.Quantity); err != nil {
+		if err := rows.Scan(
+			&i.CartID,
+			&i.ProductID,
+			&i.Quantity,
+			&i.DateCreated,
+		); err != nil {
 			return nil, err
 		}
 		items = append(items, i)

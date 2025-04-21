@@ -37,39 +37,20 @@ func (q *Queries) CountBrands(ctx context.Context, arg CountBrandsParams) (int64
 }
 
 const createBrand = `-- name: CreateBrand :one
-WITH inserted_brand AS (
-    INSERT INTO product.brand (name, description)
-    VALUES ($1, $2)
-    RETURNING id, name, description
-),
-inserted_resources AS (
-    INSERT INTO product.resource (owner_id, url)
-    SELECT id, unnest($3::text[]) FROM inserted_brand
-    RETURNING url
-)
-SELECT 
-    b.id,
-    COALESCE(array_agg(DISTINCT res.url) FILTER (WHERE res.url IS NOT NULL), '{}')::text[] as resources
-FROM inserted_brand b
-LEFT JOIN inserted_resources res ON true
-GROUP BY b.id
+INSERT INTO product.brand (name, description)
+VALUES ($1, $2)
+RETURNING id, name, description
 `
 
 type CreateBrandParams struct {
 	Name        string
 	Description string
-	Resources   []string
 }
 
-type CreateBrandRow struct {
-	ID        int64
-	Resources []string
-}
-
-func (q *Queries) CreateBrand(ctx context.Context, arg CreateBrandParams) (CreateBrandRow, error) {
-	row := q.db.QueryRow(ctx, createBrand, arg.Name, arg.Description, arg.Resources)
-	var i CreateBrandRow
-	err := row.Scan(&i.ID, &i.Resources)
+func (q *Queries) CreateBrand(ctx context.Context, arg CreateBrandParams) (ProductBrand, error) {
+	row := q.db.QueryRow(ctx, createBrand, arg.Name, arg.Description)
+	var i ProductBrand
+	err := row.Scan(&i.ID, &i.Name, &i.Description)
 	return i, err
 }
 
@@ -83,20 +64,31 @@ func (q *Queries) DeleteBrand(ctx context.Context, id int64) error {
 }
 
 const getBrand = `-- name: GetBrand :one
+WITH filtered_brand AS (
+    SELECT b.id, b.name, b.description
+    FROM product.brand b
+    WHERE b.id = $1
+),
+filtered_resources AS (
+    SELECT 
+        res.owner_id,
+        array_agg(res.url ORDER BY res.order ASC) AS resources
+    FROM product.resource res
+    WHERE res.owner_id = $1
+    GROUP BY res.owner_id
+)
 SELECT 
     b.id, b.name, b.description,
-    COALESCE(array_agg(DISTINCT res.url) FILTER (WHERE res.url IS NOT NULL), '{}')::text[] as resources
-FROM product.brand b
-LEFT JOIN product.resource res ON res.owner_id = b.id
-WHERE b.id = $1
-GROUP BY b.id
+    COALESCE(r.resources, '{}') AS resources
+FROM filtered_brand b
+LEFT JOIN filtered_resources r ON r.owner_id = b.id
 `
 
 type GetBrandRow struct {
 	ID          int64
 	Name        string
 	Description string
-	Resources   []string
+	Resources   interface{}
 }
 
 func (q *Queries) GetBrand(ctx context.Context, id int64) (GetBrandRow, error) {
@@ -112,40 +104,50 @@ func (q *Queries) GetBrand(ctx context.Context, id int64) (GetBrandRow, error) {
 }
 
 const listBrands = `-- name: ListBrands :many
-SELECT
-  b.id, b.name, b.description, 
-  COALESCE(array_agg(DISTINCT res.url) FILTER (WHERE res.url IS NOT NULL), '{}')::text[] as resources
-FROM product.brand b
-LEFT JOIN product.resource res ON res.owner_id = b.id
-WHERE (
-  (name ILIKE '%' || $1 || '%' OR $1 IS NULL) AND
-  (description ILIKE '%' || $2 || '%' OR $2 IS NULL)
+WITH filtered_brands AS (
+  SELECT b.id, b.name, b.description
+  FROM product.brand b
+  WHERE (
+    (name ILIKE '%' || $3 || '%' OR $3 IS NULL) AND
+    (description ILIKE '%' || $4 || '%' OR $4 IS NULL)
+  )
+),
+filtered_resources AS (
+  SELECT res.owner_id, array_agg(res.url ORDER BY res.order ASC) AS resources
+  FROM product.resource res
+  WHERE res.owner_id IN (SELECT id FROM filtered_brands)
+  GROUP BY res.owner_id
 )
-GROUP BY b.id
-LIMIT $4
-OFFSET $3
+SELECT
+    b.id, b.name, b.description, 
+    COALESCE(r.resources, '{}') AS resources
+FROM filtered_brands b
+LEFT JOIN filtered_resources r ON r.owner_id = b.id
+ORDER BY b.name DESC
+LIMIT $2
+OFFSET $1
 `
 
 type ListBrandsParams struct {
-	Name        pgtype.Text
-	Description pgtype.Text
 	Offset      int32
 	Limit       int32
+	Name        pgtype.Text
+	Description pgtype.Text
 }
 
 type ListBrandsRow struct {
 	ID          int64
 	Name        string
 	Description string
-	Resources   []string
+	Resources   interface{}
 }
 
 func (q *Queries) ListBrands(ctx context.Context, arg ListBrandsParams) ([]ListBrandsRow, error) {
 	rows, err := q.db.Query(ctx, listBrands,
-		arg.Name,
-		arg.Description,
 		arg.Offset,
 		arg.Limit,
+		arg.Name,
+		arg.Description,
 	)
 	if err != nil {
 		return nil, err

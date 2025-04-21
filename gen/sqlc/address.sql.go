@@ -15,15 +15,19 @@ const countAddresses = `-- name: CountAddresses :one
 SELECT COUNT(*) FROM "account".address
 WHERE (
   (user_id = $1 OR $1 IS NULL) AND
-  (address ILIKE '%' || $2 || '%' OR $2 IS NULL) AND
-  (city ILIKE '%' || $3 || '%' OR $3 IS NULL) AND
-  (province ILIKE '%' || $4 || '%' OR $4 IS NULL) AND
-  (country ILIKE '%' || $5 || '%' OR $5 IS NULL)
+  (full_name ILIKE '%' || $2 || '%' OR $2 IS NULL) AND
+  (phone ILIKE '%' || $3 || '%' OR $3 IS NULL) AND
+  (address ILIKE '%' || $4 || '%' OR $4 IS NULL) AND
+  (city ILIKE '%' || $5 || '%' OR $5 IS NULL) AND
+  (province ILIKE '%' || $6 || '%' OR $6 IS NULL) AND
+  (country ILIKE '%' || $7 || '%' OR $7 IS NULL)
 )
 `
 
 type CountAddressesParams struct {
 	UserID   pgtype.Int8
+	FullName pgtype.Text
+	Phone    pgtype.Text
 	Address  pgtype.Text
 	City     pgtype.Text
 	Province pgtype.Text
@@ -33,6 +37,8 @@ type CountAddressesParams struct {
 func (q *Queries) CountAddresses(ctx context.Context, arg CountAddressesParams) (int64, error) {
 	row := q.db.QueryRow(ctx, countAddresses,
 		arg.UserID,
+		arg.FullName,
+		arg.Phone,
 		arg.Address,
 		arg.City,
 		arg.Province,
@@ -44,13 +50,15 @@ func (q *Queries) CountAddresses(ctx context.Context, arg CountAddressesParams) 
 }
 
 const createAddress = `-- name: CreateAddress :one
-INSERT INTO "account".address (user_id, address, city, province, country)
-VALUES ($1, $2, $3, $4, $5)
-RETURNING id, user_id, address, city, province, country, date_created, date_updated
+INSERT INTO "account".address (user_id, full_name, phone, address, city, province, country)
+VALUES ($1, $2, $3, $4, $5, $6, $7)
+RETURNING id, user_id, full_name, phone, address, city, province, country, date_created, date_updated
 `
 
 type CreateAddressParams struct {
 	UserID   int64
+	FullName string
+	Phone    string
 	Address  string
 	City     string
 	Province string
@@ -60,6 +68,8 @@ type CreateAddressParams struct {
 func (q *Queries) CreateAddress(ctx context.Context, arg CreateAddressParams) (AccountAddress, error) {
 	row := q.db.QueryRow(ctx, createAddress,
 		arg.UserID,
+		arg.FullName,
+		arg.Phone,
 		arg.Address,
 		arg.City,
 		arg.Province,
@@ -69,6 +79,8 @@ func (q *Queries) CreateAddress(ctx context.Context, arg CreateAddressParams) (A
 	err := row.Scan(
 		&i.ID,
 		&i.UserID,
+		&i.FullName,
+		&i.Phone,
 		&i.Address,
 		&i.City,
 		&i.Province,
@@ -85,7 +97,7 @@ WHERE (
   id = $1 AND
   (user_id = $2 OR $2 IS NULL)
 )
-RETURNING id, user_id, address, city, province, country, date_created, date_updated
+RETURNING id, user_id, full_name, phone, address, city, province, country, date_created, date_updated
 `
 
 type DeleteAddressParams struct {
@@ -99,6 +111,8 @@ func (q *Queries) DeleteAddress(ctx context.Context, arg DeleteAddressParams) (A
 	err := row.Scan(
 		&i.ID,
 		&i.UserID,
+		&i.FullName,
+		&i.Phone,
 		&i.Address,
 		&i.City,
 		&i.Province,
@@ -110,7 +124,7 @@ func (q *Queries) DeleteAddress(ctx context.Context, arg DeleteAddressParams) (A
 }
 
 const getAddress = `-- name: GetAddress :one
-SELECT id, user_id, address, city, province, country, date_created, date_updated FROM "account".address
+SELECT id, user_id, full_name, phone, address, city, province, country, date_created, date_updated FROM "account".address
 WHERE (
   id = $1 AND 
   (user_id = $2 OR $2 IS NULL)
@@ -128,6 +142,8 @@ func (q *Queries) GetAddress(ctx context.Context, arg GetAddressParams) (Account
 	err := row.Scan(
 		&i.ID,
 		&i.UserID,
+		&i.FullName,
+		&i.Phone,
 		&i.Address,
 		&i.City,
 		&i.Province,
@@ -139,21 +155,25 @@ func (q *Queries) GetAddress(ctx context.Context, arg GetAddressParams) (Account
 }
 
 const listAddresses = `-- name: ListAddresses :many
-SELECT id, user_id, address, city, province, country, date_created, date_updated FROM "account".address
+SELECT id, user_id, full_name, phone, address, city, province, country, date_created, date_updated FROM "account".address
 WHERE (
   (user_id = $1 OR $1 IS NULL) AND
-  (address ILIKE '%' || $2 || '%' OR $2 IS NULL) AND
-  (city ILIKE '%' || $3 || '%' OR $3 IS NULL) AND
-  (province ILIKE '%' || $4 || '%' OR $4 IS NULL) AND
-  (country ILIKE '%' || $5 || '%' OR $5 IS NULL)
+  (full_name ILIKE '%' || $2 || '%' OR $2 IS NULL) AND
+  (phone ILIKE '%' || $3 || '%' OR $3 IS NULL) AND
+  (address ILIKE '%' || $4 || '%' OR $4 IS NULL) AND
+  (city ILIKE '%' || $5 || '%' OR $5 IS NULL) AND
+  (province ILIKE '%' || $6 || '%' OR $6 IS NULL) AND
+  (country ILIKE '%' || $7 || '%' OR $7 IS NULL)
 )
 ORDER BY date_created DESC
-LIMIT $7
-OFFSET $6
+LIMIT $9
+OFFSET $8
 `
 
 type ListAddressesParams struct {
 	UserID   pgtype.Int8
+	FullName pgtype.Text
+	Phone    pgtype.Text
 	Address  pgtype.Text
 	City     pgtype.Text
 	Province pgtype.Text
@@ -165,6 +185,8 @@ type ListAddressesParams struct {
 func (q *Queries) ListAddresses(ctx context.Context, arg ListAddressesParams) ([]AccountAddress, error) {
 	rows, err := q.db.Query(ctx, listAddresses,
 		arg.UserID,
+		arg.FullName,
+		arg.Phone,
 		arg.Address,
 		arg.City,
 		arg.Province,
@@ -182,6 +204,8 @@ func (q *Queries) ListAddresses(ctx context.Context, arg ListAddressesParams) ([
 		if err := rows.Scan(
 			&i.ID,
 			&i.UserID,
+			&i.FullName,
+			&i.Phone,
 			&i.Address,
 			&i.City,
 			&i.Province,
@@ -202,20 +226,24 @@ func (q *Queries) ListAddresses(ctx context.Context, arg ListAddressesParams) ([
 const updateAddress = `-- name: UpdateAddress :one
 UPDATE "account".address
 SET
-  address = COALESCE($2, address),
-  city = COALESCE($3, city),
-  province = COALESCE($4, province),
-  country = COALESCE($5, country)
+  full_name = COALESCE($2, full_name),
+  phone = COALESCE($3, phone),
+  address = COALESCE($4, address),
+  city = COALESCE($5, city),
+  province = COALESCE($6, province),
+  country = COALESCE($7, country)
 WHERE (
   id = $1 AND
-  (user_id = $6 OR $6 IS NULL)
+  (user_id = $8 OR $8 IS NULL)
   -- TODO: thêm check user_id cho toàn bộ query (user chỉ đc interact của họ)
 )
-RETURNING id, user_id, address, city, province, country, date_created, date_updated
+RETURNING id, user_id, full_name, phone, address, city, province, country, date_created, date_updated
 `
 
 type UpdateAddressParams struct {
 	ID       int64
+	FullName pgtype.Text
+	Phone    pgtype.Text
 	Address  pgtype.Text
 	City     pgtype.Text
 	Province pgtype.Text
@@ -226,6 +254,8 @@ type UpdateAddressParams struct {
 func (q *Queries) UpdateAddress(ctx context.Context, arg UpdateAddressParams) (AccountAddress, error) {
 	row := q.db.QueryRow(ctx, updateAddress,
 		arg.ID,
+		arg.FullName,
+		arg.Phone,
 		arg.Address,
 		arg.City,
 		arg.Province,
@@ -236,6 +266,8 @@ func (q *Queries) UpdateAddress(ctx context.Context, arg UpdateAddressParams) (A
 	err := row.Scan(
 		&i.ID,
 		&i.UserID,
+		&i.FullName,
+		&i.Phone,
 		&i.Address,
 		&i.City,
 		&i.Province,

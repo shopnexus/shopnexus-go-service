@@ -226,9 +226,56 @@ func (ns NullProductCommentType) Value() (driver.Value, error) {
 	return string(ns.ProductCommentType), nil
 }
 
+type ProductResourceType string
+
+const (
+	ProductResourceTypeBRAND        ProductResourceType = "BRAND"
+	ProductResourceTypeCOMMENT      ProductResourceType = "COMMENT"
+	ProductResourceTypePRODUCTMODEL ProductResourceType = "PRODUCT_MODEL"
+	ProductResourceTypePRODUCT      ProductResourceType = "PRODUCT"
+	ProductResourceTypeREFUND       ProductResourceType = "REFUND"
+)
+
+func (e *ProductResourceType) Scan(src interface{}) error {
+	switch s := src.(type) {
+	case []byte:
+		*e = ProductResourceType(s)
+	case string:
+		*e = ProductResourceType(s)
+	default:
+		return fmt.Errorf("unsupported scan type for ProductResourceType: %T", src)
+	}
+	return nil
+}
+
+type NullProductResourceType struct {
+	ProductResourceType ProductResourceType
+	Valid               bool // Valid is true if ProductResourceType is not NULL
+}
+
+// Scan implements the Scanner interface.
+func (ns *NullProductResourceType) Scan(value interface{}) error {
+	if value == nil {
+		ns.ProductResourceType, ns.Valid = "", false
+		return nil
+	}
+	ns.Valid = true
+	return ns.ProductResourceType.Scan(value)
+}
+
+// Value implements the driver Valuer interface.
+func (ns NullProductResourceType) Value() (driver.Value, error) {
+	if !ns.Valid {
+		return nil, nil
+	}
+	return string(ns.ProductResourceType), nil
+}
+
 type AccountAddress struct {
 	ID          int64
 	UserID      int64
+	FullName    string
+	Phone       string
 	Address     string
 	City        string
 	Province    string
@@ -255,9 +302,10 @@ type AccountCart struct {
 }
 
 type AccountItemOnCart struct {
-	CartID    int64
-	ProductID int64
-	Quantity  int64
+	CartID      int64
+	ProductID   int64
+	Quantity    int64
+	DateCreated pgtype.Timestamptz
 }
 
 type AccountPermissionOnRole struct {
@@ -370,8 +418,11 @@ type ProductModel struct {
 }
 
 type ProductResource struct {
+	ID      int64
+	Type    ProductResourceType
 	OwnerID int64
 	Url     string
+	Order   int32
 }
 
 type ProductSale struct {

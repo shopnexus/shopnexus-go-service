@@ -110,11 +110,19 @@ type CreatePaymentProductsParams struct {
 }
 
 const deletePayment = `-- name: DeletePayment :exec
-DELETE FROM payment.base WHERE id = $1
+DELETE FROM payment.base WHERE (
+  id = $1 AND
+  (user_id = $2 OR $2 IS NULL)
+)
 `
 
-func (q *Queries) DeletePayment(ctx context.Context, id int64) error {
-	_, err := q.db.Exec(ctx, deletePayment, id)
+type DeletePaymentParams struct {
+	ID     int64
+	UserID pgtype.Int8
+}
+
+func (q *Queries) DeletePayment(ctx context.Context, arg DeletePaymentParams) error {
+	_, err := q.db.Exec(ctx, deletePayment, arg.ID, arg.UserID)
 	return err
 }
 
@@ -316,7 +324,10 @@ SET
     status = COALESCE($3, status),
     address = COALESCE($4, address),
     total = COALESCE($5, total)
-WHERE id = $1
+WHERE (
+  id = $1 AND
+  (user_id = $6 OR $6 IS NULL)
+)
 `
 
 type UpdatePaymentParams struct {
@@ -325,6 +336,7 @@ type UpdatePaymentParams struct {
 	Status  NullPaymentStatus
 	Address pgtype.Text
 	Total   pgtype.Int8
+	UserID  pgtype.Int8
 }
 
 func (q *Queries) UpdatePayment(ctx context.Context, arg UpdatePaymentParams) error {
@@ -334,6 +346,7 @@ func (q *Queries) UpdatePayment(ctx context.Context, arg UpdatePaymentParams) er
 		arg.Status,
 		arg.Address,
 		arg.Total,
+		arg.UserID,
 	)
 	return err
 }

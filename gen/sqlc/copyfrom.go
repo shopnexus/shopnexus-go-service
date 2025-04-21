@@ -9,6 +9,41 @@ import (
 	"context"
 )
 
+// iteratorForAddResources implements pgx.CopyFromSource.
+type iteratorForAddResources struct {
+	rows                 []AddResourcesParams
+	skippedFirstNextCall bool
+}
+
+func (r *iteratorForAddResources) Next() bool {
+	if len(r.rows) == 0 {
+		return false
+	}
+	if !r.skippedFirstNextCall {
+		r.skippedFirstNextCall = true
+		return true
+	}
+	r.rows = r.rows[1:]
+	return len(r.rows) > 0
+}
+
+func (r iteratorForAddResources) Values() ([]interface{}, error) {
+	return []interface{}{
+		r.rows[0].Type,
+		r.rows[0].OwnerID,
+		r.rows[0].Url,
+		r.rows[0].Order,
+	}, nil
+}
+
+func (r iteratorForAddResources) Err() error {
+	return nil
+}
+
+func (q *Queries) AddResources(ctx context.Context, arg []AddResourcesParams) (int64, error) {
+	return q.db.CopyFrom(ctx, []string{"product", "resource"}, []string{"type", "owner_id", "url", "order"}, &iteratorForAddResources{rows: arg})
+}
+
 // iteratorForCreatePaymentProductSerials implements pgx.CopyFromSource.
 type iteratorForCreatePaymentProductSerials struct {
 	rows                 []CreatePaymentProductSerialsParams

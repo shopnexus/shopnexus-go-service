@@ -63,12 +63,13 @@ func (q *Queries) CountComments(ctx context.Context, arg CountCommentsParams) (i
 	return count, err
 }
 
-const createComment = `-- name: CreateComment :exec
+const createComment = `-- name: CreateComment :one
 INSERT INTO product.comment (
     account_id, type, dest_id, body, upvote, downvote, score
 ) VALUES (
     $1, $2, $3, $4, $5, $6, $7
 )
+RETURNING id, type, account_id, dest_id, body, upvote, downvote, score, date_created, date_updated
 `
 
 type CreateCommentParams struct {
@@ -81,8 +82,8 @@ type CreateCommentParams struct {
 	Score     int32
 }
 
-func (q *Queries) CreateComment(ctx context.Context, arg CreateCommentParams) error {
-	_, err := q.db.Exec(ctx, createComment,
+func (q *Queries) CreateComment(ctx context.Context, arg CreateCommentParams) (ProductComment, error) {
+	row := q.db.QueryRow(ctx, createComment,
 		arg.AccountID,
 		arg.Type,
 		arg.DestID,
@@ -91,7 +92,20 @@ func (q *Queries) CreateComment(ctx context.Context, arg CreateCommentParams) er
 		arg.Downvote,
 		arg.Score,
 	)
-	return err
+	var i ProductComment
+	err := row.Scan(
+		&i.ID,
+		&i.Type,
+		&i.AccountID,
+		&i.DestID,
+		&i.Body,
+		&i.Upvote,
+		&i.Downvote,
+		&i.Score,
+		&i.DateCreated,
+		&i.DateUpdated,
+	)
+	return i, err
 }
 
 const deleteComment = `-- name: DeleteComment :exec
@@ -113,13 +127,24 @@ func (q *Queries) DeleteComment(ctx context.Context, arg DeleteCommentParams) er
 }
 
 const getComment = `-- name: GetComment :one
+WITH filtered_comment AS (
+    SELECT c.id, c.type, c.account_id, c.dest_id, c.body, c.upvote, c.downvote, c.score, c.date_created, c.date_updated
+    FROM product.comment c
+    WHERE c.id = $1
+),
+filtered_resources AS (
+    SELECT 
+        res.owner_id,
+        array_agg(res.url ORDER BY res.order ASC) AS resources
+    FROM product.resource res
+    WHERE res.owner_id = $1
+    GROUP BY res.owner_id
+)
 SELECT 
     c.id, c.type, c.account_id, c.dest_id, c.body, c.upvote, c.downvote, c.score, c.date_created, c.date_updated,
-    COALESCE(array_agg(DISTINCT res.url) FILTER (WHERE res.url IS NOT NULL), '{}')::text[] as resources
-FROM product.comment c
-LEFT JOIN product.resource res ON c.id = res.owner_id
-WHERE id = $1
-GROUP BY c.id
+    COALESCE(r.resources, '{}') AS resources
+FROM filtered_comment c
+LEFT JOIN filtered_resources r ON r.owner_id = c.id
 `
 
 type GetCommentRow struct {
@@ -133,7 +158,7 @@ type GetCommentRow struct {
 	Score       int32
 	DateCreated pgtype.Timestamptz
 	DateUpdated pgtype.Timestamptz
-	Resources   []string
+	Resources   interface{}
 }
 
 func (q *Queries) GetComment(ctx context.Context, id int64) (GetCommentRow, error) {
@@ -156,31 +181,44 @@ func (q *Queries) GetComment(ctx context.Context, id int64) (GetCommentRow, erro
 }
 
 const listComments = `-- name: ListComments :many
+WITH filtered_comment AS (
+    SELECT c.id, c.type, c.account_id, c.dest_id, c.body, c.upvote, c.downvote, c.score, c.date_created, c.date_updated
+    FROM product.comment c
+    WHERE
+        (c.account_id = $3 OR $3 IS NULL) AND
+        (c.type = $4 OR $4 IS NULL) AND
+        (c.dest_id = $5 OR $5 IS NULL) AND
+        ($6 ILIKE '%' || $6 || '%' OR $6 IS NULL) AND
+        (c.upvote >= $7 OR $7 IS NULL) AND
+        (c.upvote <= $8 OR $8 IS NULL) AND
+        (c.downvote >= $9 OR $9 IS NULL) AND
+        (c.downvote <= $10 OR $10 IS NULL) AND
+        (c.score >= $11 OR $11 IS NULL) AND
+        (c.score <= $12 OR $12 IS NULL) AND
+        (c.date_created >= $13 OR $13 IS NULL) AND
+        (c.date_created <= $14 OR $14 IS NULL)
+),
+filtered_resources AS (
+    SELECT 
+        res.owner_id,
+        array_agg(res.url ORDER BY res.order ASC) AS resources
+    FROM product.resource res
+    WHERE res.owner_id IN (SELECT id FROM filtered_comment)
+    GROUP BY res.owner_id
+)
 SELECT 
     c.id, c.type, c.account_id, c.dest_id, c.body, c.upvote, c.downvote, c.score, c.date_created, c.date_updated,
-    COALESCE(array_agg(DISTINCT res.url) FILTER (WHERE res.url IS NOT NULL), '{}')::text[] as resources
-FROM product.comment c
-LEFT JOIN product.resource res ON c.id = res.owner_id
-WHERE
-    (account_id = $1 OR $1 IS NULL) AND
-    (type = $2 OR $2 IS NULL) AND
-    (dest_id = $3 OR $3 IS NULL) AND
-    ($4 ILIKE '%' || $4 || '%' OR $4 IS NULL) AND
-    (upvote >= $5 OR $5 IS NULL) AND
-    (upvote <= $6 OR $6 IS NULL) AND
-    (downvote >= $7 OR $7 IS NULL) AND
-    (downvote <= $8 OR $8 IS NULL) AND
-    (score >= $9 OR $9 IS NULL) AND
-    (score <= $10 OR $10 IS NULL) AND
-    (date_created >= $11 OR $11 IS NULL) AND
-    (date_created <= $12 OR $12 IS NULL)
-GROUP BY c.id
-ORDER BY date_created DESC
-LIMIT $14
-OFFSET $13
+    COALESCE(r.resources, '{}') AS resources
+FROM filtered_comment c
+LEFT JOIN filtered_resources r ON r.owner_id = c.id
+ORDER BY c.date_created DESC
+LIMIT $2
+OFFSET $1
 `
 
 type ListCommentsParams struct {
+	Offset        int32
+	Limit         int32
 	AccountID     pgtype.Int8
 	Type          NullProductCommentType
 	DestID        pgtype.Int8
@@ -193,8 +231,6 @@ type ListCommentsParams struct {
 	ScoreTo       pgtype.Int4
 	CreatedAtFrom pgtype.Timestamptz
 	CreatedAtTo   pgtype.Timestamptz
-	Offset        int32
-	Limit         int32
 }
 
 type ListCommentsRow struct {
@@ -208,11 +244,13 @@ type ListCommentsRow struct {
 	Score       int32
 	DateCreated pgtype.Timestamptz
 	DateUpdated pgtype.Timestamptz
-	Resources   []string
+	Resources   interface{}
 }
 
 func (q *Queries) ListComments(ctx context.Context, arg ListCommentsParams) ([]ListCommentsRow, error) {
 	rows, err := q.db.Query(ctx, listComments,
+		arg.Offset,
+		arg.Limit,
 		arg.AccountID,
 		arg.Type,
 		arg.DestID,
@@ -225,8 +263,6 @@ func (q *Queries) ListComments(ctx context.Context, arg ListCommentsParams) ([]L
 		arg.ScoreTo,
 		arg.CreatedAtFrom,
 		arg.CreatedAtTo,
-		arg.Offset,
-		arg.Limit,
 	)
 	if err != nil {
 		return nil, err
@@ -258,7 +294,7 @@ func (q *Queries) ListComments(ctx context.Context, arg ListCommentsParams) ([]L
 	return items, nil
 }
 
-const updateComment = `-- name: UpdateComment :exec
+const updateComment = `-- name: UpdateComment :one
 UPDATE product.comment
 SET 
     body = COALESCE($2, body),
@@ -268,6 +304,7 @@ SET
 WHERE 
     id = $1 AND 
     (account_id = $6 OR $6 IS NULL)
+RETURNING id, type, account_id, dest_id, body, upvote, downvote, score, date_created, date_updated
 `
 
 type UpdateCommentParams struct {
@@ -279,8 +316,8 @@ type UpdateCommentParams struct {
 	AccountID pgtype.Int8
 }
 
-func (q *Queries) UpdateComment(ctx context.Context, arg UpdateCommentParams) error {
-	_, err := q.db.Exec(ctx, updateComment,
+func (q *Queries) UpdateComment(ctx context.Context, arg UpdateCommentParams) (ProductComment, error) {
+	row := q.db.QueryRow(ctx, updateComment,
 		arg.ID,
 		arg.Body,
 		arg.Upvote,
@@ -288,5 +325,18 @@ func (q *Queries) UpdateComment(ctx context.Context, arg UpdateCommentParams) er
 		arg.Score,
 		arg.AccountID,
 	)
-	return err
+	var i ProductComment
+	err := row.Scan(
+		&i.ID,
+		&i.Type,
+		&i.AccountID,
+		&i.DestID,
+		&i.Body,
+		&i.Upvote,
+		&i.Downvote,
+		&i.Score,
+		&i.DateCreated,
+		&i.DateUpdated,
+	)
+	return i, err
 }
