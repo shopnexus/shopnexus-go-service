@@ -44,6 +44,8 @@ Table StaffAccount {
 Table Address {
   id BigInt [pk, increment]
   user_id BigInt [not null]
+  full_name String [not null]
+  phone String [not null]
   address String [not null]
   city String [not null]
   province String [not null]
@@ -60,6 +62,7 @@ Table ItemOnCart {
   cart_id BigInt [not null]
   product_id BigInt [not null]
   quantity BigInt [not null]
+  date_created DateTime [default: `now()`, not null]
 
   indexes {
     (cart_id, product_id) [pk]
@@ -210,12 +213,11 @@ Table Refund {
 }
 
 Table Resource {
+  id BigInt [pk, increment]
+  type ResourceType [not null]
   owner_id BigInt [not null]
   url String [not null]
-
-  indexes {
-    (owner_id, url) [pk]
-  }
+  order Int [not null]
 }
 
 Enum Gender {
@@ -246,6 +248,14 @@ Enum Status {
   SUCCESS
   CANCELED
   FAILED
+}
+
+Enum ResourceType {
+  BRAND
+  COMMENT
+  PRODUCT_MODEL
+  PRODUCT
+  REFUND
 }
 
 Ref: Account.role > Role.name

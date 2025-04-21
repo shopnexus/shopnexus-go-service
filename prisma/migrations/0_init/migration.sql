@@ -22,6 +22,9 @@ CREATE TYPE "payment"."refund_method" AS ENUM ('PICK_UP', 'DROP_OFF');
 -- CreateEnum
 CREATE TYPE "payment"."status" AS ENUM ('PENDING', 'SUCCESS', 'CANCELED', 'FAILED');
 
+-- CreateEnum
+CREATE TYPE "product"."resource_type" AS ENUM ('BRAND', 'COMMENT', 'PRODUCT_MODEL', 'PRODUCT', 'REFUND');
+
 -- CreateTable
 CREATE TABLE "account"."base" (
     "id" BIGSERIAL NOT NULL,
@@ -79,6 +82,8 @@ CREATE TABLE "account"."staff" (
 CREATE TABLE "account"."address" (
     "id" BIGSERIAL NOT NULL,
     "user_id" BIGINT NOT NULL,
+    "full_name" TEXT NOT NULL,
+    "phone" TEXT NOT NULL,
     "address" TEXT NOT NULL,
     "city" TEXT NOT NULL,
     "province" TEXT NOT NULL,
@@ -101,6 +106,7 @@ CREATE TABLE "account"."item_on_cart" (
     "cart_id" BIGINT NOT NULL,
     "product_id" BIGINT NOT NULL,
     "quantity" BIGINT NOT NULL,
+    "date_created" TIMESTAMPTZ(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
     CONSTRAINT "item_on_cart_pkey" PRIMARY KEY ("cart_id","product_id")
 );
@@ -274,10 +280,13 @@ CREATE TABLE "payment"."refund" (
 
 -- CreateTable
 CREATE TABLE "product"."resource" (
+    "id" BIGSERIAL NOT NULL,
+    "type" "product"."resource_type" NOT NULL,
     "owner_id" BIGINT NOT NULL,
     "url" TEXT NOT NULL,
+    "order" INTEGER NOT NULL,
 
-    CONSTRAINT "resource_pkey" PRIMARY KEY ("owner_id","url")
+    CONSTRAINT "resource_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateIndex

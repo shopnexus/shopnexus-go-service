@@ -92,6 +92,8 @@ model StaffAccount {
 model Address {
   id           BigInt   @id @default(autoincrement())
   user_id      BigInt
+  full_name    String
+  phone        String
   address      String
   city         String
   province     String
@@ -116,9 +118,10 @@ model Cart {
 }
 
 model ItemOnCart {
-  cart_id    BigInt
-  product_id BigInt
-  quantity   BigInt
+  cart_id      BigInt
+  product_id   BigInt
+  quantity     BigInt
+  date_created DateTime @default(now()) @db.Timestamptz(3)
 
   cart    Cart    @relation(fields: [cart_id], references: [id], onUpdate: Cascade, onDelete: Cascade)
   product Product @relation(fields: [product_id], references: [id], onUpdate: Cascade, onDelete: Cascade)
@@ -410,10 +413,23 @@ enum Status {
 
 // TODO: should catch "remove" event and remove them in s3; https://chatgpt.com/c/67bea496-7388-800f-a564-9641dc54c520
 model Resource {
-  owner_id BigInt // Link to brand, productModel, product, refund, comment, ...
+  id       BigInt       @id @default(autoincrement())
+  type     ResourceType
+  owner_id BigInt
   url      String
+  order    Int
 
-  @@id([owner_id, url])
   @@map("resource")
+  @@schema("product")
+}
+
+enum ResourceType {
+  BRAND
+  COMMENT
+  PRODUCT_MODEL
+  PRODUCT
+  REFUND
+
+  @@map("resource_type")
   @@schema("product")
 }
