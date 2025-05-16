@@ -132,6 +132,7 @@ func modelToProductEntity(data model.Product) *productv1.ProductEntity {
 		Sold:           data.Sold,
 		AddPrice:       data.AddPrice,
 		IsActive:       data.IsActive,
+		CanCombine:     data.CanCombine,
 		Metadata:       data.Metadata,
 		DateCreated:    data.DateCreated,
 		DateUpdated:    data.DateUpdated,
