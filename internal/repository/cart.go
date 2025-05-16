@@ -16,9 +16,17 @@ func (r *RepositoryImpl) CreateCart(ctx context.Context, userID int64) error {
 	return r.sqlc.CreateCart(ctx, userID)
 }
 
+type GetCartParams struct {
+	CartID     int64
+	ProductIDs []int64 // List of product IDs to retrieve, if empty, retrieves all items in the cart
+}
+
 // GetCart retrieves the cart with the given ID
-func (r *RepositoryImpl) GetCart(ctx context.Context, cartID int64) (model.Cart, error) {
-	itemRows, err := r.sqlc.GetCartItems(ctx, cartID)
+func (r *RepositoryImpl) GetCart(ctx context.Context, params GetCartParams) (model.Cart, error) {
+	itemRows, err := r.sqlc.GetCartItems(ctx, sqlc.GetCartItemsParams{
+		CartID:     params.CartID,
+		ProductIds: params.ProductIDs,
+	})
 	if err != nil {
 		return model.Cart{}, err
 	}
@@ -35,7 +43,7 @@ func (r *RepositoryImpl) GetCart(ctx context.Context, cartID int64) (model.Cart,
 	}
 
 	return model.Cart{
-		ID:       cartID,
+		ID:       params.CartID,
 		Products: items,
 	}, nil
 }
@@ -69,10 +77,10 @@ func (r *RepositoryImpl) UpdateCartItem(ctx context.Context, params UpdateCartIt
 	})
 }
 
-func (r *RepositoryImpl) RemoveCartItem(ctx context.Context, cartID, productModelID int64) error {
+func (r *RepositoryImpl) RemoveCartItem(ctx context.Context, cartID int64, productIDs []int64) error {
 	return r.sqlc.RemoveCartItem(ctx, sqlc.RemoveCartItemParams{
-		CartID:    cartID,
-		ProductID: productModelID,
+		CartID:     cartID,
+		ProductIds: productIDs,
 	})
 }
 

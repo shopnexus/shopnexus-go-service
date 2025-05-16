@@ -11,7 +11,12 @@ VALUES ($1);
 
 -- name: GetCartItems :many
 SELECT * FROM "account".item_on_cart
-WHERE cart_id = $1
+WHERE
+  cart_id = $1 AND
+  (
+    cardinality(coalesce(sqlc.arg('product_ids')::bigint[], '{}')) = 0 OR
+    product_id = ANY(sqlc.arg('product_ids')::bigint[])
+  )
 ORDER BY date_created DESC;
 
 -- name: AddCartItem :one
@@ -29,7 +34,7 @@ RETURNING quantity;
 
 -- name: RemoveCartItem :exec
 DELETE FROM "account".item_on_cart
-WHERE cart_id = $1 AND product_id = $2;
+WHERE cart_id = $1 AND product_id = ANY(sqlc.arg('product_ids')::bigint[]);
 
 -- name: ClearCart :exec
 DELETE FROM "account".item_on_cart

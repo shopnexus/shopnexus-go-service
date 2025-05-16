@@ -7,7 +7,9 @@ import (
 )
 
 func (s *AccountService) GetCart(ctx context.Context, userID int64) (model.Cart, error) {
-	cart, err := s.repo.GetCart(ctx, userID)
+	cart, err := s.repo.GetCart(ctx, repository.GetCartParams{
+		CartID: userID,
+	})
 	if err != nil {
 		return model.Cart{}, err
 	}
@@ -56,9 +58,9 @@ func (s *AccountService) AddCartItem(ctx context.Context, params AddCartItemPara
 }
 
 type UpdateCartItemParams struct {
-	UserID         int64
-	ProductModelID int64
-	Quantity       int64
+	UserID    int64
+	ProductID int64
+	Quantity  int64
 }
 
 func (s *AccountService) UpdateCartItem(ctx context.Context, params UpdateCartItemParams) (int64, error) {
@@ -70,7 +72,7 @@ func (s *AccountService) UpdateCartItem(ctx context.Context, params UpdateCartIt
 
 	newQty, err := txRepo.UpdateCartItem(ctx, repository.UpdateCartItemParams{
 		CartID:    params.UserID,
-		ProductID: params.ProductModelID,
+		ProductID: params.ProductID,
 		Quantity:  params.Quantity,
 	})
 	if err != nil {
@@ -78,7 +80,7 @@ func (s *AccountService) UpdateCartItem(ctx context.Context, params UpdateCartIt
 	}
 
 	if newQty <= 0 {
-		if err = txRepo.RemoveCartItem(ctx, params.UserID, params.ProductModelID); err != nil {
+		if err = txRepo.RemoveCartItem(ctx, params.UserID, []int64{params.ProductID}); err != nil {
 			return 0, err
 		}
 
