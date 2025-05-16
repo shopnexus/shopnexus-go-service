@@ -310,9 +310,6 @@ CREATE UNIQUE INDEX "serial_serial_id_key" ON "product"."serial"("serial_id");
 -- CreateIndex
 CREATE UNIQUE INDEX "type_name_key" ON "product"."type"("name");
 
--- CreateIndex
-CREATE UNIQUE INDEX "product_on_payment_payment_id_product_id_key" ON "payment"."product_on_payment"("payment_id", "product_id");
-
 -- AddForeignKey
 ALTER TABLE "account"."base" ADD CONSTRAINT "base_role_fkey" FOREIGN KEY ("role") REFERENCES "account"."role"("name") ON DELETE RESTRICT ON UPDATE CASCADE;
 
