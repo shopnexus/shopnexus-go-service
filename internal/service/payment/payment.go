@@ -130,6 +130,7 @@ type CreatePaymentParams struct {
 	UserID        int64
 	Address       string
 	PaymentMethod model.PaymentMethod
+	ProductIDs    []int64
 }
 
 type CreatePaymentResult struct {
@@ -144,8 +145,11 @@ func (s *PaymentService) CreatePayment(ctx context.Context, params CreatePayment
 	}
 	defer txRepo.Rollback(ctx)
 
-	// Get user cart
-	cart, err := txRepo.GetCart(ctx, params.UserID)
+	// Get user cart and filter by product ids
+	cart, err := txRepo.GetCart(ctx, repository.GetCartParams{
+		CartID:     params.UserID,
+		ProductIDs: params.ProductIDs,
+	})
 	if err != nil {
 		return CreatePaymentResult{}, err
 	}
@@ -154,8 +158,8 @@ func (s *PaymentService) CreatePayment(ctx context.Context, params CreatePayment
 		return CreatePaymentResult{}, fmt.Errorf("cart is empty")
 	}
 
-	// Clear the cart
-	if err = txRepo.ClearCart(ctx, params.UserID); err != nil {
+	// Remove products from cart
+	if err = txRepo.RemoveCartItem(ctx, cart.ID, params.ProductIDs); err != nil {
 		return CreatePaymentResult{}, err
 	}
 

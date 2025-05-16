@@ -109,6 +109,7 @@ func (s *ImplementedPaymentServiceHandler) CreatePayment(ctx context.Context, re
 		UserID:        claims.UserID,
 		Address:       req.Msg.Address,
 		PaymentMethod: convertPaymentMethod(req.Msg.Method),
+		ProductIDs:    req.Msg.ProductIds,
 	})
 	if err != nil {
 		return nil, err
