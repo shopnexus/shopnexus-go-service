@@ -72,10 +72,10 @@ type Repository interface {
 	// Cart methods
 	ExistsCart(ctx context.Context, userID int64) (bool, error)
 	CreateCart(ctx context.Context, userID int64) error
-	GetCart(ctx context.Context, cartID int64) (model.Cart, error)
+	GetCart(ctx context.Context, params GetCartParams) (model.Cart, error)
 	AddCartItem(ctx context.Context, params AddCartItemParams) (int64, error)
 	UpdateCartItem(ctx context.Context, params UpdateCartItemParams) (int64, error)
-	RemoveCartItem(ctx context.Context, cartID, productModelID int64) error
+	RemoveCartItem(ctx context.Context, cartID int64, productIDs []int64) error
 	ClearCart(ctx context.Context, cartID int64) error
 
 	// Payment methods
