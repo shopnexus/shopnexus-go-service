@@ -31,6 +31,8 @@ func (h *Handler) IPNVNPAY(c echo.Context) error {
 	str, _ := json.Marshal(payload)
 	fmt.Printf("Payload: %v\n", string(str))
 
+	fmt.Printf("GET params: %v\n", c.QueryParams())
+
 	return c.JSON(http.StatusOK, struct {
 		Success bool   `json:"success"`
 		Message string `json:"message"`
