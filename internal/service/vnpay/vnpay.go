@@ -1,20 +1,28 @@
-package payment
+package vnpay
 
 import (
 	"context"
-	"crypto/hmac"
-	"crypto/sha512"
-	"encoding/hex"
 	"fmt"
 	"net/http"
 	"shopnexus-go-service/config"
 	"time"
 )
 
-type VnpayPlatform struct {
+type Service struct {
 }
 
-func (s *VnpayPlatform) CreateOrder(ctx context.Context, params CreateOrderParams) (url string, err error) {
+type ServiceInterface interface {
+	CreateOrder(ctx context.Context, params CreateOrderParams) (url string, err error)
+	VerifyPayment(ctx context.Context, query IPNObject) error
+}
+
+type CreateOrderParams struct {
+	PaymentID int64
+	Amount    int64
+	Info      string
+}
+
+func (s *Service) CreateOrder(ctx context.Context, params CreateOrderParams) (url string, err error) {
 	// httpClient := &http.Client{}
 	req, err := http.NewRequest("GET", "https://sandbox.vnpayment.vn/paymentv2/vpcpay.html", nil)
 	if err != nil {
@@ -33,7 +41,7 @@ func (s *VnpayPlatform) CreateOrder(ctx context.Context, params CreateOrderParam
 	q.Add("vnp_Locale", "vn")
 	q.Add("vnp_OrderInfo", params.Info)
 	q.Add("vnp_OrderType", "billpayment")
-	q.Add("vnp_ReturnUrl", "http://localhost:8080/payment/vnpay/callback")
+	q.Add("vnp_ReturnUrl", "/payment-done")
 	q.Add("vnp_ExpireDate", formatTime(time.Now().Add(30*time.Minute)))
 	q.Add("vnp_TxnRef", fmt.Sprintf("%d", params.PaymentID))
 	// q.Add("vnp_SecureHashType", "HMACSHA512")
@@ -43,34 +51,21 @@ func (s *VnpayPlatform) CreateOrder(ctx context.Context, params CreateOrderParam
 	q.Add("vnp_SecureHash", secureHash)
 
 	return req.URL.String() + "?" + encodedQuery + "&vnp_SecureHash=" + secureHash, nil
-
-	// req.URL.RawQuery = q.Encode()
-
-	// resp, err := httpClient.Do(req)
-	// if err != nil {
-	// 	return "", err
-	// }
-
-	// var data any
-	// sonic.ConfigFastest.NewDecoder(resp.Body).Decode(&data)
-
-	// defer resp.Body.Close()
-	// body, err := io.ReadAll(resp.Body)
-	// if err != nil {
-	// 	return "", err
-	// }
-
-	// return "", nil
-
 }
 
-// formatTime formats time to string in format yyyyMMddHHmmss
-func formatTime(t time.Time) string {
-	return t.Format("20060102150405")
+type IPNObject struct {
+	MerchantID              string `json:"merchant_id"`
+	MerchantName            string `json:"merchant_name"`
+	MerchantTransactionRef  string `json:"merchant_transaction_ref"`
+	TransactionInfo         string `json:"transaction_info"`
+	Amount                  string `json:"amount"`
+	CurrentCode             string `json:"current_code"`
+	TransactionResponseCode string `json:"transaction_response_code"`
+	Message                 string `json:"message"`
+	TransactionNumber       string `json:"transaction_number"`
+	Bank                    string `json:"bank"`
 }
 
-func sign(message string, key []byte) string {
-	sig := hmac.New(sha512.New, key)
-	sig.Write([]byte(message))
-	return hex.EncodeToString(sig.Sum(nil))
+func (s *Service) VerifyPayment(ctx context.Context, query IPNObject) error {
+	return nil
 }
