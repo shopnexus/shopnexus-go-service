@@ -1,11 +1,11 @@
 package service
 
 import (
-	"shopnexus-go-service/internal/repository"
 	"shopnexus-go-service/internal/service/account"
 	"shopnexus-go-service/internal/service/payment"
 	"shopnexus-go-service/internal/service/product"
 	"shopnexus-go-service/internal/service/s3"
+	"shopnexus-go-service/internal/storage/pgx/repository"
 )
 
 type Services struct {

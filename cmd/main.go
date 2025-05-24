@@ -7,7 +7,7 @@ import (
 	"os"
 	"shopnexus-go-service/config"
 	"shopnexus-go-service/internal/logger"
-	grpc "shopnexus-go-service/internal/server"
+	grpc "shopnexus-go-service/internal/transport"
 	"time"
 
 	"github.com/getsentry/sentry-go"

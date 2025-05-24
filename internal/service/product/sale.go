@@ -3,7 +3,7 @@ package product
 import (
 	"context"
 	"shopnexus-go-service/internal/model"
-	"shopnexus-go-service/internal/repository"
+	"shopnexus-go-service/internal/storage/pgx/repository"
 )
 
 type ListSalesParams struct {

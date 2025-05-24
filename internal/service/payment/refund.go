@@ -4,8 +4,8 @@ import (
 	"context"
 	"fmt"
 	"shopnexus-go-service/internal/model"
-	repository "shopnexus-go-service/internal/repository"
 	"shopnexus-go-service/internal/service/account"
+	repository "shopnexus-go-service/internal/storage/pgx/repository"
 )
 
 type GetRefundParams struct {

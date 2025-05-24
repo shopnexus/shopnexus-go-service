@@ -4,10 +4,10 @@ import (
 	"context"
 	"fmt"
 	"shopnexus-go-service/internal/model"
-	repository "shopnexus-go-service/internal/repository"
 	"shopnexus-go-service/internal/service/account"
 	"shopnexus-go-service/internal/service/product"
-	"shopnexus-go-service/internal/util"
+	repository "shopnexus-go-service/internal/storage/pgx/repository"
+	"shopnexus-go-service/internal/utils/ptr"
 )
 
 var _ PaymentServiceInterface = (*PaymentService)(nil)
@@ -342,7 +342,7 @@ func (s *PaymentService) UpdatePayment(ctx context.Context, params UpdatePayment
 
 	getPaymentParams := repository.GetPaymentParams{
 		ID:     params.ID,
-		Status: util.ToPtr(model.StatusPending),
+		Status: ptr.ToPtr(model.StatusPending),
 	}
 
 	// User only see their own payments
@@ -423,7 +423,7 @@ func (s *PaymentService) CancelPayment(ctx context.Context, params CancelPayment
 
 	if err = txRepo.UpdatePayment(ctx, repository.UpdatePaymentParams{
 		ID:     params.PaymentID,
-		Status: util.ToPtr(model.StatusCanceled),
+		Status: ptr.ToPtr(model.StatusCanceled),
 	}); err != nil {
 		return err
 	}
@@ -462,7 +462,7 @@ func (s *PaymentService) CancelRefund(ctx context.Context, params CancelRefundPa
 	if err = txRepo.UpdateRefund(ctx, repository.UpdateRefundParams{
 		ID:     params.RefundID,
 		UserID: &params.UserID,
-		Status: util.ToPtr(model.StatusCanceled),
+		Status: ptr.ToPtr(model.StatusCanceled),
 	}); err != nil {
 		return err
 	}

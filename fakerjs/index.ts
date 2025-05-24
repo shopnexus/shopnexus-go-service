@@ -961,4 +961,4 @@ const SEED_PRESETS: Record<PresetType, SeedConfig> = {
 };
 
 // You can now call main with different presets
-main("heavy"); // or main('medium') or main('heavy')
+main("medium"); // or main('medium') or main('heavy')
