@@ -3,11 +3,11 @@ package product
 import (
 	"context"
 	"shopnexus-go-service/internal/model"
-	"shopnexus-go-service/internal/repository"
+	"shopnexus-go-service/internal/service/storage"
 )
 
-func (s *ProductService) GetComment(ctx context.Context, id int64) (model.Comment, error) {
-	comment, err := s.repo.GetComment(ctx, id)
+func (s *ServiceImpl) GetComment(ctx context.Context, id int64) (model.Comment, error) {
+	comment, err := s.storage.GetComment(ctx, id)
 	if err != nil {
 		return model.Comment{}, err
 	}
@@ -15,15 +15,15 @@ func (s *ProductService) GetComment(ctx context.Context, id int64) (model.Commen
 	return comment, nil
 }
 
-type ListCommentsParams = repository.ListCommentsParams
+type ListCommentsParams = storage.ListCommentsParams
 
-func (s *ProductService) ListComments(ctx context.Context, params ListCommentsParams) (result model.PaginateResult[model.Comment], err error) {
-	total, err := s.repo.CountComments(ctx, params)
+func (s *ServiceImpl) ListComments(ctx context.Context, params ListCommentsParams) (result model.PaginateResult[model.Comment], err error) {
+	total, err := s.storage.CountComments(ctx, params)
 	if err != nil {
 		return result, err
 	}
 
-	comments, err := s.repo.ListComments(ctx, params)
+	comments, err := s.storage.ListComments(ctx, params)
 	if err != nil {
 		return result, err
 	}
@@ -46,14 +46,14 @@ type CreateCommentParams struct {
 	Resources []string
 }
 
-func (s *ProductService) CreateComment(ctx context.Context, params CreateCommentParams) (model.Comment, error) {
-	txRepo, err := s.repo.Begin(ctx)
+func (s *ServiceImpl) CreateComment(ctx context.Context, params CreateCommentParams) (model.Comment, error) {
+	txStorage, err := s.storage.Begin(ctx)
 	if err != nil {
 		return model.Comment{}, err
 	}
-	defer txRepo.Rollback(ctx)
+	defer txStorage.Rollback(ctx)
 
-	comment, err := txRepo.CreateComment(ctx, model.Comment{
+	comment, err := txStorage.CreateComment(ctx, model.Comment{
 		Type:      params.Type,
 		AccountID: params.AccountID,
 		DestID:    params.DestID,
@@ -64,7 +64,7 @@ func (s *ProductService) CreateComment(ctx context.Context, params CreateComment
 		return model.Comment{}, err
 	}
 
-	if err := txRepo.Commit(ctx); err != nil {
+	if err := txStorage.Commit(ctx); err != nil {
 		return model.Comment{}, err
 	}
 
@@ -80,14 +80,14 @@ type UpdateCommentParams struct {
 	Resources *[]string
 }
 
-func (s *ProductService) UpdateComment(ctx context.Context, params UpdateCommentParams) error {
-	txRepo, err := s.repo.Begin(ctx)
+func (s *ServiceImpl) UpdateComment(ctx context.Context, params UpdateCommentParams) error {
+	txStorage, err := s.storage.Begin(ctx)
 	if err != nil {
 		return err
 	}
-	defer txRepo.Rollback(ctx)
+	defer txStorage.Rollback(ctx)
 
-	repoParams := repository.UpdateCommentParams{
+	storageParams := storage.UpdateCommentParams{
 		ID:        params.ID,
 		Body:      params.Body,
 		Resources: params.Resources,
@@ -95,15 +95,15 @@ func (s *ProductService) UpdateComment(ctx context.Context, params UpdateComment
 
 	// User only can modify their own comment
 	if params.Role == model.RoleUser {
-		repoParams.AccountID = &params.AccountID
+		storageParams.AccountID = &params.AccountID
 	}
 
-	err = txRepo.UpdateComment(ctx, repoParams)
+	err = txStorage.UpdateComment(ctx, storageParams)
 	if err != nil {
 		return err
 	}
 
-	if err := txRepo.Commit(ctx); err != nil {
+	if err := txStorage.Commit(ctx); err != nil {
 		return err
 	}
 
@@ -116,15 +116,15 @@ type DeleteCommentParams struct {
 	ID        int64
 }
 
-func (s *ProductService) DeleteComment(ctx context.Context, params DeleteCommentParams) error {
-	repoParams := repository.DeleteCommentParams{
+func (s *ServiceImpl) DeleteComment(ctx context.Context, params DeleteCommentParams) error {
+	storageParams := storage.DeleteCommentParams{
 		ID: params.ID,
 	}
 
 	// User only can delete their own comment
 	if params.Role == model.RoleUser {
-		repoParams.AccountID = &params.AccountID
+		storageParams.AccountID = &params.AccountID
 	}
 
-	return s.repo.DeleteComment(ctx, repoParams)
+	return s.storage.DeleteComment(ctx, storageParams)
 }

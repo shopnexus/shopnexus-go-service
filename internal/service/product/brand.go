@@ -3,11 +3,11 @@ package product
 import (
 	"context"
 	"shopnexus-go-service/internal/model"
-	"shopnexus-go-service/internal/repository"
+	"shopnexus-go-service/internal/service/storage"
 )
 
-func (s *ProductService) GetBrand(ctx context.Context, id int64) (model.Brand, error) {
-	brand, err := s.repo.GetBrand(ctx, id)
+func (s *ServiceImpl) GetBrand(ctx context.Context, id int64) (model.Brand, error) {
+	brand, err := s.storage.GetBrand(ctx, id)
 	if err != nil {
 		return model.Brand{}, err
 	}
@@ -15,15 +15,15 @@ func (s *ProductService) GetBrand(ctx context.Context, id int64) (model.Brand, e
 	return brand, nil
 }
 
-type ListBrandsParams = repository.ListBrandsParams
+type ListBrandsParams = storage.ListBrandsParams
 
-func (s *ProductService) ListBrands(ctx context.Context, params ListBrandsParams) (result model.PaginateResult[model.Brand], err error) {
-	total, err := s.repo.CountBrands(ctx, params)
+func (s *ServiceImpl) ListBrands(ctx context.Context, params ListBrandsParams) (result model.PaginateResult[model.Brand], err error) {
+	total, err := s.storage.CountBrands(ctx, params)
 	if err != nil {
 		return result, err
 	}
 
-	brands, err := s.repo.ListBrands(ctx, params)
+	brands, err := s.storage.ListBrands(ctx, params)
 	if err != nil {
 		return result, err
 	}
@@ -43,19 +43,19 @@ type CreateBrandParams struct {
 	model.Brand
 }
 
-func (s *ProductService) CreateBrand(ctx context.Context, params CreateBrandParams) (model.Brand, error) {
-	txRepo, err := s.repo.Begin(ctx)
+func (s *ServiceImpl) CreateBrand(ctx context.Context, params CreateBrandParams) (model.Brand, error) {
+	txStorage, err := s.storage.Begin(ctx)
 	if err != nil {
 		return model.Brand{}, err
 	}
-	defer txRepo.Rollback(ctx)
+	defer txStorage.Rollback(ctx)
 
-	newBrand, err := txRepo.CreateBrand(ctx, params.Brand)
+	newBrand, err := txStorage.CreateBrand(ctx, params.Brand)
 	if err != nil {
 		return model.Brand{}, err
 	}
 
-	if err = txRepo.Commit(ctx); err != nil {
+	if err = txStorage.Commit(ctx); err != nil {
 		return model.Brand{}, err
 	}
 
@@ -63,28 +63,28 @@ func (s *ProductService) CreateBrand(ctx context.Context, params CreateBrandPara
 }
 
 type UpdateBrandParams struct {
-	RepoParams repository.UpdateBrandParams
-	Resources  []string
+	StorageParams storage.UpdateBrandParams
+	Resources     []string
 }
 
-func (s *ProductService) UpdateBrand(ctx context.Context, params UpdateBrandParams) error {
-	txRepo, err := s.repo.Begin(ctx)
+func (s *ServiceImpl) UpdateBrand(ctx context.Context, params UpdateBrandParams) error {
+	txStorage, err := s.storage.Begin(ctx)
 	if err != nil {
 		return err
 	}
-	defer txRepo.Rollback(ctx)
+	defer txStorage.Rollback(ctx)
 
-	if err = txRepo.UpdateBrand(ctx, params.RepoParams); err != nil {
+	if err = txStorage.UpdateBrand(ctx, params.StorageParams); err != nil {
 		return err
 	}
 
-	if err = txRepo.UpdateResources(ctx, params.RepoParams.ID, model.ResourceTypeBrand, params.Resources); err != nil {
+	if err = txStorage.UpdateResources(ctx, params.StorageParams.ID, model.ResourceTypeBrand, params.Resources); err != nil {
 		return err
 	}
 
-	return txRepo.Commit(ctx)
+	return txStorage.Commit(ctx)
 }
 
-func (s *ProductService) DeleteBrand(ctx context.Context, id int64) error {
-	return s.repo.DeleteBrand(ctx, id)
+func (s *ServiceImpl) DeleteBrand(ctx context.Context, id int64) error {
+	return s.storage.DeleteBrand(ctx, id)
 }

@@ -3,7 +3,7 @@ package account
 import (
 	"context"
 	"shopnexus-go-service/internal/model"
-	"shopnexus-go-service/internal/repository"
+	"shopnexus-go-service/internal/service/storage"
 )
 
 type GetAddressParams struct {
@@ -11,22 +11,22 @@ type GetAddressParams struct {
 	UserID *int64
 }
 
-func (s *AccountService) GetAddress(ctx context.Context, params GetAddressParams) (model.Address, error) {
-	return s.repo.GetAddress(ctx, repository.GetAddressParams{
+func (s *ServiceImpl) GetAddress(ctx context.Context, params GetAddressParams) (model.Address, error) {
+	return s.storage.GetAddress(ctx, storage.GetAddressParams{
 		ID:     params.ID,
 		UserID: params.UserID,
 	})
 }
 
-type ListAddressesParams = repository.ListAddressesParams
+type ListAddressesParams = storage.ListAddressesParams
 
-func (s *AccountService) ListAddresses(ctx context.Context, params ListAddressesParams) (result model.PaginateResult[model.Address], err error) {
-	total, err := s.repo.CountAddresses(ctx, params)
+func (s *ServiceImpl) ListAddresses(ctx context.Context, params ListAddressesParams) (result model.PaginateResult[model.Address], err error) {
+	total, err := s.storage.CountAddresses(ctx, params)
 	if err != nil {
 		return result, err
 	}
 
-	addresses, err := s.repo.ListAddresses(ctx, params)
+	addresses, err := s.storage.ListAddresses(ctx, params)
 	if err != nil {
 		return result, err
 	}
@@ -51,8 +51,8 @@ type CreateAddressParams struct {
 	Country  string
 }
 
-func (s *AccountService) CreateAddress(ctx context.Context, params CreateAddressParams) (model.Address, error) {
-	return s.repo.CreateAddress(ctx, model.Address{
+func (s *ServiceImpl) CreateAddress(ctx context.Context, params CreateAddressParams) (model.Address, error) {
+	return s.storage.CreateAddress(ctx, model.Address{
 		UserID:   params.UserID,
 		FullName: params.FullName,
 		Phone:    params.Phone,
@@ -63,10 +63,10 @@ func (s *AccountService) CreateAddress(ctx context.Context, params CreateAddress
 	})
 }
 
-type UpdateAddressParams = repository.UpdateAddressParams
+type UpdateAddressParams = storage.UpdateAddressParams
 
-func (s *AccountService) UpdateAddress(ctx context.Context, params UpdateAddressParams) (model.Address, error) {
-	return s.repo.UpdateAddress(ctx, params)
+func (s *ServiceImpl) UpdateAddress(ctx context.Context, params UpdateAddressParams) (model.Address, error) {
+	return s.storage.UpdateAddress(ctx, params)
 }
 
 type DeleteAddressParams struct {
@@ -74,8 +74,8 @@ type DeleteAddressParams struct {
 	UserID *int64
 }
 
-func (s *AccountService) DeleteAddress(ctx context.Context, params DeleteAddressParams) error {
-	return s.repo.DeleteAddress(ctx, repository.DeleteAddressParams{
+func (s *ServiceImpl) DeleteAddress(ctx context.Context, params DeleteAddressParams) error {
+	return s.storage.DeleteAddress(ctx, storage.DeleteAddressParams{
 		ID:     params.ID,
 		UserID: params.UserID,
 	})

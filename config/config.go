@@ -19,6 +19,7 @@ type Config struct {
 	Log           Log           `yaml:"log"`
 	Postgres      Postgres      `yaml:"postgres"`
 	S3            S3            `yaml:"s3"`
+	Redis         Redis         `yaml:"redis"`
 	Sentry        Sentry        `yaml:"sentry"`
 	SensitiveKeys SensitiveKeys `yaml:"sensitiveKeys"`
 	Vnpay         Vnpay         `yaml:"vnpay"`
@@ -61,6 +62,12 @@ type S3 struct {
 	AccessKeyID     string `yaml:"accessKeyID"`
 	SecretAccessKey string `yaml:"secretAccessKey"`
 	CloudfrontURL   string `yaml:"cloudfrontURL"`
+}
+
+type Redis struct {
+	Addr     string `yaml:"addr"`
+	Password string `yaml:"password"`
+	DB       int64  `yaml:"db"`
 }
 
 type Sentry struct {

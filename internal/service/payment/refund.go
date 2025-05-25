@@ -4,8 +4,8 @@ import (
 	"context"
 	"fmt"
 	"shopnexus-go-service/internal/model"
-	repository "shopnexus-go-service/internal/repository"
 	"shopnexus-go-service/internal/service/account"
+	"shopnexus-go-service/internal/service/storage"
 )
 
 type GetRefundParams struct {
@@ -13,8 +13,8 @@ type GetRefundParams struct {
 	RefundID int64
 }
 
-func (s *PaymentService) GetRefund(ctx context.Context, params GetRefundParams) (model.Refund, error) {
-	refund, err := s.Repo.GetRefund(ctx, repository.GetRefundParams{
+func (s *ServiceImpl) GetRefund(ctx context.Context, params GetRefundParams) (model.Refund, error) {
+	refund, err := s.storage.GetRefund(ctx, storage.GetRefundParams{
 		ID:     params.RefundID,
 		UserID: &params.UserID,
 	})
@@ -38,8 +38,8 @@ type ListRefundsParams struct {
 	DateCreatedTo      *int64
 }
 
-func (s *PaymentService) ListRefunds(ctx context.Context, params ListRefundsParams) (result model.PaginateResult[model.Refund], err error) {
-	repoParams := repository.ListRefundsParams{
+func (s *ServiceImpl) ListRefunds(ctx context.Context, params ListRefundsParams) (result model.PaginateResult[model.Refund], err error) {
+	storageParams := storage.ListRefundsParams{
 		PaginationParams: model.PaginationParams{
 			Page:  params.Page,
 			Limit: params.Limit,
@@ -55,15 +55,15 @@ func (s *PaymentService) ListRefunds(ctx context.Context, params ListRefundsPara
 
 	// User only can see their own refunds
 	if params.Role == model.RoleUser {
-		repoParams.UserID = &params.AccountID
+		storageParams.UserID = &params.AccountID
 	}
 
-	total, err := s.Repo.CountRefunds(ctx, repoParams)
+	total, err := s.storage.CountRefunds(ctx, storageParams)
 	if err != nil {
 		return result, err
 	}
 
-	refunds, err := s.Repo.ListRefunds(ctx, repoParams)
+	refunds, err := s.storage.ListRefunds(ctx, storageParams)
 	if err != nil {
 		return result, err
 	}
@@ -87,12 +87,12 @@ type CreateRefundParams struct {
 	Resources          []string
 }
 
-func (s *PaymentService) CreateRefund(ctx context.Context, params CreateRefundParams) (model.Refund, error) {
-	txRepo, err := s.Repo.Begin(ctx)
+func (s *ServiceImpl) CreateRefund(ctx context.Context, params CreateRefundParams) (model.Refund, error) {
+	txStorage, err := s.storage.Begin(ctx)
 	if err != nil {
 		return model.Refund{}, err
 	}
-	defer txRepo.Rollback(ctx)
+	defer txStorage.Rollback(ctx)
 
 	// Method drop_off must not contains address
 	if params.Method == model.RefundMethodDropOff && params.Address != "" {
@@ -105,7 +105,7 @@ func (s *PaymentService) CreateRefund(ctx context.Context, params CreateRefundPa
 	}
 
 	// Check if refund is allowed
-	canRefund, err := txRepo.CanRefund(ctx, repository.CanRefundParams{
+	canRefund, err := txStorage.CanRefund(ctx, storage.CanRefundParams{
 		ProductOnPaymentID: params.ProductOnPaymentID,
 		UserID:             &params.UserID,
 	})
@@ -116,7 +116,7 @@ func (s *PaymentService) CreateRefund(ctx context.Context, params CreateRefundPa
 		return model.Refund{}, fmt.Errorf("refund for payment product %d is not allowed", params.ProductOnPaymentID)
 	}
 
-	refund, err := txRepo.CreateRefund(ctx, model.Refund{
+	refund, err := txStorage.CreateRefund(ctx, model.Refund{
 		ProductOnPaymentID: params.ProductOnPaymentID,
 		Method:             params.Method,
 		Status:             model.StatusPending,
@@ -128,7 +128,7 @@ func (s *PaymentService) CreateRefund(ctx context.Context, params CreateRefundPa
 		return model.Refund{}, err
 	}
 
-	if err = txRepo.Commit(ctx); err != nil {
+	if err = txStorage.Commit(ctx); err != nil {
 		return model.Refund{}, err
 	}
 
@@ -146,14 +146,14 @@ type UpdateRefundParams struct {
 	Resources *[]string
 }
 
-func (s *PaymentService) UpdateRefund(ctx context.Context, params UpdateRefundParams) error {
-	txRepo, err := s.Repo.Begin(ctx)
+func (s *ServiceImpl) UpdateRefund(ctx context.Context, params UpdateRefundParams) error {
+	txStorage, err := s.storage.Begin(ctx)
 	if err != nil {
 		return err
 	}
-	defer txRepo.Rollback(ctx)
+	defer txStorage.Rollback(ctx)
 
-	repoParams := repository.UpdateRefundParams{
+	storageParams := storage.UpdateRefundParams{
 		ID:        params.ID,
 		Method:    params.Method,
 		Status:    params.Status,
@@ -164,7 +164,7 @@ func (s *PaymentService) UpdateRefund(ctx context.Context, params UpdateRefundPa
 
 	// User only can update their own refunds
 	if params.Role == model.RoleUser {
-		repoParams.UserID = &params.UserID
+		storageParams.UserID = &params.UserID
 		if params.Status != nil {
 			return fmt.Errorf("user %d has no permission to update refund status: %w", params.UserID, model.ErrForbidden)
 		}
@@ -185,12 +185,12 @@ func (s *PaymentService) UpdateRefund(ctx context.Context, params UpdateRefundPa
 
 	// Method drop_off must not contains address
 	if *params.Method == model.RefundMethodDropOff {
-		repoParams.Address = nil
+		storageParams.Address = nil
 	}
 
-	if err = txRepo.UpdateRefund(ctx, repoParams); err != nil {
+	if err = txStorage.UpdateRefund(ctx, storageParams); err != nil {
 		return err
 	}
 
-	return txRepo.Commit(ctx)
+	return txStorage.Commit(ctx)
 }

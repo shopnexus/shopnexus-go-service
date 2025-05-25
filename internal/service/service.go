@@ -1,30 +1,47 @@
 package service
 
 import (
-	"shopnexus-go-service/internal/repository"
 	"shopnexus-go-service/internal/service/account"
 	"shopnexus-go-service/internal/service/payment"
 	"shopnexus-go-service/internal/service/product"
 	"shopnexus-go-service/internal/service/s3"
+	"shopnexus-go-service/internal/service/storage"
 )
 
 type Services struct {
-	Account *account.AccountService
-	Payment *payment.PaymentService
-	Product *product.ProductService
-	S3      *s3.S3Service
+	Account account.Service
+	Payment payment.Service
+	Product product.Service
+	S3      s3.Service
 }
 
-func NewServices(repo repository.Repository) *Services {
-	accountSvc := account.NewAccountService(repo)
-	productSvc := product.NewProductService(repo, accountSvc)
-	paymentSvc := payment.NewPaymentService(repo, accountSvc, productSvc)
-	s3Svc := s3.NewS3Service(repo)
+func NewServices() (*Services, error) {
+	storageSvc, err := storage.NewService()
+	if err != nil {
+		return nil, err
+	}
+
+	accountSvc, err := account.NewService(storageSvc)
+	if err != nil {
+		return nil, err
+	}
+	productSvc, err := product.NewService(storageSvc, accountSvc)
+	if err != nil {
+		return nil, err
+	}
+	paymentSvc, err := payment.NewService(storageSvc, accountSvc, productSvc)
+	if err != nil {
+		return nil, err
+	}
+	s3Svc, err := s3.NewService()
+	if err != nil {
+		return nil, err
+	}
 
 	return &Services{
 		Account: accountSvc,
 		Payment: paymentSvc,
 		Product: productSvc,
 		S3:      s3Svc,
-	}
+	}, nil
 }

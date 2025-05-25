@@ -3,11 +3,11 @@ package product
 import (
 	"context"
 	"shopnexus-go-service/internal/model"
-	"shopnexus-go-service/internal/repository"
+	"shopnexus-go-service/internal/service/storage"
 )
 
-func (s *ProductService) GetProductModel(ctx context.Context, id int64) (model.ProductModel, error) {
-	productModel, err := s.repo.GetProductModel(ctx, id)
+func (s *ServiceImpl) GetProductModel(ctx context.Context, id int64) (model.ProductModel, error) {
+	productModel, err := s.storage.GetProductModel(ctx, id)
 	if err != nil {
 		return model.ProductModel{}, err
 	}
@@ -15,19 +15,19 @@ func (s *ProductService) GetProductModel(ctx context.Context, id int64) (model.P
 	return productModel, nil
 }
 
-func (s *ProductService) GetProductSerialIDs(ctx context.Context, productID int64) ([]string, error) {
-	return s.repo.GetProductSerialIDs(ctx, productID)
+func (s *ServiceImpl) GetProductSerialIDs(ctx context.Context, productID int64) ([]string, error) {
+	return s.storage.GetProductSerialIDs(ctx, productID)
 }
 
-type ListProductModelsParams = repository.ListProductModelsParams
+type ListProductModelsParams = storage.ListProductModelsParams
 
-func (s *ProductService) ListProductModels(ctx context.Context, params ListProductModelsParams) (result model.PaginateResult[model.ProductModel], err error) {
-	total, err := s.repo.CountProductModels(ctx, params)
+func (s *ServiceImpl) ListProductModels(ctx context.Context, params ListProductModelsParams) (result model.PaginateResult[model.ProductModel], err error) {
+	total, err := s.storage.CountProductModels(ctx, params)
 	if err != nil {
 		return result, err
 	}
 
-	productModels, err := s.repo.ListProductModels(ctx, params)
+	productModels, err := s.storage.ListProductModels(ctx, params)
 	if err != nil {
 		return result, err
 	}
@@ -47,19 +47,19 @@ type CreateProductModelParams struct {
 	model.ProductModel
 }
 
-func (s *ProductService) CreateProductModel(ctx context.Context, params CreateProductModelParams) (model.ProductModel, error) {
-	txRepo, err := s.repo.Begin(ctx)
+func (s *ServiceImpl) CreateProductModel(ctx context.Context, params CreateProductModelParams) (model.ProductModel, error) {
+	txStorage, err := s.storage.Begin(ctx)
 	if err != nil {
 		return model.ProductModel{}, err
 	}
-	defer txRepo.Rollback(ctx)
+	defer txStorage.Rollback(ctx)
 
-	productModel, err := txRepo.CreateProductModel(ctx, params.ProductModel)
+	productModel, err := txStorage.CreateProductModel(ctx, params.ProductModel)
 	if err != nil {
 		return model.ProductModel{}, err
 	}
 
-	if err := txRepo.Commit(ctx); err != nil {
+	if err := txStorage.Commit(ctx); err != nil {
 		return model.ProductModel{}, err
 	}
 
@@ -78,26 +78,26 @@ type UpdateProductModelParams = struct {
 	Tags             *[]string
 }
 
-func (s *ProductService) UpdateProductModel(ctx context.Context, params UpdateProductModelParams) error {
-	txRepo, err := s.repo.Begin(ctx)
+func (s *ServiceImpl) UpdateProductModel(ctx context.Context, params UpdateProductModelParams) error {
+	txStorage, err := s.storage.Begin(ctx)
 	if err != nil {
 		return err
 	}
-	defer txRepo.Rollback(ctx)
+	defer txStorage.Rollback(ctx)
 
-	if err = txRepo.UpdateProductModel(ctx, params); err != nil {
+	if err = txStorage.UpdateProductModel(ctx, params); err != nil {
 		return err
 	}
 
-	return txRepo.Commit(ctx)
+	return txStorage.Commit(ctx)
 }
 
-func (s *ProductService) DeleteProductModel(ctx context.Context, id int64) error {
-	return s.repo.DeleteProductModel(ctx, id)
+func (s *ServiceImpl) DeleteProductModel(ctx context.Context, id int64) error {
+	return s.storage.DeleteProductModel(ctx, id)
 }
 
-type ListProductTypesParams = repository.ListProductTypesParams
+type ListProductTypesParams = storage.ListProductTypesParams
 
-func (s *ProductService) ListProductTypes(ctx context.Context, params ListProductTypesParams) ([]model.ProductType, error) {
-	return s.repo.ListProductTypes(ctx, params)
+func (s *ServiceImpl) ListProductTypes(ctx context.Context, params ListProductTypesParams) ([]model.ProductType, error) {
+	return s.storage.ListProductTypes(ctx, params)
 }

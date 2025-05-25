@@ -3,7 +3,7 @@ package product
 import (
 	"context"
 	"shopnexus-go-service/internal/model"
-	"shopnexus-go-service/internal/repository"
+	"shopnexus-go-service/internal/service/storage"
 )
 
 type ListSalesParams struct {
@@ -18,12 +18,12 @@ type ListSalesParams struct {
 	IsActive        *bool
 }
 
-func (s *ProductService) GetSale(ctx context.Context, id int64) (model.Sale, error) {
-	return s.repo.GetSale(ctx, id)
+func (s *ServiceImpl) GetSale(ctx context.Context, id int64) (model.Sale, error) {
+	return s.storage.GetSale(ctx, id)
 }
 
-func (s *ProductService) ListSales(ctx context.Context, params ListSalesParams) (model.PaginateResult[model.Sale], error) {
-	count, err := s.repo.CountSales(ctx, repository.ListSalesParams{
+func (s *ServiceImpl) ListSales(ctx context.Context, params ListSalesParams) (model.PaginateResult[model.Sale], error) {
+	count, err := s.storage.CountSales(ctx, storage.ListSalesParams{
 		PaginationParams: params.PaginationParams,
 		Tag:              params.Tag,
 		ProductModelID:   params.ProductModelID,
@@ -38,7 +38,7 @@ func (s *ProductService) ListSales(ctx context.Context, params ListSalesParams) 
 		return model.PaginateResult[model.Sale]{}, err
 	}
 
-	data, err := s.repo.ListSales(ctx, repository.ListSalesParams{
+	data, err := s.storage.ListSales(ctx, storage.ListSalesParams{
 		PaginationParams: params.PaginationParams,
 		Tag:              params.Tag,
 		ProductModelID:   params.ProductModelID,
@@ -67,8 +67,8 @@ type CreateSaleParams struct {
 	Sale   model.Sale
 }
 
-func (s *ProductService) CreateSale(ctx context.Context, params CreateSaleParams) (model.Sale, error) {
-	return s.repo.CreateSale(ctx, params.Sale)
+func (s *ServiceImpl) CreateSale(ctx context.Context, params CreateSaleParams) (model.Sale, error) {
+	return s.storage.CreateSale(ctx, params.Sale)
 }
 
 type UpdateSaleParams struct {
@@ -85,8 +85,8 @@ type UpdateSaleParams struct {
 	DiscountPrice   *int64
 }
 
-func (s *ProductService) UpdateSale(ctx context.Context, params UpdateSaleParams) error {
-	return s.repo.UpdateSale(ctx, repository.UpdateSaleParams{
+func (s *ServiceImpl) UpdateSale(ctx context.Context, params UpdateSaleParams) error {
+	return s.storage.UpdateSale(ctx, storage.UpdateSaleParams{
 		ID:              params.ID,
 		Tag:             params.Tag,
 		ProductModelID:  params.ProductModelID,
@@ -101,6 +101,6 @@ func (s *ProductService) UpdateSale(ctx context.Context, params UpdateSaleParams
 	})
 }
 
-func (s *ProductService) DeleteSale(ctx context.Context, id int64) error {
-	return s.repo.DeleteSale(ctx, id)
+func (s *ServiceImpl) DeleteSale(ctx context.Context, id int64) error {
+	return s.storage.DeleteSale(ctx, id)
 }

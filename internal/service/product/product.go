@@ -3,134 +3,18 @@ package product
 import (
 	"context"
 	"shopnexus-go-service/internal/model"
-	"shopnexus-go-service/internal/repository"
 	"shopnexus-go-service/internal/service/account"
+	"shopnexus-go-service/internal/service/storage"
 )
 
-type ProductService struct {
-	repo       repository.Repository
-	accountSvc account.AccountServiceInterface
+type ServiceImpl struct {
+	storage    storage.Service
+	accountSvc account.Service
 }
 
-var _ ProductServiceInterface = (*ProductService)(nil)
+type Service interface {
+	WithTx(txStorage *storage.TxStorage) (Service, error)
 
-func NewProductService(repo repository.Repository, accountSvc account.AccountServiceInterface) *ProductService {
-	return &ProductService{
-		repo:       repo,
-		accountSvc: accountSvc,
-	}
-}
-
-func (s *ProductService) WithTx(txRepo repository.Repository) *ProductService {
-	//TODO: Use WithTX to all injected service
-	return NewProductService(txRepo, s.accountSvc.WithTx(txRepo))
-}
-
-func (s *ProductService) GetProduct(ctx context.Context, id int64) (model.Product, error) {
-	return s.repo.GetProduct(ctx, id)
-}
-
-type ListProductsParams = repository.ListProductsParams
-
-func (s *ProductService) ListProducts(ctx context.Context, params ListProductsParams) (result model.PaginateResult[model.Product], err error) {
-	total, err := s.repo.CountProducts(ctx, params)
-	if err != nil {
-		return result, err
-	}
-
-	products, err := s.repo.ListProducts(ctx, params)
-	if err != nil {
-		return result, err
-	}
-
-	return model.PaginateResult[model.Product]{
-		Data:       products,
-		Limit:      params.Limit,
-		Page:       params.Page,
-		Total:      total,
-		NextPage:   params.NextPage(total),
-		NextCursor: nil,
-	}, nil
-}
-
-func (s *ProductService) CreateProduct(ctx context.Context, product model.Product) (model.Product, error) {
-	newProduct, err := s.repo.CreateProduct(ctx, product)
-	if err != nil {
-		return model.Product{}, err
-	}
-
-	return newProduct, nil
-}
-
-type UpdateProductParams = struct {
-	// TODO: sửa lại ko xài RepoParams, phải tự ghi ra hết
-	ID             int64
-	ProductModelID *int64
-	Quantity       *int64
-	Sold           *int64
-	AddPrice       *int64
-	CanCombine     *bool
-	IsActive       *bool
-	Metadata       *[]byte
-	Resources      *[]string
-}
-
-func (s *ProductService) UpdateProduct(ctx context.Context, params UpdateProductParams) error {
-	txRepo, err := s.repo.Begin(ctx)
-	if err != nil {
-		return err
-	}
-	defer txRepo.Rollback(ctx)
-
-	if err = s.repo.UpdateProduct(ctx, repository.UpdateProductParams{
-		ID:             params.ID,
-		ProductModelID: params.ProductModelID,
-		Quantity:       params.Quantity,
-		Sold:           params.Sold,
-		AddPrice:       params.AddPrice,
-		CanCombine:     params.CanCombine,
-		IsActive:       params.IsActive,
-		Metadata:       params.Metadata,
-		Resources:      params.Resources,
-	}); err != nil {
-		return err
-	}
-
-	if err = txRepo.Commit(ctx); err != nil {
-		return err
-	}
-
-	return nil
-}
-
-type UpdateProductSoldParams = struct {
-	IDs    []int64
-	Amount int64
-}
-
-func (s *ProductService) UpdateProductSold(ctx context.Context, params UpdateProductSoldParams) error {
-	txRepo, err := s.repo.Begin(ctx)
-	if err != nil {
-		return err
-	}
-	defer txRepo.Rollback(ctx)
-
-	if err = s.repo.UpdateProductSold(ctx, params.IDs, params.Amount); err != nil {
-		return err
-	}
-
-	if err = txRepo.Commit(ctx); err != nil {
-		return err
-	}
-
-	return nil
-}
-
-func (s *ProductService) DeleteProduct(ctx context.Context, id int64) error {
-	return s.repo.DeleteProduct(ctx, id)
-}
-
-type ProductServiceInterface interface {
 	GetBrand(ctx context.Context, id int64) (model.Brand, error)
 	ListBrands(ctx context.Context, params ListBrandsParams) (model.PaginateResult[model.Brand], error)
 	CreateBrand(ctx context.Context, params CreateBrandParams) (model.Brand, error)
@@ -148,6 +32,7 @@ type ProductServiceInterface interface {
 	ListProducts(ctx context.Context, params ListProductsParams) (model.PaginateResult[model.Product], error)
 	CreateProduct(ctx context.Context, product model.Product) (model.Product, error)
 	UpdateProduct(ctx context.Context, params UpdateProductParams) error
+	UpdateProductSold(ctx context.Context, params UpdateProductSoldParams) error
 	DeleteProduct(ctx context.Context, id int64) error
 
 	GetProductSerial(ctx context.Context, serialID string) (model.ProductSerial, error)
@@ -156,6 +41,8 @@ type ProductServiceInterface interface {
 	UpdateProductSerial(ctx context.Context, params UpdateProductSerialParams) error
 	DeleteProductSerial(ctx context.Context, params DeleteProductSerialPParams) error
 	MarkProductSerialsAsSold(ctx context.Context, serialIDs []string) error
+
+	GetProductSerialIDs(ctx context.Context, productID int64) ([]string, error)
 
 	GetSale(ctx context.Context, id int64) (model.Sale, error)
 	ListSales(ctx context.Context, params ListSalesParams) (model.PaginateResult[model.Sale], error)
@@ -168,4 +55,130 @@ type ProductServiceInterface interface {
 	CreateTag(ctx context.Context, tag model.Tag) error
 	UpdateTag(ctx context.Context, params UpdateTagParams) error
 	DeleteTag(ctx context.Context, tag string) error
+
+	GetComment(ctx context.Context, id int64) (model.Comment, error)
+	ListComments(ctx context.Context, params ListCommentsParams) (model.PaginateResult[model.Comment], error)
+	CreateComment(ctx context.Context, comment CreateCommentParams) (model.Comment, error)
+	UpdateComment(ctx context.Context, params UpdateCommentParams) error
+	DeleteComment(ctx context.Context, params DeleteCommentParams) error
+}
+
+func NewService(storage storage.Service, accountSvc account.Service) (Service, error) {
+	return &ServiceImpl{
+		storage:    storage,
+		accountSvc: accountSvc,
+	}, nil
+}
+
+func (s *ServiceImpl) WithTx(txStorage *storage.TxStorage) (Service, error) {
+	//TODO: Use WithTX to all injected service
+	txAccountSvc, err := s.accountSvc.WithTx(txStorage)
+	if err != nil {
+		return nil, err
+	}
+	return NewService(txStorage, txAccountSvc)
+}
+
+func (s *ServiceImpl) GetProduct(ctx context.Context, id int64) (model.Product, error) {
+	return s.storage.GetProduct(ctx, id)
+}
+
+type ListProductsParams = storage.ListProductsParams
+
+func (s *ServiceImpl) ListProducts(ctx context.Context, params ListProductsParams) (result model.PaginateResult[model.Product], err error) {
+	total, err := s.storage.CountProducts(ctx, params)
+	if err != nil {
+		return result, err
+	}
+
+	products, err := s.storage.ListProducts(ctx, params)
+	if err != nil {
+		return result, err
+	}
+
+	return model.PaginateResult[model.Product]{
+		Data:       products,
+		Limit:      params.Limit,
+		Page:       params.Page,
+		Total:      total,
+		NextPage:   params.NextPage(total),
+		NextCursor: nil,
+	}, nil
+}
+
+func (s *ServiceImpl) CreateProduct(ctx context.Context, product model.Product) (model.Product, error) {
+	newProduct, err := s.storage.CreateProduct(ctx, product)
+	if err != nil {
+		return model.Product{}, err
+	}
+
+	return newProduct, nil
+}
+
+type UpdateProductParams = struct {
+	// TODO: sửa lại ko xài StorageParams, phải tự ghi ra hết
+	ID             int64
+	ProductModelID *int64
+	Quantity       *int64
+	Sold           *int64
+	AddPrice       *int64
+	CanCombine     *bool
+	IsActive       *bool
+	Metadata       *[]byte
+	Resources      *[]string
+}
+
+func (s *ServiceImpl) UpdateProduct(ctx context.Context, params UpdateProductParams) error {
+	txStorage, err := s.storage.Begin(ctx)
+	if err != nil {
+		return err
+	}
+	defer txStorage.Rollback(ctx)
+
+	if err = s.storage.UpdateProduct(ctx, storage.UpdateProductParams{
+		ID:             params.ID,
+		ProductModelID: params.ProductModelID,
+		Quantity:       params.Quantity,
+		Sold:           params.Sold,
+		AddPrice:       params.AddPrice,
+		CanCombine:     params.CanCombine,
+		IsActive:       params.IsActive,
+		Metadata:       params.Metadata,
+		Resources:      params.Resources,
+	}); err != nil {
+		return err
+	}
+
+	if err = txStorage.Commit(ctx); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+type UpdateProductSoldParams = struct {
+	IDs    []int64
+	Amount int64
+}
+
+func (s *ServiceImpl) UpdateProductSold(ctx context.Context, params UpdateProductSoldParams) error {
+	txStorage, err := s.storage.Begin(ctx)
+	if err != nil {
+		return err
+	}
+	defer txStorage.Rollback(ctx)
+
+	if err = s.storage.UpdateProductSold(ctx, params.IDs, params.Amount); err != nil {
+		return err
+	}
+
+	if err = txStorage.Commit(ctx); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (s *ServiceImpl) DeleteProduct(ctx context.Context, id int64) error {
+	return s.storage.DeleteProduct(ctx, id)
 }

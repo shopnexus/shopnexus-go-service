@@ -3,7 +3,7 @@ package product
 import (
 	"context"
 	"shopnexus-go-service/internal/model"
-	"shopnexus-go-service/internal/repository"
+	"shopnexus-go-service/internal/service/storage"
 )
 
 type TagResponse struct {
@@ -17,13 +17,13 @@ type ListTagsParams struct {
 	Description *string
 }
 
-func (s *ProductService) GetTag(ctx context.Context, tag string) (TagResponse, error) {
-	tagModel, err := s.repo.GetTag(ctx, tag)
+func (s *ServiceImpl) GetTag(ctx context.Context, tag string) (TagResponse, error) {
+	tagModel, err := s.storage.GetTag(ctx, tag)
 	if err != nil {
 		return TagResponse{}, err
 	}
 
-	count, err := s.repo.CountProductModelsOnTag(ctx, tag)
+	count, err := s.storage.CountProductModelsOnTag(ctx, tag)
 	if err != nil {
 		return TagResponse{}, err
 	}
@@ -34,8 +34,8 @@ func (s *ProductService) GetTag(ctx context.Context, tag string) (TagResponse, e
 	}, nil
 }
 
-func (s *ProductService) ListTags(ctx context.Context, params ListTagsParams) (result model.PaginateResult[TagResponse], err error) {
-	count, err := s.repo.CountTags(ctx, repository.ListTagsParams{
+func (s *ServiceImpl) ListTags(ctx context.Context, params ListTagsParams) (result model.PaginateResult[TagResponse], err error) {
+	count, err := s.storage.CountTags(ctx, storage.ListTagsParams{
 		PaginationParams: params.PaginationParams,
 		Tag:              params.Tag,
 		Description:      params.Description,
@@ -44,7 +44,7 @@ func (s *ProductService) ListTags(ctx context.Context, params ListTagsParams) (r
 		return result, err
 	}
 
-	data, err := s.repo.ListTags(ctx, repository.ListTagsParams{
+	data, err := s.storage.ListTags(ctx, storage.ListTagsParams{
 		PaginationParams: params.PaginationParams,
 		Tag:              params.Tag,
 		Description:      params.Description,
@@ -55,7 +55,7 @@ func (s *ProductService) ListTags(ctx context.Context, params ListTagsParams) (r
 
 	result.Data = make([]TagResponse, 0, len(data))
 	for _, d := range data {
-		count, err := s.repo.CountProductModelsOnTag(ctx, d.Tag)
+		count, err := s.storage.CountProductModelsOnTag(ctx, d.Tag)
 		if err != nil {
 			return result, err
 		}
@@ -74,8 +74,8 @@ func (s *ProductService) ListTags(ctx context.Context, params ListTagsParams) (r
 	}, nil
 }
 
-func (s *ProductService) CreateTag(ctx context.Context, tag model.Tag) error {
-	return s.repo.CreateTag(ctx, tag)
+func (s *ServiceImpl) CreateTag(ctx context.Context, tag model.Tag) error {
+	return s.storage.CreateTag(ctx, tag)
 }
 
 type UpdateTagParams struct {
@@ -84,14 +84,14 @@ type UpdateTagParams struct {
 	Description *string
 }
 
-func (s *ProductService) UpdateTag(ctx context.Context, params UpdateTagParams) error {
-	return s.repo.UpdateTag(ctx, repository.UpdateTagParams{
+func (s *ServiceImpl) UpdateTag(ctx context.Context, params UpdateTagParams) error {
+	return s.storage.UpdateTag(ctx, storage.UpdateTagParams{
 		Tag:         params.Tag,
 		NewTag:      params.NewTag,
 		Description: params.Description,
 	})
 }
 
-func (s *ProductService) DeleteTag(ctx context.Context, tag string) error {
-	return s.repo.DeleteTag(ctx, tag)
+func (s *ServiceImpl) DeleteTag(ctx context.Context, tag string) error {
+	return s.storage.DeleteTag(ctx, tag)
 }

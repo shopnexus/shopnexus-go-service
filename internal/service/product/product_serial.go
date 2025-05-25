@@ -3,23 +3,23 @@ package product
 import (
 	"context"
 	"shopnexus-go-service/internal/model"
-	"shopnexus-go-service/internal/repository"
 	"shopnexus-go-service/internal/service/account"
+	"shopnexus-go-service/internal/service/storage"
 )
 
-func (s *ProductService) GetProductSerial(ctx context.Context, serialID string) (model.ProductSerial, error) {
-	return s.repo.GetProductSerial(ctx, serialID)
+func (s *ServiceImpl) GetProductSerial(ctx context.Context, serialID string) (model.ProductSerial, error) {
+	return s.storage.GetProductSerial(ctx, serialID)
 }
 
-type ListProductSerialsParams = repository.ListProductSerialsParams
+type ListProductSerialsParams = storage.ListProductSerialsParams
 
-func (s *ProductService) ListProductSerials(ctx context.Context, params ListProductSerialsParams) (result model.PaginateResult[model.ProductSerial], err error) {
-	total, err := s.repo.CountProductSerials(ctx, params)
+func (s *ServiceImpl) ListProductSerials(ctx context.Context, params ListProductSerialsParams) (result model.PaginateResult[model.ProductSerial], err error) {
+	total, err := s.storage.CountProductSerials(ctx, params)
 	if err != nil {
 		return result, err
 	}
 
-	serials, err := s.repo.ListProductSerials(ctx, params)
+	serials, err := s.storage.ListProductSerials(ctx, params)
 	if err != nil {
 		return result, err
 	}
@@ -34,14 +34,14 @@ func (s *ProductService) ListProductSerials(ctx context.Context, params ListProd
 	}, nil
 }
 
-func (s *ProductService) CreateProductSerial(ctx context.Context, serial model.ProductSerial) (model.ProductSerial, error) {
-	return s.repo.CreateProductSerial(ctx, serial)
+func (s *ServiceImpl) CreateProductSerial(ctx context.Context, serial model.ProductSerial) (model.ProductSerial, error) {
+	return s.storage.CreateProductSerial(ctx, serial)
 }
 
-type UpdateProductSerialParams = repository.UpdateProductSerialParams
+type UpdateProductSerialParams = storage.UpdateProductSerialParams
 
-func (s *ProductService) UpdateProductSerial(ctx context.Context, params UpdateProductSerialParams) error {
-	return s.repo.UpdateProductSerial(ctx, params)
+func (s *ServiceImpl) UpdateProductSerial(ctx context.Context, params UpdateProductSerialParams) error {
+	return s.storage.UpdateProductSerial(ctx, params)
 }
 
 type DeleteProductSerialPParams struct {
@@ -50,7 +50,7 @@ type DeleteProductSerialPParams struct {
 	SerialID  string
 }
 
-func (s *ProductService) DeleteProductSerial(ctx context.Context, params DeleteProductSerialPParams) error {
+func (s *ServiceImpl) DeleteProductSerial(ctx context.Context, params DeleteProductSerialPParams) error {
 	hasPermission, err := s.accountSvc.HasPermission(ctx, account.HasPermissionParams{
 		AccountID:   params.AccountID,
 		Role:        &params.Role,
@@ -64,9 +64,9 @@ func (s *ProductService) DeleteProductSerial(ctx context.Context, params DeleteP
 		return model.ErrPermissionDenied
 	}
 
-	return s.repo.DeleteProductSerial(ctx, params.SerialID)
+	return s.storage.DeleteProductSerial(ctx, params.SerialID)
 }
 
-func (s *ProductService) MarkProductSerialsAsSold(ctx context.Context, serialIDs []string) error {
-	return s.repo.MarkProductSerialsAsSold(ctx, serialIDs)
+func (s *ServiceImpl) MarkProductSerialsAsSold(ctx context.Context, serialIDs []string) error {
+	return s.storage.MarkProductSerialsAsSold(ctx, serialIDs)
 }
