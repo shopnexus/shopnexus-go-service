@@ -7,11 +7,12 @@ import (
 
 	"shopnexus-go-service/config"
 	s3client "shopnexus-go-service/internal/client/s3"
+
+	s3base "github.com/aws/aws-sdk-go-v2/service/s3"
 )
 
 type Service interface {
-	// TODO: ambigous .Client().Client() passing to TUS server
-	Client() s3client.Client
+	BaseClient() *s3base.Client
 	Upload(ctx context.Context, key string, reader io.Reader, private bool) (string, error)
 	Delete(ctx context.Context, key string) error
 	ListObjects(ctx context.Context, prefix string) ([]string, error)
@@ -40,8 +41,8 @@ func NewService() (Service, error) {
 	}, nil
 }
 
-func (s *ServiceImpl) Client() s3client.Client {
-	return s.client
+func (s *ServiceImpl) BaseClient() *s3base.Client {
+	return s.client.Client()
 }
 
 func (s *ServiceImpl) Upload(ctx context.Context, key string, reader io.Reader, private bool) (string, error) {
