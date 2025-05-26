@@ -3,6 +3,8 @@ package payment
 import (
 	"context"
 	"fmt"
+	"shopnexus-go-service/config"
+	"shopnexus-go-service/internal/client/vnpay"
 	"shopnexus-go-service/internal/model"
 	"shopnexus-go-service/internal/service/account"
 	"shopnexus-go-service/internal/service/product"
@@ -369,8 +371,8 @@ func (s *ServiceImpl) UpdatePayment(ctx context.Context, params UpdatePaymentPar
 		return fmt.Errorf("address is required for payment method %s", *params.Method)
 	}
 
-	// If params.Status is not nil, check if account has permission to update status
-	if params.Status != nil {
+	// If params.Status is not nil and not admin, check if account (staff, ...) has permission to update status
+	if params.Status != nil && params.Role != model.RoleAdmin {
 		if ok, err := s.accountSvc.HasPermission(ctx, account.HasPermissionParams{
 			AccountID: params.AccountID,
 			Permissions: []model.Permission{
