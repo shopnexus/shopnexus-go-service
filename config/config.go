@@ -28,6 +28,7 @@ type Config struct {
 type App struct {
 	AccessTokenDuration int64  `yaml:"accessTokenDuration"`
 	TusUrl              string `yaml:"tusUrl"`
+	FrontendUrl         string `yaml:"frontendUrl"`
 }
 
 type HttpServer struct {

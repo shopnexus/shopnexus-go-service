@@ -2,9 +2,9 @@ package vnpay
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"net/http"
+	"shopnexus-go-service/config"
 	"time"
 )
 
@@ -15,7 +15,7 @@ type ClientImpl struct {
 
 type Client interface {
 	CreateOrder(ctx context.Context, params CreateOrderParams) (url string, err error)
-	VerifyPayment(ctx context.Context, rawIpn json.RawMessage) error
+	VerifyPayment(ctx context.Context, ipn map[string]any) error
 }
 
 type ClientOptions struct {
@@ -55,7 +55,7 @@ func (c *ClientImpl) CreateOrder(ctx context.Context, params CreateOrderParams) 
 	q.Add("vnp_Locale", "vn")
 	q.Add("vnp_OrderInfo", params.Info)
 	q.Add("vnp_OrderType", "billpayment")
-	q.Add("vnp_ReturnUrl", "/payment-done")
+	q.Add("vnp_ReturnUrl", config.GetConfig().App.FrontendUrl+"/payment-resolve")
 	q.Add("vnp_ExpireDate", formatTime(time.Now().Add(30*time.Minute)))
 	q.Add("vnp_TxnRef", fmt.Sprintf("%d", params.PaymentID))
 	// q.Add("vnp_SecureHashType", "HMACSHA512")
@@ -67,38 +67,36 @@ func (c *ClientImpl) CreateOrder(ctx context.Context, params CreateOrderParams) 
 	return req.URL.String() + "?" + encodedQuery + "&vnp_SecureHash=" + secureHash, nil
 }
 
-type IPNReturn struct {
-	VnpAmount            string `json:"vnp_Amount"`
-	VnpBankCode          string `json:"vnp_BankCode"`
-	VnpCardType          string `json:"vnp_CardType"`
-	VnpOrderInfo         string `json:"vnp_OrderInfo"`
-	VnpPayDate           string `json:"vnp_PayDate"`
-	VnpResponseCode      string `json:"vnp_ResponseCode"`
-	VnpSecureHash        string `json:"vnp_SecureHash"`
-	VnpTmnCode           string `json:"vnp_TmnCode"`
-	VnpTransactionNo     string `json:"vnp_TransactionNo"`
-	VnpTransactionStatus string `json:"vnp_TransactionStatus"`
-	VnpTxnRef            string `json:"vnp_TxnRef"`
-}
+// type IPNReturn struct {
+// TODO: missing props!
+// 	VnpAmount            string `json:"vnp_Amount"`
+// 	VnpBankCode          string `json:"vnp_BankCode"`
+// 	VnpCardType          string `json:"vnp_CardType"`
+// 	VnpOrderInfo         string `json:"vnp_OrderInfo"`
+// 	VnpPayDate           string `json:"vnp_PayDate"`
+// 	VnpResponseCode      string `json:"vnp_ResponseCode"`
+// 	VnpSecureHash        string `json:"vnp_SecureHash"`
+// 	VnpTmnCode           string `json:"vnp_TmnCode"`
+// 	VnpTransactionNo     string `json:"vnp_TransactionNo"`
+// 	VnpTransactionStatus string `json:"vnp_TransactionStatus"`
+// 	VnpTxnRef            string `json:"vnp_TxnRef"`
+// }
 
-func (c *ClientImpl) VerifyPayment(ctx context.Context, rawIpn json.RawMessage) error {
-	var ipn map[string]any
-	if err := json.Unmarshal(rawIpn, &ipn); err != nil {
-		return fmt.Errorf("failed to unmarshal IPN: %w", err)
-	}
-
+func (c *ClientImpl) VerifyPayment(ctx context.Context, ipn map[string]any) error {
 	expectedHash, ok := ipn["vnp_SecureHash"].(string)
 	if !ok {
-		return fmt.Errorf("missing or invalid vnp_SecureHash")
+		return fmt.Errorf("missing or invalid vnp_SecureHash in IPN data")
 	}
 
 	// Remove the secure hash from the IPN data
 	delete(ipn, "vnp_SecureHash")
 
 	hashData := buildSortedQuery(ipn)
-	hash := sign(c.hashSecret, []byte(hashData))
+	fmt.Println("Hash data:", hashData)
+	hash := sign(hashData, []byte(c.hashSecret))
 
 	if hash != expectedHash {
+		fmt.Println("Hash mismatch:", expectedHash, hash)
 		return fmt.Errorf("hash mismatch: expected %s, got %s", expectedHash, hash)
 	}
 

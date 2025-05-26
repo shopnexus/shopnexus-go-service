@@ -4,7 +4,6 @@ import (
 	"crypto/hmac"
 	"crypto/sha512"
 	"encoding/hex"
-	"fmt"
 	"net/url"
 	"sort"
 	"strings"
@@ -30,13 +29,11 @@ func buildSortedQuery(inputData map[string]any) string {
 	for k := range inputData {
 		keys = append(keys, k)
 	}
-	fmt.Printf("Keys: %v\n", keys)
 	sort.Strings(keys) // To ensure consistent ordering
-	fmt.Printf("Sorted keys: %v\n", keys)
 
 	hashData := ""
 	for i, k := range keys {
-		encoded := url.QueryEscape(k) + "=" + string(inputData[k].(string))
+		encoded := url.QueryEscape(k) + "=" + url.QueryEscape(inputData[k].(string))
 		if i == 0 {
 			hashData += encoded
 		} else {
