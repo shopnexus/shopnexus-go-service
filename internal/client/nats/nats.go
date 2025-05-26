@@ -27,7 +27,7 @@ type NATSConfig struct {
 func NewClient(cfg NATSConfig) (Client, error) {
 	opts := []nats.Option{
 		nats.Timeout(cfg.Timeout),
-		nats.Name("ShopNexus NATS Client"),
+		nats.Name("NATS Client"),
 		nats.ReconnectWait(2 * time.Second),
 		nats.MaxReconnects(10),
 	}
