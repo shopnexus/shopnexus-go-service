@@ -6,6 +6,7 @@ import (
 	"shopnexus-go-service/internal/service/product"
 	"shopnexus-go-service/internal/service/s3"
 	"shopnexus-go-service/internal/service/storage"
+	"shopnexus-go-service/internal/service/vnpay"
 )
 
 type Services struct {
@@ -13,6 +14,7 @@ type Services struct {
 	Payment payment.Service
 	Product product.Service
 	S3      s3.Service
+	Vnpay   vnpay.Service
 }
 
 func NewServices() (*Services, error) {
@@ -37,11 +39,16 @@ func NewServices() (*Services, error) {
 	if err != nil {
 		return nil, err
 	}
+	vnpaySvc, err := vnpay.NewService()
+	if err != nil {
+		return nil, err
+	}
 
 	return &Services{
 		Account: accountSvc,
 		Payment: paymentSvc,
 		Product: productSvc,
 		S3:      s3Svc,
+		Vnpay:   vnpaySvc,
 	}, nil
 }
