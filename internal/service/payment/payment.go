@@ -30,8 +30,13 @@ func NewService(
 	}
 
 	// Init payment platforms
-	vnpay := &VnpayPlatform{}
-	s.platforms[PlatformVNPAY] = vnpay
+	vnpayPlatform := &VnpayPlatform{
+		client: vnpay.NewClient(vnpay.ClientOptions{
+			TmnCode:    config.GetConfig().Vnpay.TmnCode,
+			HashSecret: config.GetConfig().Vnpay.HashSecret,
+		}),
+	}
+	s.platforms[PlatformVNPAY] = vnpayPlatform
 
 	return s, nil
 }
