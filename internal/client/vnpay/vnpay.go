@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"net/http"
-	"shopnexus-go-service/config"
 	"time"
 )
 
@@ -34,6 +33,7 @@ type CreateOrderParams struct {
 	PaymentID int64
 	Amount    int64
 	Info      string
+	ReturnUrl string
 }
 
 func (c *ClientImpl) CreateOrder(ctx context.Context, params CreateOrderParams) (url string, err error) {
@@ -55,7 +55,7 @@ func (c *ClientImpl) CreateOrder(ctx context.Context, params CreateOrderParams) 
 	q.Add("vnp_Locale", "vn")
 	q.Add("vnp_OrderInfo", params.Info)
 	q.Add("vnp_OrderType", "billpayment")
-	q.Add("vnp_ReturnUrl", config.GetConfig().App.FrontendUrl+"/payment-resolve")
+	q.Add("vnp_ReturnUrl", params.ReturnUrl)
 	q.Add("vnp_ExpireDate", formatTime(time.Now().Add(30*time.Minute)))
 	q.Add("vnp_TxnRef", fmt.Sprintf("%d", params.PaymentID))
 	// q.Add("vnp_SecureHashType", "HMACSHA512")

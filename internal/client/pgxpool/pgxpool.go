@@ -3,7 +3,6 @@ package pgxpool
 import (
 	"context"
 	"fmt"
-	"shopnexus-go-service/internal/logger"
 
 	"github.com/jackc/pgx/v5/pgconn"
 
@@ -20,6 +19,7 @@ type PgxpoolOptions struct {
 	Database        string `yaml:"database"`
 	MaxConnections  int32  `yaml:"maxConnections"`
 	MaxConnIdleTime int32  `yaml:"maxConnIdleTime"`
+	Sslmode         string `yaml:"sslmode"`
 }
 
 func NewPgxpool(opts PgxpoolOptions) (*pgxpool.Pool, error) {
@@ -33,7 +33,7 @@ func NewPgxpool(opts PgxpoolOptions) (*pgxpool.Pool, error) {
 	// Set maximum number of connections
 	connConfig.MaxConns = opts.MaxConnections
 	connConfig.ConnConfig.OnNotice = func(conn *pgconn.PgConn, notice *pgconn.Notice) {
-		logger.Log.Info("notice", zap.String("message", notice.Message))
+		fmt.Println("notice", zap.String("message", notice.Message))
 	}
 
 	return pgxpool.NewWithConfig(context.Background(), connConfig)
@@ -41,12 +41,13 @@ func NewPgxpool(opts PgxpoolOptions) (*pgxpool.Pool, error) {
 
 func GetConnStr(opts PgxpoolOptions) string {
 	if opts.Url == "" {
-		return fmt.Sprintf("host=%s port=%d user=%s password=%s dbname=%s sslmode=disable",
+		return fmt.Sprintf("host=%s port=%d user=%s password=%s dbname=%s sslmode=%s",
 			opts.Host,
 			opts.Port,
 			opts.Username,
 			opts.Password,
 			opts.Database,
+			opts.Sslmode,
 		)
 	}
 
