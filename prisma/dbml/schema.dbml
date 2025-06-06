@@ -6,21 +6,34 @@ Table Account {
   id BigInt [pk, increment]
   username String [unique, not null]
   password String [not null]
-  role String [not null]
-  custom_permission String
-  avatar_url String
+  type AccountType [not null]
 }
 
 Table Role {
-  name String [pk]
+  id String [pk]
+  description String
+}
+
+Table RoleOnAdmin {
+  admin_id BigInt [not null]
+  role_id String [not null]
+
+  indexes {
+    (admin_id, role_id) [pk]
+  }
+}
+
+Table Permission {
+  id String [pk]
+  description String
 }
 
 Table PermissionOnRole {
-  role String [not null]
-  permission String [not null]
+  role_id String [not null]
+  permission_id String [not null]
 
   indexes {
-    (permission, role) [pk]
+    (role_id, permission_id) [pk]
   }
 }
 
@@ -31,14 +44,13 @@ Table UserAccount {
   gender Gender [not null]
   full_name String [not null, default: '']
   default_address_id BigInt
+  avatar_url String
 }
 
 Table AdminAccount {
   id BigInt [pk]
-}
-
-Table StaffAccount {
-  id BigInt [pk]
+  avatar_url String
+  is_super_admin Boolean [not null, default: false]
 }
 
 Table Address {
@@ -51,7 +63,6 @@ Table Address {
   province String [not null]
   country String [not null]
   date_created DateTime [default: `now()`, not null]
-  date_updated DateTime [default: `now()`, not null]
 }
 
 Table Cart {
@@ -61,7 +72,7 @@ Table Cart {
 Table ItemOnCart {
   cart_id BigInt [not null]
   product_id BigInt [not null]
-  quantity BigInt [not null]
+  quantity Int [not null]
   date_created DateTime [default: `now()`, not null]
 
   indexes {
@@ -105,14 +116,18 @@ Table Comment {
 Table Product {
   id BigInt [pk, increment]
   product_model_id BigInt [not null]
-  quantity BigInt [not null, default: 0]
-  sold BigInt [not null, default: 0]
-  add_price BigInt [not null, default: 0]
+  additional_price BigInt [not null, default: 0]
   is_active Boolean [not null, default: true]
   can_combine Boolean [not null, default: false]
   metadata Json [not null, default: '{}']
   date_created DateTime [default: `now()`, not null]
-  date_updated DateTime [default: `now()`, not null]
+}
+
+Table ProductTracking {
+  id BigInt [pk, increment]
+  product_id BigInt [unique, not null]
+  current_stock BigInt [not null]
+  sold BigInt [not null, default: 0]
 }
 
 Table ProductSerial {
@@ -121,7 +136,6 @@ Table ProductSerial {
   is_sold Boolean [not null, default: false]
   is_active Boolean [not null, default: true]
   date_created DateTime [default: `now()`, not null]
-  date_updated DateTime [default: `now()`, not null]
 }
 
 Table ProductType {
@@ -131,18 +145,21 @@ Table ProductType {
 
 Table Sale {
   id BigInt [pk, increment]
-  tag String
-  product_model_id BigInt
-  brand_id BigInt
+  type SaleType [not null]
+  item_id BigInt [not null]
   date_created DateTime [default: `now()`, not null]
   date_started DateTime [default: `now()`, not null]
   date_ended DateTime
-  quantity BigInt [not null]
-  used BigInt [not null, default: 0]
   is_active Boolean [not null, default: true]
   discount_percent Int
   discount_price BigInt
   max_discount_price BigInt [not null, default: 0]
+}
+
+Table SaleTracking {
+  sale_id BigInt [pk]
+  current_stock BigInt [not null, default: 0]
+  used BigInt [not null]
 }
 
 Table TagOnProductModel {
@@ -155,7 +172,8 @@ Table TagOnProductModel {
 }
 
 Table Tag {
-  tag String [pk]
+  id BigInt [pk, increment]
+  tag String [unique, not null]
   description String [not null, default: '']
 }
 
@@ -172,7 +190,7 @@ Table ProductOnPayment {
   id BigInt [pk, increment]
   payment_id BigInt [not null]
   product_id BigInt [not null]
-  quantity BigInt [not null]
+  quantity Int [not null]
   price BigInt [not null]
   total_price BigInt [not null]
 }
@@ -189,12 +207,17 @@ Table Payment {
 
 Table PaymentVnpay {
   id BigInt [pk]
-  vnp_TxnRef String [not null]
+  vnp_Amount String [not null]
+  vnp_BankCode String [not null]
+  vnp_CardType String [not null]
   vnp_OrderInfo String [not null]
+  vnp_PayDate String [not null]
+  vnp_ResponseCode String [not null]
+  vnp_SecureHash String [not null]
+  vnp_TmnCode String [not null]
   vnp_TransactionNo String [not null]
-  vnp_TransactionDate String [not null]
-  vnp_CreateDate String [not null]
-  vnp_IpAddr String [not null]
+  vnp_TransactionStatus String [not null]
+  vnp_TxnRef String [not null]
 }
 
 Table Refund {
@@ -204,8 +227,9 @@ Table Refund {
   status Status [not null]
   reason String [not null]
   address String [not null]
+  amount BigInt [not null]
+  approved_by_id BigInt
   date_created DateTime [default: `now()`, not null]
-  date_updated DateTime [default: `now()`, not null]
 }
 
 Table Resource {
@@ -216,10 +240,21 @@ Table Resource {
   order Int [not null]
 }
 
+Enum AccountType {
+  USER
+  ADMIN
+}
+
 Enum Gender {
   MALE
   FEMALE
   OTHER
+}
+
+Enum SaleType {
+  TAG
+  PRODUCT_MODEL
+  BRAND
 }
 
 Enum CommentType {
@@ -254,15 +289,17 @@ Enum ResourceType {
   REFUND
 }
 
-Ref: Account.role > Role.name
+Ref: RoleOnAdmin.admin_id > AdminAccount.id [delete: Cascade]
 
-Ref: PermissionOnRole.role > Role.name
+Ref: RoleOnAdmin.role_id > Role.id [delete: Cascade]
+
+Ref: PermissionOnRole.role_id > Role.id
+
+Ref: PermissionOnRole.permission_id > Permission.id
 
 Ref: UserAccount.id - Account.id [delete: Cascade]
 
 Ref: AdminAccount.id - Account.id [delete: Cascade]
-
-Ref: StaffAccount.id - Account.id [delete: Cascade]
 
 Ref: Address.user_id > UserAccount.id [delete: Cascade]
 
@@ -280,13 +317,11 @@ Ref: Comment.account_id > Account.id [delete: Cascade]
 
 Ref: Product.product_model_id > ProductModel.id [delete: Cascade]
 
+Ref: ProductTracking.product_id - Product.id [delete: Cascade]
+
 Ref: ProductSerial.product_id > Product.id [delete: Cascade]
 
-Ref: Sale.tag > Tag.tag [delete: Cascade]
-
-Ref: Sale.product_model_id > ProductModel.id [delete: Cascade]
-
-Ref: Sale.brand_id > Brand.id [delete: Cascade]
+Ref: SaleTracking.sale_id - Sale.id [delete: Cascade]
 
 Ref: TagOnProductModel.product_model_id > ProductModel.id [delete: Cascade]
 
@@ -305,3 +340,5 @@ Ref: Payment.user_id > UserAccount.id [delete: Cascade]
 Ref: PaymentVnpay.id - Payment.id [delete: Cascade]
 
 Ref: Refund.product_on_payment_id > ProductOnPayment.id [delete: Cascade]
+
+Ref: Refund.approved_by_id > AdminAccount.id [delete: Cascade]

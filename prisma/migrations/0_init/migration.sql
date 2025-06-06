@@ -8,7 +8,13 @@ CREATE SCHEMA IF NOT EXISTS "payment";
 CREATE SCHEMA IF NOT EXISTS "product";
 
 -- CreateEnum
+CREATE TYPE "account"."account_type" AS ENUM ('USER', 'ADMIN');
+
+-- CreateEnum
 CREATE TYPE "account"."gender" AS ENUM ('MALE', 'FEMALE', 'OTHER');
+
+-- CreateEnum
+CREATE TYPE "product"."sale_type" AS ENUM ('TAG', 'PRODUCT_MODEL', 'BRAND');
 
 -- CreateEnum
 CREATE TYPE "product"."comment_type" AS ENUM ('PRODUCT_MODEL', 'BRAND', 'COMMENT');
@@ -28,28 +34,42 @@ CREATE TYPE "product"."resource_type" AS ENUM ('BRAND', 'COMMENT', 'PRODUCT_MODE
 -- CreateTable
 CREATE TABLE "account"."base" (
     "id" BIGSERIAL NOT NULL,
-    "username" VARCHAR(50) NOT NULL,
+    "username" VARCHAR(100) NOT NULL,
     "password" VARCHAR(100) NOT NULL,
-    "role" VARCHAR(50) NOT NULL,
-    "custom_permission" VARBIT(100),
-    "avatar_url" VARCHAR(255),
+    "type" "account"."account_type" NOT NULL,
 
     CONSTRAINT "base_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
 CREATE TABLE "account"."role" (
-    "name" VARCHAR(50) NOT NULL,
+    "id" VARCHAR(50) NOT NULL,
 
-    CONSTRAINT "role_pkey" PRIMARY KEY ("name")
+    CONSTRAINT "role_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "account"."role_on_admin" (
+    "admin_id" BIGINT NOT NULL,
+    "role_id" TEXT NOT NULL,
+
+    CONSTRAINT "role_on_admin_pkey" PRIMARY KEY ("admin_id","role_id")
+);
+
+-- CreateTable
+CREATE TABLE "account"."permission" (
+    "id" VARCHAR(100) NOT NULL,
+    "description" TEXT,
+
+    CONSTRAINT "permission_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
 CREATE TABLE "account"."permission_on_role" (
-    "role" VARCHAR(50) NOT NULL,
-    "permission" VARBIT(100) NOT NULL,
+    "role_id" TEXT NOT NULL,
+    "permission_id" TEXT NOT NULL,
 
-    CONSTRAINT "permission_on_role_pkey" PRIMARY KEY ("permission","role")
+    CONSTRAINT "permission_on_role_pkey" PRIMARY KEY ("role_id","permission_id")
 );
 
 -- CreateTable
@@ -60,6 +80,7 @@ CREATE TABLE "account"."user" (
     "gender" "account"."gender" NOT NULL,
     "full_name" VARCHAR(100) NOT NULL DEFAULT '',
     "default_address_id" BIGINT,
+    "avatar_url" VARCHAR(255),
 
     CONSTRAINT "user_pkey" PRIMARY KEY ("id")
 );
@@ -67,15 +88,9 @@ CREATE TABLE "account"."user" (
 -- CreateTable
 CREATE TABLE "account"."admin" (
     "id" BIGINT NOT NULL,
+    "avatar_url" VARCHAR(255),
 
     CONSTRAINT "admin_pkey" PRIMARY KEY ("id")
-);
-
--- CreateTable
-CREATE TABLE "account"."staff" (
-    "id" BIGINT NOT NULL,
-
-    CONSTRAINT "staff_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
@@ -89,7 +104,6 @@ CREATE TABLE "account"."address" (
     "province" TEXT NOT NULL,
     "country" TEXT NOT NULL,
     "date_created" TIMESTAMPTZ(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    "date_updated" TIMESTAMPTZ(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
     CONSTRAINT "address_pkey" PRIMARY KEY ("id")
 );
@@ -105,7 +119,7 @@ CREATE TABLE "account"."cart" (
 CREATE TABLE "account"."item_on_cart" (
     "cart_id" BIGINT NOT NULL,
     "product_id" BIGINT NOT NULL,
-    "quantity" BIGINT NOT NULL,
+    "quantity" INTEGER NOT NULL,
     "date_created" TIMESTAMPTZ(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
     CONSTRAINT "item_on_cart_pkey" PRIMARY KEY ("cart_id","product_id")
@@ -153,16 +167,23 @@ CREATE TABLE "product"."comment" (
 CREATE TABLE "product"."base" (
     "id" BIGSERIAL NOT NULL,
     "product_model_id" BIGINT NOT NULL,
-    "quantity" BIGINT NOT NULL DEFAULT 0,
-    "sold" BIGINT NOT NULL DEFAULT 0,
-    "add_price" BIGINT NOT NULL DEFAULT 0,
+    "additional_price" BIGINT NOT NULL DEFAULT 0,
     "is_active" BOOLEAN NOT NULL DEFAULT true,
     "can_combine" BOOLEAN NOT NULL DEFAULT false,
     "metadata" JSONB NOT NULL DEFAULT '{}',
     "date_created" TIMESTAMPTZ(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    "date_updated" TIMESTAMPTZ(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
     CONSTRAINT "base_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "product"."tracking" (
+    "id" BIGSERIAL NOT NULL,
+    "product_id" BIGINT NOT NULL,
+    "current_stock" BIGINT NOT NULL,
+    "sold" BIGINT NOT NULL DEFAULT 0,
+
+    CONSTRAINT "tracking_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
@@ -171,8 +192,7 @@ CREATE TABLE "product"."serial" (
     "product_id" BIGINT NOT NULL,
     "is_sold" BOOLEAN NOT NULL DEFAULT false,
     "is_active" BOOLEAN NOT NULL DEFAULT true,
-    "date_created" TIMESTAMPTZ(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    "date_updated" TIMESTAMPTZ(3) NOT NULL DEFAULT CURRENT_TIMESTAMP
+    "date_created" TIMESTAMPTZ(3) NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
 -- CreateTable
@@ -186,20 +206,26 @@ CREATE TABLE "product"."type" (
 -- CreateTable
 CREATE TABLE "product"."sale" (
     "id" BIGSERIAL NOT NULL,
-    "tag" TEXT,
-    "product_model_id" BIGINT,
-    "brand_id" BIGINT,
+    "type" "product"."sale_type" NOT NULL,
+    "item_id" BIGINT NOT NULL,
     "date_created" TIMESTAMPTZ(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "date_started" TIMESTAMPTZ(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "date_ended" TIMESTAMPTZ(3),
-    "quantity" BIGINT NOT NULL,
-    "used" BIGINT NOT NULL DEFAULT 0,
     "is_active" BOOLEAN NOT NULL DEFAULT true,
     "discount_percent" INTEGER,
     "discount_price" BIGINT,
     "max_discount_price" BIGINT NOT NULL DEFAULT 0,
 
     CONSTRAINT "sale_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "product"."sale_tracking" (
+    "sale_id" BIGINT NOT NULL,
+    "current_stock" BIGINT NOT NULL DEFAULT 0,
+    "used" BIGINT NOT NULL,
+
+    CONSTRAINT "sale_tracking_pkey" PRIMARY KEY ("sale_id")
 );
 
 -- CreateTable
@@ -212,10 +238,11 @@ CREATE TABLE "product"."tag_on_product_model" (
 
 -- CreateTable
 CREATE TABLE "product"."tag" (
-    "tag" TEXT NOT NULL,
+    "id" BIGSERIAL NOT NULL,
+    "tag" VARCHAR(50) NOT NULL,
     "description" TEXT NOT NULL DEFAULT '',
 
-    CONSTRAINT "tag_pkey" PRIMARY KEY ("tag")
+    CONSTRAINT "tag_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
@@ -231,7 +258,7 @@ CREATE TABLE "payment"."product_on_payment" (
     "id" BIGSERIAL NOT NULL,
     "payment_id" BIGINT NOT NULL,
     "product_id" BIGINT NOT NULL,
-    "quantity" BIGINT NOT NULL,
+    "quantity" INTEGER NOT NULL,
     "price" BIGINT NOT NULL,
     "total_price" BIGINT NOT NULL,
 
@@ -254,12 +281,17 @@ CREATE TABLE "payment"."base" (
 -- CreateTable
 CREATE TABLE "payment"."vnpay" (
     "id" BIGINT NOT NULL,
-    "vnp_TxnRef" TEXT NOT NULL,
+    "vnp_Amount" TEXT NOT NULL,
+    "vnp_BankCode" TEXT NOT NULL,
+    "vnp_CardType" TEXT NOT NULL,
     "vnp_OrderInfo" TEXT NOT NULL,
+    "vnp_PayDate" TEXT NOT NULL,
+    "vnp_ResponseCode" TEXT NOT NULL,
+    "vnp_SecureHash" TEXT NOT NULL,
+    "vnp_TmnCode" TEXT NOT NULL,
     "vnp_TransactionNo" TEXT NOT NULL,
-    "vnp_TransactionDate" TEXT NOT NULL,
-    "vnp_CreateDate" TEXT NOT NULL,
-    "vnp_IpAddr" TEXT NOT NULL,
+    "vnp_TransactionStatus" TEXT NOT NULL,
+    "vnp_TxnRef" TEXT NOT NULL,
 
     CONSTRAINT "vnpay_pkey" PRIMARY KEY ("id")
 );
@@ -272,8 +304,9 @@ CREATE TABLE "payment"."refund" (
     "status" "payment"."status" NOT NULL,
     "reason" TEXT NOT NULL,
     "address" TEXT NOT NULL,
+    "amount" BIGINT NOT NULL,
+    "approved_by_id" BIGINT,
     "date_created" TIMESTAMPTZ(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    "date_updated" TIMESTAMPTZ(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
     CONSTRAINT "refund_pkey" PRIMARY KEY ("id")
 );
@@ -302,7 +335,7 @@ CREATE UNIQUE INDEX "user_phone_key" ON "account"."user"("phone");
 CREATE UNIQUE INDEX "comment_account_id_dest_id_key" ON "product"."comment"("account_id", "dest_id");
 
 -- CreateIndex
-CREATE INDEX "base_product_model_id_sold_idx" ON "product"."base"("product_model_id", "sold");
+CREATE UNIQUE INDEX "tracking_product_id_key" ON "product"."tracking"("product_id");
 
 -- CreateIndex
 CREATE UNIQUE INDEX "serial_serial_id_key" ON "product"."serial"("serial_id");
@@ -310,20 +343,26 @@ CREATE UNIQUE INDEX "serial_serial_id_key" ON "product"."serial"("serial_id");
 -- CreateIndex
 CREATE UNIQUE INDEX "type_name_key" ON "product"."type"("name");
 
--- AddForeignKey
-ALTER TABLE "account"."base" ADD CONSTRAINT "base_role_fkey" FOREIGN KEY ("role") REFERENCES "account"."role"("name") ON DELETE RESTRICT ON UPDATE CASCADE;
+-- CreateIndex
+CREATE UNIQUE INDEX "tag_tag_key" ON "product"."tag"("tag");
 
 -- AddForeignKey
-ALTER TABLE "account"."permission_on_role" ADD CONSTRAINT "permission_on_role_role_fkey" FOREIGN KEY ("role") REFERENCES "account"."role"("name") ON DELETE RESTRICT ON UPDATE CASCADE;
+ALTER TABLE "account"."role_on_admin" ADD CONSTRAINT "role_on_admin_admin_id_fkey" FOREIGN KEY ("admin_id") REFERENCES "account"."admin"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "account"."role_on_admin" ADD CONSTRAINT "role_on_admin_role_id_fkey" FOREIGN KEY ("role_id") REFERENCES "account"."role"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "account"."permission_on_role" ADD CONSTRAINT "permission_on_role_role_id_fkey" FOREIGN KEY ("role_id") REFERENCES "account"."role"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "account"."permission_on_role" ADD CONSTRAINT "permission_on_role_permission_id_fkey" FOREIGN KEY ("permission_id") REFERENCES "account"."permission"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "account"."user" ADD CONSTRAINT "user_id_fkey" FOREIGN KEY ("id") REFERENCES "account"."base"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "account"."admin" ADD CONSTRAINT "admin_id_fkey" FOREIGN KEY ("id") REFERENCES "account"."base"("id") ON DELETE CASCADE ON UPDATE CASCADE;
-
--- AddForeignKey
-ALTER TABLE "account"."staff" ADD CONSTRAINT "staff_id_fkey" FOREIGN KEY ("id") REFERENCES "account"."base"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "account"."address" ADD CONSTRAINT "address_user_id_fkey" FOREIGN KEY ("user_id") REFERENCES "account"."user"("id") ON DELETE CASCADE ON UPDATE CASCADE;
@@ -350,16 +389,13 @@ ALTER TABLE "product"."comment" ADD CONSTRAINT "comment_account_id_fkey" FOREIGN
 ALTER TABLE "product"."base" ADD CONSTRAINT "base_product_model_id_fkey" FOREIGN KEY ("product_model_id") REFERENCES "product"."model"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
+ALTER TABLE "product"."tracking" ADD CONSTRAINT "tracking_product_id_fkey" FOREIGN KEY ("product_id") REFERENCES "product"."base"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
 ALTER TABLE "product"."serial" ADD CONSTRAINT "serial_product_id_fkey" FOREIGN KEY ("product_id") REFERENCES "product"."base"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "product"."sale" ADD CONSTRAINT "sale_tag_fkey" FOREIGN KEY ("tag") REFERENCES "product"."tag"("tag") ON DELETE CASCADE ON UPDATE CASCADE;
-
--- AddForeignKey
-ALTER TABLE "product"."sale" ADD CONSTRAINT "sale_product_model_id_fkey" FOREIGN KEY ("product_model_id") REFERENCES "product"."model"("id") ON DELETE CASCADE ON UPDATE CASCADE;
-
--- AddForeignKey
-ALTER TABLE "product"."sale" ADD CONSTRAINT "sale_brand_id_fkey" FOREIGN KEY ("brand_id") REFERENCES "product"."brand"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+ALTER TABLE "product"."sale_tracking" ADD CONSTRAINT "sale_tracking_sale_id_fkey" FOREIGN KEY ("sale_id") REFERENCES "product"."sale"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "product"."tag_on_product_model" ADD CONSTRAINT "tag_on_product_model_product_model_id_fkey" FOREIGN KEY ("product_model_id") REFERENCES "product"."model"("id") ON DELETE CASCADE ON UPDATE CASCADE;
@@ -387,4 +423,7 @@ ALTER TABLE "payment"."vnpay" ADD CONSTRAINT "vnpay_id_fkey" FOREIGN KEY ("id") 
 
 -- AddForeignKey
 ALTER TABLE "payment"."refund" ADD CONSTRAINT "refund_product_on_payment_id_fkey" FOREIGN KEY ("product_on_payment_id") REFERENCES "payment"."product_on_payment"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "payment"."refund" ADD CONSTRAINT "refund_approved_by_id_fkey" FOREIGN KEY ("approved_by_id") REFERENCES "account"."admin"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
