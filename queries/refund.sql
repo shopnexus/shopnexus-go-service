@@ -48,6 +48,8 @@ WHERE (
     (r.status = sqlc.narg('status') OR sqlc.narg('status') IS NULL) AND
     (r.reason ILIKE '%' || sqlc.narg('reason') || '%' OR sqlc.narg('reason') IS NULL) AND
     (r.address ILIKE '%' || sqlc.narg('address') || '%' OR sqlc.narg('address') IS NULL) AND
+    (r.amount >= sqlc.narg('amount_from') OR sqlc.narg('amount_from') IS NULL) AND
+    (r.amount <= sqlc.narg('amount_to') OR sqlc.narg('amount_to') IS NULL) AND
     (r.date_created >= sqlc.narg('date_created_from') OR sqlc.narg('date_created_from') IS NULL) AND
     (r.date_created <= sqlc.narg('date_created_to') OR sqlc.narg('date_created_to') IS NULL)
 );
@@ -65,6 +67,8 @@ WITH filtered_refund AS (
         (r.status = sqlc.narg('status') OR sqlc.narg('status') IS NULL) AND
         (r.reason ILIKE '%' || sqlc.narg('reason') || '%' OR sqlc.narg('reason') IS NULL) AND
         (r.address ILIKE '%' || sqlc.narg('address') || '%' OR sqlc.narg('address') IS NULL) AND
+        (r.amount >= sqlc.narg('amount_from') OR sqlc.narg('amount_from') IS NULL) AND
+        (r.amount <= sqlc.narg('amount_to') OR sqlc.narg('amount_to') IS NULL) AND
         (r.date_created >= sqlc.narg('date_created_from') OR sqlc.narg('date_created_from') IS NULL) AND
         (r.date_created <= sqlc.narg('date_created_to') OR sqlc.narg('date_created_to') IS NULL)
     )
@@ -92,9 +96,10 @@ INSERT INTO payment.refund (
     method,
     status,
     reason,
-    address
+    address,
+    amount
 ) VALUES (
-    $1, $2, $3, $4, $5
+    $1, $2, $3, $4, $5, $6
 )
 RETURNING *;
 
@@ -104,7 +109,8 @@ SET
     method = COALESCE(sqlc.narg('method'), method),
     status = COALESCE(sqlc.narg('status'), status),
     reason = COALESCE(sqlc.narg('reason'), reason),
-    address = COALESCE(sqlc.narg('address'), address)
+    address = COALESCE(sqlc.narg('address'), address),
+    amount = COALESCE(sqlc.narg('amount'), amount)
 FROM payment.refund
 INNER JOIN payment.product_on_payment pop ON r.product_on_payment_id = pop.id
 INNER JOIN payment.base p ON pop.payment_id = p.id

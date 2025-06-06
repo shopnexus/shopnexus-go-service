@@ -50,7 +50,6 @@ ORDER BY t.id DESC
 LIMIT sqlc.arg('limit')
 OFFSET sqlc.arg('offset');
 
-
 -- name: CountProductModels :one
 SELECT COUNT(id)
 FROM product.model pm

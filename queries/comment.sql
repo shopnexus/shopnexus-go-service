@@ -24,7 +24,7 @@ WHERE
     (account_id = sqlc.narg('account_id') OR sqlc.narg('account_id') IS NULL) AND
     (type = sqlc.narg('type') OR sqlc.narg('type') IS NULL) AND
     (dest_id = sqlc.narg('dest_id') OR sqlc.narg('dest_id') IS NULL) AND
-    (sqlc.narg('body') ILIKE '%' || sqlc.narg('body') || '%' OR sqlc.narg('body') IS NULL) AND
+    (body ILIKE '%' || sqlc.narg('body') || '%' OR sqlc.narg('body') IS NULL) AND
     (upvote >= sqlc.narg('upvote_from') OR sqlc.narg('upvote_from') IS NULL) AND
     (upvote <= sqlc.narg('upvote_to') OR sqlc.narg('upvote_to') IS NULL) AND
     (downvote >= sqlc.narg('downvote_from') OR sqlc.narg('downvote_from') IS NULL) AND
@@ -42,7 +42,7 @@ WITH filtered_comment AS (
         (c.account_id = sqlc.narg('account_id') OR sqlc.narg('account_id') IS NULL) AND
         (c.type = sqlc.narg('type') OR sqlc.narg('type') IS NULL) AND
         (c.dest_id = sqlc.narg('dest_id') OR sqlc.narg('dest_id') IS NULL) AND
-        (c.sqlc.narg('body') ILIKE '%' || sqlc.narg('body') || '%' OR sqlc.narg('body') IS NULL) AND
+        (c.body ILIKE '%' || sqlc.narg('body') || '%' OR sqlc.narg('body') IS NULL) AND
         (c.upvote >= sqlc.narg('upvote_from') OR sqlc.narg('upvote_from') IS NULL) AND
         (c.upvote <= sqlc.narg('upvote_to') OR sqlc.narg('upvote_to') IS NULL) AND
         (c.downvote >= sqlc.narg('downvote_from') OR sqlc.narg('downvote_from') IS NULL) AND
@@ -69,7 +69,6 @@ ORDER BY c.date_created DESC
 LIMIT sqlc.arg('limit')
 OFFSET sqlc.arg('offset');
 
-
 -- name: CreateComment :one
 INSERT INTO product.comment (
     account_id, type, dest_id, body, upvote, downvote, score
@@ -89,7 +88,6 @@ WHERE
     id = $1 AND 
     (account_id = sqlc.narg('account_id') OR sqlc.narg('account_id') IS NULL)
 RETURNING *;
-
 
 -- name: DeleteComment :exec
 DELETE FROM product.comment 

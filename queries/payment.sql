@@ -110,3 +110,37 @@ DELETE FROM payment.base WHERE (
   id = $1 AND
   (user_id = sqlc.narg('user_id') OR sqlc.narg('user_id') IS NULL)
 );
+
+-- name: CreatePaymentVnpay :exec
+INSERT INTO payment.vnpay (
+    id,
+    "vnp_Amount",
+    "vnp_BankCode",
+    "vnp_CardType",
+    "vnp_OrderInfo",
+    "vnp_PayDate",
+    "vnp_ResponseCode",
+    "vnp_SecureHash",
+    "vnp_TmnCode",
+    "vnp_TransactionNo",
+    "vnp_TransactionStatus",
+    "vnp_TxnRef"
+) VALUES (
+    $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12
+);
+
+-- name: UpdatePaymentVnpay :exec
+UPDATE payment.vnpay
+SET
+    "vnp_Amount" = COALESCE(sqlc.narg('vnp_Amount'), "vnp_Amount"),
+    "vnp_BankCode" = COALESCE(sqlc.narg('vnp_BankCode'), "vnp_BankCode"),
+    "vnp_CardType" = COALESCE(sqlc.narg('vnp_CardType'), "vnp_CardType"),
+    "vnp_OrderInfo" = COALESCE(sqlc.narg('vnp_OrderInfo'), "vnp_OrderInfo"),
+    "vnp_PayDate" = COALESCE(sqlc.narg('vnp_PayDate'), "vnp_PayDate"),
+    "vnp_ResponseCode" = COALESCE(sqlc.narg('vnp_ResponseCode'), "vnp_ResponseCode"),
+    "vnp_SecureHash" = COALESCE(sqlc.narg('vnp_SecureHash'), "vnp_SecureHash"),
+    "vnp_TmnCode" = COALESCE(sqlc.narg('vnp_TmnCode'), "vnp_TmnCode"),
+    "vnp_TransactionNo" = COALESCE(sqlc.narg('vnp_TransactionNo'), "vnp_TransactionNo"),
+    "vnp_TransactionStatus" = COALESCE(sqlc.narg('vnp_TransactionStatus'), "vnp_TransactionStatus"),
+    "vnp_TxnRef" = COALESCE(sqlc.narg('vnp_TxnRef'), "vnp_TxnRef")
+WHERE id = $1;

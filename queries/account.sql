@@ -3,22 +3,21 @@ SELECT * FROM "account".base
 WHERE id = $1;
 
 -- name: GetAccountAdmin :one
-SELECT a.*, b.*
+WITH filtered_roles AS (
+  SELECT 
+    r.admin_id,
+    array_agg(r.role_id) as roles
+  FROM "account".role_on_admin r
+  WHERE r.admin_id = $1
+  GROUP BY r.admin_id
+)
+SELECT 
+  a.*,
+  b.*,
+  COALESCE(r.roles, '{}')::text[] as roles
 FROM "account".admin a
 INNER JOIN "account".base b ON a.id = b.id
-WHERE (
-  a.id = sqlc.narg('id') OR
-  b.username = sqlc.narg('username')
-);
-
--- name: GetAccountStaff :one
-SELECT s.*, b.*
-FROM "account".staff s
-INNER JOIN "account".base b ON s.id = b.id
-WHERE (
-  s.id = sqlc.narg('id') OR
-  b.username = sqlc.narg('username')
-);
+LEFT JOIN filtered_roles r ON r.admin_id = a.id;
 
 -- name: GetAccountUser :one
 SELECT u.*, b.*
@@ -33,7 +32,7 @@ WHERE (
 
 -- name: CreateAccountUser :one
 WITH base AS (
-  INSERT INTO "account".base (username, password, role)
+  INSERT INTO "account".base (username, password, type)
   VALUES ($1, $2, 'USER')
   RETURNING id
 )
@@ -44,7 +43,7 @@ RETURNING id;
 
 -- name: CreateAccountAdmin :one
 WITH base AS (
-  INSERT INTO "account".base (username, password, role)
+  INSERT INTO "account".base (username, password, type)
   VALUES ($1, $2, 'ADMIN')
   RETURNING id
 )
@@ -54,22 +53,22 @@ FROM base
 RETURNING id;
 
 -- name: GetRolePermissions :one
-SELECT permission FROM "account".permission_on_role
-INNER JOIN "account".role ON permission_on_role.role = role.name
-WHERE role.name = $1;
+SELECT array_agg(p.id) as permissions 
+FROM "account".permission_on_role p
+INNER JOIN "account".role r ON p.role_id = r.id
+WHERE r.id = $1;
 
--- name: GetCustomPermissions :one
-SELECT custom_permission FROM "account".base
-WHERE 
-id = $1;
+-- name: GetAdminPermissions :one
+SELECT array_agg(DISTINCT p.permission_id) AS permissions
+FROM "account".role_on_admin r
+INNER JOIN "account".permission_on_role p ON r.role_id = p.role_id
+WHERE r.admin_id = $1;
 
 -- name: UpdateAccount :one
 UPDATE "account".base
 SET 
   username = COALESCE(sqlc.narg('username'), username),
-  password = COALESCE(sqlc.narg('password'), password),
-  custom_permission = CASE WHEN sqlc.narg('null_custom_permission') = TRUE THEN NULL ELSE COALESCE(sqlc.narg('custom_permission'), custom_permission) END,
-  avatar_url = COALESCE(sqlc.narg('avatar_url'), avatar_url)
+  password = COALESCE(sqlc.narg('password'), password)
 WHERE id = $1
 RETURNING *;
 
@@ -80,6 +79,23 @@ SET
   phone = COALESCE(sqlc.narg('phone'), phone),
   gender = COALESCE(sqlc.narg('gender'), gender),
   full_name = COALESCE(sqlc.narg('full_name'), full_name),
-  default_address_id = CASE WHEN sqlc.narg('null_default_address_id') = TRUE THEN NULL ELSE COALESCE(sqlc.narg('default_address_id'), default_address_id) END
+  default_address_id = CASE WHEN sqlc.narg('null_default_address_id') = TRUE THEN NULL ELSE COALESCE(sqlc.narg('default_address_id'), default_address_id) END,
+  avatar_url = COALESCE(sqlc.narg('avatar_url'), avatar_url)
 WHERE id = $1
 RETURNING *;
+
+-- name: UpdateAccountAdmin :one
+UPDATE "account".admin
+SET 
+  avatar_url = COALESCE(sqlc.narg('avatar_url'), avatar_url)
+WHERE id = $1
+RETURNING *;
+
+-- name: AddAdminRole :exec
+INSERT INTO "account".role_on_admin (admin_id, role_id)
+VALUES ($1, $2)
+ON CONFLICT (admin_id, role_id) DO NOTHING;
+
+-- name: RemoveAdminRole :exec
+DELETE FROM "account".role_on_admin
+WHERE admin_id = $1 AND role_id = $2;

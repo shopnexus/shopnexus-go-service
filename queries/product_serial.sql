@@ -43,8 +43,7 @@ RETURNING *;
 UPDATE product.serial
 SET
     is_sold = COALESCE(sqlc.narg('is_sold'), is_sold),
-    is_active = COALESCE(sqlc.narg('is_active'), is_active),
-    date_updated = NOW()
+    is_active = COALESCE(sqlc.narg('is_active'), is_active)
 WHERE serial_id = $1;
 
 -- name: DeleteProductSerial :exec
@@ -53,8 +52,7 @@ DELETE FROM product.serial WHERE serial_id = $1;
 -- name: MarkProductSerialsAsSold :exec
 UPDATE product.serial
 SET
-    is_sold = true,
-    date_updated = NOW()
+    is_sold = true
 WHERE serial_id = ANY(sqlc.arg('serial_ids')::text[]);
 
 -- name: GetAvailableProducts :many
