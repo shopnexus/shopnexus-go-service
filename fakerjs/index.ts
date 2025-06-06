@@ -15,119 +15,273 @@ import {
   ProductType,
   Refund,
   ResourceType,
+  AdminAccount,
+  UserAccount,
+  Address,
+  Payment,
+  SaleType,
+  Sale,
+  AccountType,
 } from "../node_modules/.prisma/client";
-import { UserAccount } from "@prisma/client";
 
 type TxPrisma = Omit<
   PrismaClient,
   "$connect" | "$disconnect" | "$on" | "$transaction" | "$use" | "$extends"
 >;
 
-// Role
-const Role = {
-  ADMIN: "ADMIN",
-  STAFF: "STAFF",
-  USER: "USER",
-};
+// Permission enum
+enum Permission {
+  // Product permissions
+  PERMISSION_CREATE_PRODUCT = "PERMISSION_CREATE_PRODUCT",
+  PERMISSION_UPDATE_PRODUCT = "PERMISSION_UPDATE_PRODUCT",
+  PERMISSION_DELETE_PRODUCT = "PERMISSION_DELETE_PRODUCT",
+  PERMISSION_VIEW_PRODUCT = "PERMISSION_VIEW_PRODUCT",
 
-// Helper function to generate random enum values
-const randomEnum = <T>(enumObject: { [key: string]: T }): T => {
-  const values = Object.values(enumObject);
-  return values[Math.floor(Math.random() * values.length)];
-};
+  // Product Model permissions
+  PERMISSION_CREATE_PRODUCT_MODEL = "PERMISSION_CREATE_PRODUCT_MODEL",
+  PERMISSION_UPDATE_PRODUCT_MODEL = "PERMISSION_UPDATE_PRODUCT_MODEL",
+  PERMISSION_DELETE_PRODUCT_MODEL = "PERMISSION_DELETE_PRODUCT_MODEL",
+  PERMISSION_VIEW_PRODUCT_MODEL = "PERMISSION_VIEW_PRODUCT_MODEL",
+
+  // Product Serial permissions
+  PERMISSION_CREATE_PRODUCT_SERIAL = "PERMISSION_CREATE_PRODUCT_SERIAL",
+  PERMISSION_UPDATE_PRODUCT_SERIAL = "PERMISSION_UPDATE_PRODUCT_SERIAL",
+  PERMISSION_DELETE_PRODUCT_SERIAL = "PERMISSION_DELETE_PRODUCT_SERIAL",
+  PERMISSION_VIEW_PRODUCT_SERIAL = "PERMISSION_VIEW_PRODUCT_SERIAL",
+
+  // Sale permissions
+  PERMISSION_CREATE_SALE = "PERMISSION_CREATE_SALE",
+  PERMISSION_UPDATE_SALE = "PERMISSION_UPDATE_SALE",
+  PERMISSION_DELETE_SALE = "PERMISSION_DELETE_SALE",
+  PERMISSION_VIEW_SALE = "PERMISSION_VIEW_SALE",
+
+  // Tag permissions
+  PERMISSION_CREATE_TAG = "PERMISSION_CREATE_TAG",
+  PERMISSION_UPDATE_TAG = "PERMISSION_UPDATE_TAG",
+  PERMISSION_DELETE_TAG = "PERMISSION_DELETE_TAG",
+  PERMISSION_VIEW_TAG = "PERMISSION_VIEW_TAG",
+
+  // Brand permissions
+  PERMISSION_CREATE_BRAND = "PERMISSION_CREATE_BRAND",
+  PERMISSION_UPDATE_BRAND = "PERMISSION_UPDATE_BRAND",
+  PERMISSION_DELETE_BRAND = "PERMISSION_DELETE_BRAND",
+  PERMISSION_VIEW_BRAND = "PERMISSION_VIEW_BRAND",
+
+  // Payment permissions
+  PERMISSION_UPDATE_PAYMENT = "PERMISSION_UPDATE_PAYMENT",
+  PERMISSION_DELETE_PAYMENT = "PERMISSION_DELETE_PAYMENT",
+  PERMISSION_VIEW_PAYMENT = "PERMISSION_VIEW_PAYMENT",
+
+  // Refund permissions
+  PERMISSION_UPDATE_REFUND = "PERMISSION_UPDATE_REFUND",
+  PERMISSION_DELETE_REFUND = "PERMISSION_DELETE_REFUND",
+  PERMISSION_VIEW_REFUND = "PERMISSION_VIEW_REFUND",
+  PERMISSION_APPROVE_REFUND = "PERMISSION_APPROVE_REFUND",
+
+  // Comment permissions
+  PERMISSION_CREATE_COMMENT = "PERMISSION_CREATE_COMMENT",
+  PERMISSION_UPDATE_COMMENT = "PERMISSION_UPDATE_COMMENT",
+  PERMISSION_DELETE_COMMENT = "PERMISSION_DELETE_COMMENT",
+  PERMISSION_VIEW_COMMENT = "PERMISSION_VIEW_COMMENT",
+
+  // User permissions
+  PERMISSION_VIEW_USER = "PERMISSION_VIEW_USER",
+  PERMISSION_UPDATE_USER = "PERMISSION_UPDATE_USER",
+  PERMISSION_DELETE_USER = "PERMISSION_DELETE_USER",
+
+  // Address permissions
+  PERMISSION_VIEW_ADDRESS = "PERMISSION_VIEW_ADDRESS",
+  PERMISSION_UPDATE_ADDRESS = "PERMISSION_UPDATE_ADDRESS",
+  PERMISSION_DELETE_ADDRESS = "PERMISSION_DELETE_ADDRESS",
+}
+
+// Role and Permission definitions
+const ROLES = {
+  PRODUCT_MANAGER: {
+    id: "PRODUCT_MANAGER",
+    description: "Can manage products, models, and brands",
+    permissions: [
+      Permission.PERMISSION_CREATE_PRODUCT,
+      Permission.PERMISSION_UPDATE_PRODUCT,
+      Permission.PERMISSION_DELETE_PRODUCT,
+      Permission.PERMISSION_VIEW_PRODUCT,
+      Permission.PERMISSION_CREATE_PRODUCT_MODEL,
+      Permission.PERMISSION_UPDATE_PRODUCT_MODEL,
+      Permission.PERMISSION_DELETE_PRODUCT_MODEL,
+      Permission.PERMISSION_VIEW_PRODUCT_MODEL,
+      Permission.PERMISSION_CREATE_BRAND,
+      Permission.PERMISSION_UPDATE_BRAND,
+      Permission.PERMISSION_DELETE_BRAND,
+      Permission.PERMISSION_VIEW_BRAND,
+    ],
+  },
+  INVENTORY_MANAGER: {
+    id: "INVENTORY_MANAGER",
+    description: "Can manage inventory and product serials",
+    permissions: [
+      Permission.PERMISSION_CREATE_PRODUCT_SERIAL,
+      Permission.PERMISSION_UPDATE_PRODUCT_SERIAL,
+      Permission.PERMISSION_DELETE_PRODUCT_SERIAL,
+      Permission.PERMISSION_VIEW_PRODUCT_SERIAL,
+      Permission.PERMISSION_VIEW_PRODUCT,
+      Permission.PERMISSION_VIEW_PRODUCT_MODEL,
+    ],
+  },
+  SALE_MANAGER: {
+    id: "SALE_MANAGER",
+    description: "Can manage sales and discounts",
+    permissions: [
+      Permission.PERMISSION_CREATE_SALE,
+      Permission.PERMISSION_UPDATE_SALE,
+      Permission.PERMISSION_DELETE_SALE,
+      Permission.PERMISSION_VIEW_SALE,
+      Permission.PERMISSION_VIEW_PRODUCT,
+      Permission.PERMISSION_VIEW_PRODUCT_MODEL,
+    ],
+  },
+  PAYMENT_MANAGER: {
+    id: "PAYMENT_MANAGER",
+    description: "Can manage payments and refunds",
+    permissions: [
+      Permission.PERMISSION_UPDATE_PAYMENT,
+      Permission.PERMISSION_DELETE_PAYMENT,
+      Permission.PERMISSION_VIEW_PAYMENT,
+      Permission.PERMISSION_UPDATE_REFUND,
+      Permission.PERMISSION_DELETE_REFUND,
+      Permission.PERMISSION_VIEW_REFUND,
+      Permission.PERMISSION_APPROVE_REFUND,
+    ],
+  },
+  CONTENT_MANAGER: {
+    id: "CONTENT_MANAGER",
+    description: "Can manage content (tags, comments)",
+    permissions: [
+      Permission.PERMISSION_CREATE_TAG,
+      Permission.PERMISSION_UPDATE_TAG,
+      Permission.PERMISSION_DELETE_TAG,
+      Permission.PERMISSION_VIEW_TAG,
+      Permission.PERMISSION_CREATE_COMMENT,
+      Permission.PERMISSION_UPDATE_COMMENT,
+      Permission.PERMISSION_DELETE_COMMENT,
+      Permission.PERMISSION_VIEW_COMMENT,
+    ],
+  },
+  USER_MANAGER: {
+    id: "USER_MANAGER",
+    description: "Can manage user accounts and addresses",
+    permissions: [
+      Permission.PERMISSION_VIEW_USER,
+      Permission.PERMISSION_UPDATE_USER,
+      Permission.PERMISSION_DELETE_USER,
+      Permission.PERMISSION_VIEW_ADDRESS,
+      Permission.PERMISSION_UPDATE_ADDRESS,
+      Permission.PERMISSION_DELETE_ADDRESS,
+    ],
+  },
+} as const;
 
 async function createRoles(prisma: TxPrisma) {
-  await prisma.role.createMany({
-    data: [
-      {
-        name: Role.ADMIN,
+  // Create roles
+  for (const role of Object.values(ROLES)) {
+    await prisma.role.create({
+      data: {
+        id: role.id,
+        description: role.description,
       },
-      {
-        name: Role.STAFF,
-      },
-      {
-        name: Role.USER,
-      },
-    ],
-    skipDuplicates: true,
-  });
+    });
+
+    // Create permissions for each role
+    for (const permissionId of role.permissions) {
+      // Create permission if it doesn't exist
+      await prisma.permission.upsert({
+        where: { id: permissionId },
+        create: {
+          id: permissionId,
+          description: `Permission to ${permissionId
+            .replace(/PERMISSION_/g, "")
+            .replace(/_/g, " ")
+            .toLowerCase()}`,
+        },
+        update: {},
+      });
+
+      // Create role-permission relationship
+      await prisma.permissionOnRole.create({
+        data: {
+          role_id: role.id,
+          permission_id: permissionId,
+        },
+      });
+    }
+  }
 }
 
 async function createAccounts(prisma: TxPrisma, count: number) {
-  // Generate Account with UserAccount or AdminAccount
-  const accountsData: Prisma.AccountCreateManyInput[] = [];
+  const adminAccounts: AdminAccount[] = [];
+  const userAccounts: UserAccount[] = [];
 
-  for (let i = 0; i < count; i++) {
-    try {
-      const isAdmin = Math.random() < 0.2; // 20% chance of being admin
-      const username = faker.internet.username();
+  // Create admin accounts
+  for (let i = 0; i < Math.ceil(count * 0.1); i++) {
+    const account = await prisma.account.create({
+      data: {
+        username: `admin${i + 1}`,
+        password: "admin123", // In production, this should be hashed
+        type: AccountType.ADMIN,
+        admin_account: {
+          create: {
+            is_super_admin: i === 0,
+            avatar_url: faker.image.avatar(),
+          },
+        },
+      },
+      include: {
+        admin_account: true,
+      },
+    });
 
-      accountsData.push({
-        username,
-        password: faker.internet.password(),
-        role: isAdmin ? Role.ADMIN : Role.USER,
-      });
-    } catch (error) {
-      if (
-        !(
-          error instanceof Prisma.PrismaClientKnownRequestError &&
-          error.code === "P2002"
-        )
-      ) {
-        throw error;
-      }
-      // Skip if unique constraint error (P2002)
-      continue;
-    }
-  }
+    // Assign random roles to admin
+    const roleIds = Object.keys(ROLES);
+    const numRoles = Math.floor(Math.random() * 3) + 1; // 1-3 roles per admin
+    const selectedRoles = faker.helpers.arrayElements(roleIds, numRoles);
 
-  await prisma.account.createMany({
-    data: accountsData,
-    skipDuplicates: true,
-  });
-
-  // Fetch created accounts to get their IDs
-  const createdAccounts = await prisma.account.findMany({});
-
-  // Prepare admin and user account data
-  const adminAccountsData: Prisma.AdminAccountCreateManyInput[] = [];
-  const userAccountsData: Prisma.UserAccountCreateManyInput[] = [];
-
-  for (const account of createdAccounts) {
-    if (account.role === Role.ADMIN) {
-      adminAccountsData.push({
-        id: account.id,
-      });
-    } else {
-      userAccountsData.push({
-        id: account.id,
-        email: faker.internet.email(),
-        phone: faker.phone.number({ style: "international" }),
-        gender: randomEnum<Gender>({
-          MALE: Gender.MALE,
-          FEMALE: Gender.FEMALE,
-          OTHER: Gender.OTHER,
-        }),
-        full_name: faker.person.fullName(),
-        default_address_id: null,
+    for (const roleId of selectedRoles) {
+      await prisma.roleOnAdmin.create({
+        data: {
+          admin_id: account.id,
+          role_id: roleId,
+        },
       });
     }
+
+    adminAccounts.push(account.admin_account!);
   }
 
-  // Create admin and user accounts in bulk
-  if (adminAccountsData.length > 0) {
-    await prisma.adminAccount.createMany({
-      data: adminAccountsData,
-      skipDuplicates: true,
+  // Create user accounts
+  for (let i = 0; i < Math.floor(count * 0.9); i++) {
+    const account = await prisma.account.create({
+      data: {
+        username: `user${i + 1}`,
+        password: "user123", // In production, this should be hashed
+        type: AccountType.USER,
+        user_account: {
+          create: {
+            email: faker.internet.email(),
+            phone: faker.phone.number(),
+            gender: faker.helpers.enumValue(Gender),
+            full_name: faker.person.fullName(),
+            avatar_url: faker.image.avatar(),
+          },
+        },
+      },
+      include: {
+        user_account: true,
+      },
     });
+
+    userAccounts.push(account.user_account!);
   }
 
-  if (userAccountsData.length > 0) {
-    await prisma.userAccount.createMany({
-      data: userAccountsData,
-      skipDuplicates: true,
-    });
-  }
+  return { adminAccounts, userAccounts };
 }
 
 // Generate Brands
@@ -241,40 +395,46 @@ async function createProducts(
   productModels: ProductModel[],
   count: number
 ) {
-  const productsData = Array.from({ length: count }, () => ({
-    product_model_id:
-      productModels[Math.floor(Math.random() * productModels.length)].id,
-    quantity: BigInt(Math.floor(Math.random() * 100) + 10),
-    sold: BigInt(Math.floor(Math.random() * 5)),
-    add_price: BigInt(Math.floor(Math.random() * 50000)),
-    is_active: Math.random() < 0.9, // 90% chance of being active
-    can_combine: Math.random() < 0.3, // 30% chance of being combinable
-    metadata: {
-      color: faker.color.human(),
-      size: Math.floor(Math.random() * 5) + 1,
-    },
-    date_created: faker.date.recent(),
-    date_updated: faker.date.recent(),
-  }));
+  const products: Product[] = [];
 
-  await prisma.product.createMany({
-    data: productsData,
-    skipDuplicates: true,
-  });
+  for (let i = 0; i < count; i++) {
+    const product = await prisma.product.create({
+      data: {
+        product_model_id:
+          productModels[Math.floor(Math.random() * productModels.length)].id,
+        additional_price: BigInt(Math.floor(Math.random() * 50000)),
+        is_active: Math.random() < 0.9, // 90% chance of being active
+        can_combine: Math.random() < 0.3, // 30% chance of being combinable
+        metadata: {
+          color: faker.color.human(),
+          size: Math.floor(Math.random() * 5) + 1,
+          weight: Math.floor(Math.random() * 1000) + 100, // 100-1100g
+          dimensions: {
+            length: Math.floor(Math.random() * 50) + 10, // 10-60cm
+            width: Math.floor(Math.random() * 30) + 5, // 5-35cm
+            height: Math.floor(Math.random() * 20) + 5, // 5-25cm
+          },
+        },
+        ProductTracking: {
+          create: {
+            current_stock: BigInt(Math.floor(Math.random() * 100) + 10),
+            sold: BigInt(Math.floor(Math.random() * 5)),
+          },
+        },
+      },
+      include: {
+        ProductTracking: true,
+      },
+    });
 
-  const createdProducts = await prisma.product.findMany({ take: count });
-
-  // Create product serials for each product
-  for (const product of createdProducts) {
+    // Create product serials for each product
     const serialsData = Array.from(
-      { length: Number(product.quantity) },
+      { length: Number(product.ProductTracking?.current_stock ?? 0) },
       () => ({
         serial_id: faker.string.alphanumeric(10).toUpperCase(),
         product_id: product.id,
         is_sold: false,
         is_active: true,
-        date_created: product.date_created,
-        date_updated: product.date_updated,
       })
     );
 
@@ -282,9 +442,11 @@ async function createProducts(
       data: serialsData,
       skipDuplicates: true,
     });
+
+    products.push(product);
   }
 
-  return createdProducts;
+  return products;
 }
 
 // Generate Addresses
@@ -293,34 +455,27 @@ async function createAddresses(
   userAccounts: UserAccount[],
   count: number
 ) {
-  // Calculate how many addresses per user (rounded up)
-  const addressesPerUser = Math.ceil(count / userAccounts.length);
-  const addressesData: Prisma.AddressCreateManyInput[] = [];
+  const addresses: Address[] = [];
 
-  // Create addresses for each user
   for (const userAccount of userAccounts) {
-    // Create 1 to addressesPerUser addresses for each user
-    const userAddressCount = Math.floor(Math.random() * addressesPerUser) + 1;
-
-    for (let i = 0; i < userAddressCount && addressesData.length < count; i++) {
-      addressesData.push({
-        user_id: userAccount.id,
-        address: faker.location.streetAddress(),
-        city: faker.location.city(),
-        province: faker.location.state(),
-        country: faker.location.country(),
-        full_name: faker.person.fullName(),
-        phone: faker.phone.number({ style: "international" }),
+    const addressCount = Math.floor(Math.random() * count) + 1;
+    for (let i = 0; i < addressCount; i++) {
+      const address = await prisma.address.create({
+        data: {
+          user_id: userAccount.id,
+          full_name: `User ${userAccount.id}`,
+          phone: userAccount.phone,
+          address: `${Math.floor(Math.random() * 100)} Street`,
+          city: "Ho Chi Minh City",
+          province: "Ho Chi Minh",
+          country: "Vietnam",
+        },
       });
+      addresses.push(address);
     }
   }
 
-  await prisma.address.createMany({
-    data: addressesData,
-    skipDuplicates: true,
-  });
-
-  return await prisma.address.findMany({ take: count });
+  return addresses;
 }
 
 // Generate Carts and Items
@@ -343,7 +498,7 @@ async function createCarts(
       itemOnCartData.push({
         cart_id: userAccount.id,
         product_id: products[Math.floor(Math.random() * products.length)].id,
-        quantity: BigInt(Math.floor(Math.random() * 5) + 1),
+        quantity: Math.floor(Math.random() * 5) + 1,
       });
     }
   }
@@ -367,296 +522,151 @@ async function createCarts(
 async function createSales(
   prisma: TxPrisma,
   productModels: ProductModel[],
-  tags: any[],
+  tags: Tag[],
   brands: Brand[],
   count: number
 ) {
-  const salesData: Prisma.SaleCreateManyInput[] = [];
+  const sales: Sale[] = [];
 
   for (let i = 0; i < count; i++) {
-    const saleType = Math.random();
-    const startDate = faker.date.recent();
-    const endDate = faker.date.future({ refDate: startDate });
-    const ran = Math.random();
-    const discountPercent =
-      ran < 0.7 ? Math.floor(Math.random() * 50) + 5 : null;
-    const discountPrice =
-      ran < 0.3 ? BigInt(Math.floor(Math.random() * 100000) + 10000) : null;
+    const saleType = faker.helpers.enumValue(SaleType);
+    let itemId: bigint;
 
-    salesData.push({
-      tag:
-        saleType < 0.33
-          ? tags[Math.floor(Math.random() * tags.length)].tag
-          : null,
-      product_model_id:
-        saleType >= 0.33 && saleType < 0.66
-          ? productModels[Math.floor(Math.random() * productModels.length)].id
-          : null,
-      brand_id:
-        saleType >= 0.66
-          ? brands[Math.floor(Math.random() * brands.length)].id
-          : null,
-      date_started: startDate,
-      date_ended: endDate,
-      quantity: BigInt(Math.floor(Math.random() * 100) + 10),
-      used: BigInt(Math.floor(Math.random() * 10)),
-      is_active: true,
-      discount_percent: discountPercent,
-      discount_price: discountPrice,
-      max_discount_price: BigInt(Math.floor(Math.random() * 500000) + 50000),
+    // Set item_id based on sale type
+    switch (saleType) {
+      case SaleType.PRODUCT_MODEL:
+        itemId =
+          productModels[Math.floor(Math.random() * productModels.length)].id;
+        break;
+      case SaleType.BRAND:
+        itemId = brands[Math.floor(Math.random() * brands.length)].id;
+        break;
+      case SaleType.TAG:
+        itemId = BigInt(tags[Math.floor(Math.random() * tags.length)].id);
+        break;
+      default:
+        throw new Error(`Invalid sale type: ${saleType}`);
+    }
+
+    const sale = await prisma.sale.create({
+      data: {
+        type: saleType,
+        item_id: itemId,
+        date_started: new Date(),
+        date_ended:
+          Math.random() > 0.5
+            ? new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)
+            : null, // 50% chance of having end date
+        is_active: true,
+        discount_percent:
+          Math.random() > 0.5 ? Math.floor(Math.random() * 50) + 1 : null, // 50% chance of percent discount
+        discount_price:
+          Math.random() > 0.5
+            ? BigInt(Math.floor(Math.random() * 1000000))
+            : null, // 50% chance of fixed discount
+        max_discount_price: BigInt(Math.floor(Math.random() * 2000000)),
+        SaleTracking: {
+          create: {
+            current_stock: BigInt(Math.floor(Math.random() * 100) + 1),
+            used: BigInt(0),
+          },
+        },
+      },
+      include: {
+        SaleTracking: true,
+      },
     });
+
+    sales.push(sale);
   }
 
-  await prisma.sale.createMany({
-    data: salesData,
-    skipDuplicates: true,
-  });
-
-  return await prisma.sale.findMany({ take: count });
+  return sales;
 }
 
 // Generate Payments and ProductOnPayment
 async function createPayments(
   prisma: TxPrisma,
-  userAccounts: any[],
+  userAccounts: UserAccount[],
   products: Product[],
   count: number
 ) {
-  const paymentsData: Prisma.PaymentCreateManyInput[] = [];
-  const productOnPaymentData: Prisma.ProductOnPaymentCreateManyInput[] = [];
-  const productSerialOnProductOnPaymentData: Prisma.ProductSerialOnProductOnPaymentCreateManyInput[] =
-    [];
-  const vnpayData: Prisma.PaymentVnpayCreateManyInput[] = [];
-  const paymentMethods = Object.values(PaymentMethod);
-
-  // First, fetch all available product serials
-  const productSerials = await prisma.productSerial.findMany({
-    where: {
-      is_sold: false,
-      is_active: true,
-    },
-  });
-
-  // Group serials by product_id for easier access
-  const serialsByProduct: Record<string, typeof productSerials> =
-    productSerials.reduce((acc, serial) => {
-      if (!acc[serial.product_id.toString()]) {
-        acc[serial.product_id.toString()] = [];
-      }
-      acc[serial.product_id.toString()].push(serial);
-      return acc;
-    }, {} as Record<string, typeof productSerials>);
+  const payments: Payment[] = [];
 
   for (let i = 0; i < count; i++) {
     const userAccount =
       userAccounts[Math.floor(Math.random() * userAccounts.length)];
-    const method = faker.helpers.arrayElement(paymentMethods);
-    const status: Status = faker.helpers.arrayElement(Object.values(Status));
-    const totalPrice = BigInt(Math.floor(Math.random() * 1000000) + 100000);
+    const productCount = Math.floor(Math.random() * 5) + 1;
+    const selectedProducts = products
+      .sort(() => Math.random() - 0.5)
+      .slice(0, productCount);
 
-    const paymentId = BigInt(i + 1);
-    paymentsData.push({
-      id: paymentId,
-      user_id: userAccount.id,
-      method: method,
-      status: status,
-      address: faker.location.streetAddress(),
-      total: totalPrice,
-      date_created: faker.date.recent(),
+    const payment = await prisma.payment.create({
+      data: {
+        user_id: userAccount.id,
+        method: faker.helpers.enumValue(PaymentMethod),
+        status: faker.helpers.enumValue(Status),
+        address: `Address ${i + 1}`,
+        total: BigInt(Math.floor(Math.random() * 1000000)),
+        products: {
+          create: selectedProducts.map((product) => ({
+            product_id: product.id,
+            quantity: Math.floor(Math.random() * 5) + 1,
+            price: BigInt(Math.floor(Math.random() * 100000)),
+            total_price: BigInt(Math.floor(Math.random() * 1000000)),
+          })),
+        },
+      },
     });
 
-    // Add VNPay data if payment method is VNPAY
-    if (method === PaymentMethod.VNPAY) {
-      vnpayData.push({
-        id: paymentId,
-        vnp_TxnRef: faker.string.alphanumeric(10),
-        vnp_OrderInfo: `Payment for order ${paymentId}`,
-        vnp_TransactionNo: faker.string.numeric(10),
-        vnp_TransactionDate: faker.date.recent().toISOString(),
-        vnp_CreateDate: faker.date.recent().toISOString(),
-        vnp_IpAddr: faker.internet.ip(),
-      });
-    }
+    payments.push(payment);
+  }
 
-    // Filter products that have available serials
-    const availableProducts = products.filter(
-      (p) =>
-        serialsByProduct[p.id.toString()] &&
-        serialsByProduct[p.id.toString()].length > 0
-    );
+  return payments;
+}
 
-    if (availableProducts.length === 0) continue;
+// Generate Refunds
+async function createRefunds(
+  prisma: TxPrisma,
+  payments: Payment[],
+  adminAccounts: AdminAccount[],
+  count: number
+) {
+  const refunds: Refund[] = [];
 
-    // Create 1-3 products per payment
-    const productCount = Math.floor(Math.random() * 3) + 1;
-    const selectedProducts = faker.helpers.arrayElements(
-      availableProducts,
-      Math.min(productCount, availableProducts.length)
-    );
+  for (let i = 0; i < count; i++) {
+    const payment = payments[Math.floor(Math.random() * payments.length)];
+    const productOnPayment = await prisma.productOnPayment.findFirst({
+      where: {
+        payment_id: payment.id,
+      },
+      orderBy: {
+        id: "desc",
+      },
+    });
+    const adminAccount =
+      adminAccounts[Math.floor(Math.random() * adminAccounts.length)];
 
-    for (const product of selectedProducts) {
-      const availableSerials = serialsByProduct[product.id.toString()];
-      if (!availableSerials || availableSerials.length === 0) continue;
-
-      const quantity = BigInt(
-        Math.min(Math.floor(Math.random() * 3) + 1, availableSerials.length)
-      );
-      const price = BigInt(Math.floor(Math.random() * 500000) + 50000);
-      const totalProductPrice = price * quantity;
-
-      const productOnPaymentId = BigInt(productOnPaymentData.length + 1);
-      productOnPaymentData.push({
-        id: productOnPaymentId,
-        payment_id: paymentId,
-        product_id: product.id,
-        quantity: quantity,
-        price: price,
-        total_price: totalProductPrice,
-      });
-
-      // Create serial numbers for successful payments
-      if (status === Status.SUCCESS) {
-        // Take the required number of serials and remove them from available serials
-        const selectedSerials = availableSerials.splice(0, Number(quantity));
-
-        for (const serial of selectedSerials) {
-          productSerialOnProductOnPaymentData.push({
-            product_on_payment_id: productOnPaymentId,
-            product_serial_id: serial.serial_id,
-          });
-
-          // Mark serial as sold
-          await prisma.productSerial.update({
-            where: { serial_id: serial.serial_id },
-            data: { is_sold: true },
-          });
-        }
+    if (productOnPayment) {
+      try {
+        const refund = await prisma.refund.create({
+          data: {
+            product_on_payment_id: productOnPayment.id,
+            method: faker.helpers.enumValue(RefundMethod),
+            status: faker.helpers.enumValue(Status),
+            reason: `Refund reason ${i + 1}`,
+            address: `Refund address ${i + 1}`,
+            amount: BigInt(Math.floor(Math.random() * 1000000)),
+            approved_by_id: adminAccount.id,
+          },
+        });
+        refunds.push(refund);
+      } catch (error) {
+        // skip duplicate refund
       }
     }
   }
 
-  // Bulk create all records
-  if (paymentsData.length > 0) {
-    await prisma.payment.createMany({
-      data: paymentsData,
-      skipDuplicates: true,
-    });
-  }
-
-  if (vnpayData.length > 0) {
-    await prisma.paymentVnpay.createMany({
-      data: vnpayData,
-      skipDuplicates: true,
-    });
-  }
-
-  if (productOnPaymentData.length > 0) {
-    await prisma.productOnPayment.createMany({
-      data: productOnPaymentData,
-      skipDuplicates: true,
-    });
-  }
-
-  if (productSerialOnProductOnPaymentData.length > 0) {
-    await prisma.productSerialOnProductOnPayment.createMany({
-      data: productSerialOnProductOnPaymentData,
-      skipDuplicates: true,
-    });
-  }
-
-  // Set the next value for payment and product_on_payment sequences
-  await prisma.$executeRawUnsafe(
-    `ALTER SEQUENCE payment.base_id_seq RESTART WITH ${BigInt(count + 1)}`
-  );
-  await prisma.$executeRawUnsafe(
-    `ALTER SEQUENCE payment.product_on_payment_id_seq RESTART WITH ${BigInt(
-      productOnPaymentData.length + 1
-    )}`
-  );
-
-  return await prisma.payment.findMany({ take: count });
-}
-
-// Generate Refunds
-async function createRefunds(prisma: TxPrisma, payments: any[], count: number) {
-  const refundsData: Prisma.RefundCreateManyInput[] = [];
-  const resourcesData: Prisma.ResourceCreateManyInput[] = [];
-  const refundMethods = Object.values(RefundMethod);
-  const statuses = Object.values(Status);
-
-  // Only create refunds for successful payments
-  const successfulPayments = payments.filter((p) => p.status === "SUCCESS");
-  const refundCount = Math.min(count, successfulPayments.length);
-
-  // Get all product on payments first
-  const productOnPayments = await prisma.productOnPayment.findMany({
-    where: {
-      payment_id: {
-        in: successfulPayments.map((p) => p.id),
-      },
-    },
-  });
-
-  for (let i = 0; i < refundCount; i++) {
-    const payment = successfulPayments[i];
-    const refundMethod = faker.helpers.arrayElement(refundMethods);
-    const status = faker.helpers.arrayElement(statuses);
-    const availableProductOnPayments = productOnPayments.filter(
-      (pop) => pop.payment_id === payment.id
-    );
-
-    if (availableProductOnPayments.length === 0) continue;
-
-    const refundId = BigInt(i + 1);
-    refundsData.push({
-      id: refundId,
-      product_on_payment_id:
-        availableProductOnPayments[
-          Math.floor(Math.random() * availableProductOnPayments.length)
-        ].id,
-      method: refundMethod,
-      status: "PENDING",
-      reason: faker.lorem.sentence(),
-      address: refundMethod === "PICK_UP" ? faker.location.streetAddress() : "",
-      date_created: faker.date.recent(),
-      date_updated: faker.date.recent(),
-    });
-
-    // Add 0-3 resources per refund
-    const resourceCount = Math.floor(Math.random() * 4);
-    for (let j = 0; j < resourceCount; j++) {
-      resourcesData.push({
-        type: ResourceType.REFUND,
-        owner_id: refundId,
-        url: faker.image.urlPicsumPhotos({ width: 800, height: 600 }),
-        order: j + 1,
-      });
-    }
-  }
-
-  // Create refunds and resources in bulk
-  if (refundsData.length > 0) {
-    await prisma.refund.createMany({
-      data: refundsData,
-      skipDuplicates: true,
-    });
-  }
-
-  if (resourcesData.length > 0) {
-    await prisma.resource.createMany({
-      data: resourcesData,
-      skipDuplicates: true,
-    });
-  }
-
-  // Set the next value for the refund sequence
-  await prisma.$executeRawUnsafe(
-    `ALTER SEQUENCE payment.refund_id_seq RESTART WITH ${BigInt(
-      refundCount + 1
-    )}`
-  );
-
-  return await prisma.refund.findMany({ take: count });
+  return refunds;
 }
 
 // Generate Comments and Resources
@@ -848,9 +858,11 @@ async function main(preset: PresetType = "light") {
     await prisma.$transaction(
       async (tx) => {
         // Create base data
-        await createRoles(tx);
-        await createAccounts(tx, config.accounts);
-        const userAccounts = await tx.userAccount.findMany();
+        const roles = await createRoles(tx);
+        const { adminAccounts, userAccounts } = await createAccounts(
+          tx,
+          config.accounts
+        );
         const brands = await createBrands(tx, config.brands);
         const tags = await createTags(tx, config.tags);
         const productTypes = await createProductTypes(tx, config.productTypes);
@@ -890,6 +902,7 @@ async function main(preset: PresetType = "light") {
         const refunds = await createRefunds(
           tx,
           payments,
+          adminAccounts,
           Math.floor(config.payments * 0.1)
         ); // 10% of payments
         const comments = await createComments(
@@ -961,4 +974,4 @@ const SEED_PRESETS: Record<PresetType, SeedConfig> = {
 };
 
 // You can now call main with different presets
-main("medium"); // or main('medium') or main('heavy')
+main("light"); // or main('medium') or main('heavy')
