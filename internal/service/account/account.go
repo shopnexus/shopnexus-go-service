@@ -297,10 +297,19 @@ type UpdateAccountParams struct {
 }
 
 func (s *ServiceImpl) UpdateAccount(ctx context.Context, params UpdateAccountParams) (model.AccountBase, error) {
+	var hashedPassword *string
+	if params.Password != nil {
+		hash, err := s.CreateHash(*params.Password)
+		if err != nil {
+			return model.AccountBase{}, fmt.Errorf("failed to hash password: %w", err)
+		}
+		hashedPassword = &hash
+	}
+
 	return s.storage.UpdateAccount(ctx, storage.UpdateAccountParams{
 		ID:                   params.ID,
 		Username:             params.Username,
-		Password:             params.Password,
+		Password:             hashedPassword,
 		NullCustomPermission: params.NullCustomPermission,
 		CustomPermission:     params.CustomPermission,
 		AvatarURL:            params.AvatarURL,
