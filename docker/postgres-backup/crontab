@@ -1,0 +1,5 @@
+# Run backup every day at 2 AM
+0 2 * * * /usr/local/bin/backup.sh >> /backups/backup.log 2>&1
+
+# Run initial backup 5 minutes after startup
+@reboot sleep 300 && /usr/local/bin/backup.sh >> /backups/backup.log 2>&1

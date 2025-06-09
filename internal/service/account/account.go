@@ -108,7 +108,7 @@ func (s *ServiceImpl) CreateHash(password string) (string, error) {
 }
 
 type FindAccountParams struct {
-	Role     model.Role
+	Role     model.AccountType
 	UserID   *int64
 	Username *string
 	Email    *string
@@ -156,7 +156,7 @@ func (s *ServiceImpl) FindAccount(ctx context.Context, params FindAccountParams)
 }
 
 type LoginParams struct {
-	Role     model.Role
+	Role     model.AccountType
 	Password string
 	Username *string
 	Email    *string
@@ -226,11 +226,11 @@ func (s *ServiceImpl) Register(ctx context.Context, account model.Account) (stri
 
 type GetPermissionsParams struct {
 	AccountID int64
-	Role      *model.Role
+	Role      *model.AccountType
 }
 
 func (s *ServiceImpl) GetPermissions(ctx context.Context, params GetPermissionsParams) ([]model.Permission, error) {
-	var role model.Role
+	var role model.AccountType
 
 	if params.Role == nil {
 		account, err := s.storage.GetAccount(ctx, model.AccountBase{
@@ -261,7 +261,7 @@ func (s *ServiceImpl) GetPermissions(ctx context.Context, params GetPermissionsP
 
 type HasPermissionParams struct {
 	AccountID   int64
-	Role        *model.Role
+	Role        *model.AccountType
 	Permissions []model.Permission
 }
 

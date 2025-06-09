@@ -17,7 +17,7 @@ WHERE
     (account_id = $1 OR $1 IS NULL) AND
     (type = $2 OR $2 IS NULL) AND
     (dest_id = $3 OR $3 IS NULL) AND
-    ($4 ILIKE '%' || $4 || '%' OR $4 IS NULL) AND
+    (body ILIKE '%' || $4 || '%' OR $4 IS NULL) AND
     (upvote >= $5 OR $5 IS NULL) AND
     (upvote <= $6 OR $6 IS NULL) AND
     (downvote >= $7 OR $7 IS NULL) AND
@@ -32,7 +32,7 @@ type CountCommentsParams struct {
 	AccountID     pgtype.Int8
 	Type          NullProductCommentType
 	DestID        pgtype.Int8
-	Body          interface{}
+	Body          pgtype.Text
 	UpvoteFrom    pgtype.Int8
 	UpvoteTo      pgtype.Int8
 	DownvoteFrom  pgtype.Int8
@@ -188,7 +188,7 @@ WITH filtered_comment AS (
         (c.account_id = $3 OR $3 IS NULL) AND
         (c.type = $4 OR $4 IS NULL) AND
         (c.dest_id = $5 OR $5 IS NULL) AND
-        ($6 ILIKE '%' || $6 || '%' OR $6 IS NULL) AND
+        (c.body ILIKE '%' || $6 || '%' OR $6 IS NULL) AND
         (c.upvote >= $7 OR $7 IS NULL) AND
         (c.upvote <= $8 OR $8 IS NULL) AND
         (c.downvote >= $9 OR $9 IS NULL) AND
@@ -222,7 +222,7 @@ type ListCommentsParams struct {
 	AccountID     pgtype.Int8
 	Type          NullProductCommentType
 	DestID        pgtype.Int8
-	Body          interface{}
+	Body          pgtype.Text
 	UpvoteFrom    pgtype.Int8
 	UpvoteTo      pgtype.Int8
 	DownvoteFrom  pgtype.Int8

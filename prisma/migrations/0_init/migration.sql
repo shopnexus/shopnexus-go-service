@@ -8,13 +8,13 @@ CREATE SCHEMA IF NOT EXISTS "payment";
 CREATE SCHEMA IF NOT EXISTS "product";
 
 -- CreateEnum
-CREATE TYPE "account"."account_type" AS ENUM ('USER', 'ADMIN');
+CREATE TYPE "account"."account_type" AS ENUM ('ACCOUNT_TYPE_USER', 'ACCOUNT_TYPE_ADMIN');
 
 -- CreateEnum
 CREATE TYPE "account"."gender" AS ENUM ('MALE', 'FEMALE', 'OTHER');
 
 -- CreateEnum
-CREATE TYPE "product"."sale_type" AS ENUM ('TAG', 'PRODUCT_MODEL', 'BRAND');
+CREATE TYPE "product"."sale_type" AS ENUM ('SALE_TYPE_TAG', 'SALE_TYPE_PRODUCT_MODEL', 'SALE_TYPE_BRAND');
 
 -- CreateEnum
 CREATE TYPE "product"."comment_type" AS ENUM ('PRODUCT_MODEL', 'BRAND', 'COMMENT');
@@ -35,7 +35,7 @@ CREATE TYPE "product"."resource_type" AS ENUM ('BRAND', 'COMMENT', 'PRODUCT_MODE
 CREATE TABLE "account"."base" (
     "id" BIGSERIAL NOT NULL,
     "username" VARCHAR(100) NOT NULL,
-    "password" VARCHAR(100) NOT NULL,
+    "password" VARCHAR(255) NOT NULL,
     "type" "account"."account_type" NOT NULL,
 
     CONSTRAINT "base_pkey" PRIMARY KEY ("id")
@@ -44,6 +44,7 @@ CREATE TABLE "account"."base" (
 -- CreateTable
 CREATE TABLE "account"."role" (
     "id" VARCHAR(50) NOT NULL,
+    "description" TEXT,
 
     CONSTRAINT "role_pkey" PRIMARY KEY ("id")
 );
@@ -76,11 +77,11 @@ CREATE TABLE "account"."permission_on_role" (
 CREATE TABLE "account"."user" (
     "id" BIGINT NOT NULL,
     "email" VARCHAR(255) NOT NULL,
-    "phone" VARCHAR(20) NOT NULL,
+    "phone" VARCHAR(50) NOT NULL,
     "gender" "account"."gender" NOT NULL,
     "full_name" VARCHAR(100) NOT NULL DEFAULT '',
     "default_address_id" BIGINT,
-    "avatar_url" VARCHAR(255),
+    "avatar_url" VARCHAR(500),
 
     CONSTRAINT "user_pkey" PRIMARY KEY ("id")
 );
@@ -89,6 +90,7 @@ CREATE TABLE "account"."user" (
 CREATE TABLE "account"."admin" (
     "id" BIGINT NOT NULL,
     "avatar_url" VARCHAR(255),
+    "is_super_admin" BOOLEAN NOT NULL DEFAULT false,
 
     CONSTRAINT "admin_pkey" PRIMARY KEY ("id")
 );
@@ -119,7 +121,7 @@ CREATE TABLE "account"."cart" (
 CREATE TABLE "account"."item_on_cart" (
     "cart_id" BIGINT NOT NULL,
     "product_id" BIGINT NOT NULL,
-    "quantity" INTEGER NOT NULL,
+    "quantity" BIGINT NOT NULL,
     "date_created" TIMESTAMPTZ(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
     CONSTRAINT "item_on_cart_pkey" PRIMARY KEY ("cart_id","product_id")
@@ -178,12 +180,11 @@ CREATE TABLE "product"."base" (
 
 -- CreateTable
 CREATE TABLE "product"."tracking" (
-    "id" BIGSERIAL NOT NULL,
     "product_id" BIGINT NOT NULL,
     "current_stock" BIGINT NOT NULL,
     "sold" BIGINT NOT NULL DEFAULT 0,
 
-    CONSTRAINT "tracking_pkey" PRIMARY KEY ("id")
+    CONSTRAINT "tracking_pkey" PRIMARY KEY ("product_id")
 );
 
 -- CreateTable
@@ -258,7 +259,7 @@ CREATE TABLE "payment"."product_on_payment" (
     "id" BIGSERIAL NOT NULL,
     "payment_id" BIGINT NOT NULL,
     "product_id" BIGINT NOT NULL,
-    "quantity" INTEGER NOT NULL,
+    "quantity" BIGINT NOT NULL,
     "price" BIGINT NOT NULL,
     "total_price" BIGINT NOT NULL,
 
@@ -333,9 +334,6 @@ CREATE UNIQUE INDEX "user_phone_key" ON "account"."user"("phone");
 
 -- CreateIndex
 CREATE UNIQUE INDEX "comment_account_id_dest_id_key" ON "product"."comment"("account_id", "dest_id");
-
--- CreateIndex
-CREATE UNIQUE INDEX "tracking_product_id_key" ON "product"."tracking"("product_id");
 
 -- CreateIndex
 CREATE UNIQUE INDEX "serial_serial_id_key" ON "product"."serial"("serial_id");

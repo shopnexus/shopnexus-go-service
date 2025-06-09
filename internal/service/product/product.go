@@ -136,15 +136,15 @@ func (s *ServiceImpl) UpdateProduct(ctx context.Context, params UpdateProductPar
 	defer txStorage.Rollback(ctx)
 
 	if err = s.storage.UpdateProduct(ctx, storage.UpdateProductParams{
-		ID:             params.ID,
-		ProductModelID: params.ProductModelID,
-		Quantity:       params.Quantity,
-		Sold:           params.Sold,
-		AddPrice:       params.AddPrice,
-		CanCombine:     params.CanCombine,
-		IsActive:       params.IsActive,
-		Metadata:       params.Metadata,
-		Resources:      params.Resources,
+		ID:              params.ID,
+		ProductModelID:  params.ProductModelID,
+		Quantity:        params.Quantity,
+		Sold:            params.Sold,
+		AdditionalPrice: params.AddPrice,
+		CanCombine:      params.CanCombine,
+		IsActive:        params.IsActive,
+		Metadata:        params.Metadata,
+		Resources:       params.Resources,
 	}); err != nil {
 		return err
 	}

@@ -65,11 +65,16 @@ WITH new_sale AS (
     ) VALUES (
         $1, $2, $3, $4, $5, $6, $7, $8
     ) RETURNING *
+),
+new_sale_tracking AS (
+    INSERT INTO product.sale_tracking (sale_id, current_stock, used)
+    SELECT id, $9, 0
+    FROM new_sale
+    RETURNING *
 )
-INSERT INTO product.sale_tracking (sale_id, current_stock, used)
-SELECT id, $9, 0
-FROM new_sale
-RETURNING *;
+SELECT ns.*, nst.current_stock, nst.used
+FROM new_sale ns
+JOIN new_sale_tracking nst ON ns.id = nst.sale_id;
 
 -- name: UpdateSale :exec
 UPDATE product.sale

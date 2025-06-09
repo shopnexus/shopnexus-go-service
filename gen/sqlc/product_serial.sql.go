@@ -54,7 +54,7 @@ INSERT INTO product.serial (
     is_sold,
     is_active
 ) VALUES ($1, $2, $3, $4)
-RETURNING serial_id, product_id, is_sold, is_active, date_created, date_updated
+RETURNING serial_id, product_id, is_sold, is_active, date_created
 `
 
 type CreateProductSerialParams struct {
@@ -78,7 +78,6 @@ func (q *Queries) CreateProductSerial(ctx context.Context, arg CreateProductSeri
 		&i.IsSold,
 		&i.IsActive,
 		&i.DateCreated,
-		&i.DateUpdated,
 	)
 	return i, err
 }
@@ -93,7 +92,7 @@ func (q *Queries) DeleteProductSerial(ctx context.Context, serialID string) erro
 }
 
 const getAvailableProducts = `-- name: GetAvailableProducts :many
-SELECT serial_id, product_id, is_sold, is_active, date_created, date_updated
+SELECT serial_id, product_id, is_sold, is_active, date_created
 FROM product.serial
 WHERE (
     product_id = $1 AND
@@ -123,7 +122,6 @@ func (q *Queries) GetAvailableProducts(ctx context.Context, arg GetAvailableProd
 			&i.IsSold,
 			&i.IsActive,
 			&i.DateCreated,
-			&i.DateUpdated,
 		); err != nil {
 			return nil, err
 		}
@@ -136,7 +134,7 @@ func (q *Queries) GetAvailableProducts(ctx context.Context, arg GetAvailableProd
 }
 
 const getProductSerial = `-- name: GetProductSerial :one
-SELECT serial_id, product_id, is_sold, is_active, date_created, date_updated
+SELECT serial_id, product_id, is_sold, is_active, date_created
 FROM product.serial
 WHERE serial_id = $1
 `
@@ -150,13 +148,12 @@ func (q *Queries) GetProductSerial(ctx context.Context, serialID string) (Produc
 		&i.IsSold,
 		&i.IsActive,
 		&i.DateCreated,
-		&i.DateUpdated,
 	)
 	return i, err
 }
 
 const listProductSerials = `-- name: ListProductSerials :many
-SELECT serial_id, product_id, is_sold, is_active, date_created, date_updated
+SELECT serial_id, product_id, is_sold, is_active, date_created
 FROM product.serial
 WHERE (
     (serial_id ILIKE '%' || $1 || '%' OR $1 IS NULL) AND
@@ -206,7 +203,6 @@ func (q *Queries) ListProductSerials(ctx context.Context, arg ListProductSerials
 			&i.IsSold,
 			&i.IsActive,
 			&i.DateCreated,
-			&i.DateUpdated,
 		); err != nil {
 			return nil, err
 		}
@@ -221,8 +217,7 @@ func (q *Queries) ListProductSerials(ctx context.Context, arg ListProductSerials
 const markProductSerialsAsSold = `-- name: MarkProductSerialsAsSold :exec
 UPDATE product.serial
 SET
-    is_sold = true,
-    date_updated = NOW()
+    is_sold = true
 WHERE serial_id = ANY($1::text[])
 `
 
@@ -235,8 +230,7 @@ const updateProductSerial = `-- name: UpdateProductSerial :exec
 UPDATE product.serial
 SET
     is_sold = COALESCE($2, is_sold),
-    is_active = COALESCE($3, is_active),
-    date_updated = NOW()
+    is_active = COALESCE($3, is_active)
 WHERE serial_id = $1
 `
 

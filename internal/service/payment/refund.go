@@ -28,7 +28,7 @@ func (s *ServiceImpl) GetRefund(ctx context.Context, params GetRefundParams) (mo
 type ListRefundsParams struct {
 	model.PaginationParams
 	AccountID          int64
-	Role               model.Role
+	Role               model.AccountType
 	ProductOnPaymentID *int64
 	Method             *model.RefundMethod
 	Status             *model.Status
@@ -137,7 +137,7 @@ func (s *ServiceImpl) CreateRefund(ctx context.Context, params CreateRefundParam
 
 type UpdateRefundParams struct {
 	ID        int64
-	Role      model.Role
+	Role      model.AccountType
 	UserID    int64
 	Method    *model.RefundMethod
 	Status    *model.Status

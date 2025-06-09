@@ -32,7 +32,6 @@ func (r *ServiceImpl) GetAddress(ctx context.Context, params GetAddressParams) (
 		Province:    row.Province,
 		Country:     row.Country,
 		DateCreated: row.DateCreated.Time.UnixMilli(),
-		DateUpdated: row.DateUpdated.Time.UnixMilli(),
 	}, nil
 }
 
@@ -87,7 +86,6 @@ func (r *ServiceImpl) ListAddresses(ctx context.Context, params ListAddressesPar
 			Province:    address.Province,
 			Country:     address.Country,
 			DateCreated: address.DateCreated.Time.UnixMilli(),
-			DateUpdated: address.DateUpdated.Time.UnixMilli(),
 		}
 	}
 
@@ -118,7 +116,6 @@ func (r *ServiceImpl) CreateAddress(ctx context.Context, address model.Address) 
 		Province:    row.Province,
 		Country:     row.Country,
 		DateCreated: row.DateCreated.Time.UnixMilli(),
-		DateUpdated: row.DateUpdated.Time.UnixMilli(),
 	}, nil
 }
 
@@ -158,7 +155,6 @@ func (r *ServiceImpl) UpdateAddress(ctx context.Context, params UpdateAddressPar
 		Province:    row.Province,
 		Country:     row.Country,
 		DateCreated: row.DateCreated.Time.UnixMilli(),
-		DateUpdated: row.DateUpdated.Time.UnixMilli(),
 	}, nil
 }
 

@@ -11,6 +11,48 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
+type AccountAccountType string
+
+const (
+	AccountAccountTypeACCOUNTTYPEUSER  AccountAccountType = "ACCOUNT_TYPE_USER"
+	AccountAccountTypeACCOUNTTYPEADMIN AccountAccountType = "ACCOUNT_TYPE_ADMIN"
+)
+
+func (e *AccountAccountType) Scan(src interface{}) error {
+	switch s := src.(type) {
+	case []byte:
+		*e = AccountAccountType(s)
+	case string:
+		*e = AccountAccountType(s)
+	default:
+		return fmt.Errorf("unsupported scan type for AccountAccountType: %T", src)
+	}
+	return nil
+}
+
+type NullAccountAccountType struct {
+	AccountAccountType AccountAccountType
+	Valid              bool // Valid is true if AccountAccountType is not NULL
+}
+
+// Scan implements the Scanner interface.
+func (ns *NullAccountAccountType) Scan(value interface{}) error {
+	if value == nil {
+		ns.AccountAccountType, ns.Valid = "", false
+		return nil
+	}
+	ns.Valid = true
+	return ns.AccountAccountType.Scan(value)
+}
+
+// Value implements the driver Valuer interface.
+func (ns NullAccountAccountType) Value() (driver.Value, error) {
+	if !ns.Valid {
+		return nil, nil
+	}
+	return string(ns.AccountAccountType), nil
+}
+
 type AccountGender string
 
 const (
@@ -271,6 +313,49 @@ func (ns NullProductResourceType) Value() (driver.Value, error) {
 	return string(ns.ProductResourceType), nil
 }
 
+type ProductSaleType string
+
+const (
+	ProductSaleTypeSALETYPETAG          ProductSaleType = "SALE_TYPE_TAG"
+	ProductSaleTypeSALETYPEPRODUCTMODEL ProductSaleType = "SALE_TYPE_PRODUCT_MODEL"
+	ProductSaleTypeSALETYPEBRAND        ProductSaleType = "SALE_TYPE_BRAND"
+)
+
+func (e *ProductSaleType) Scan(src interface{}) error {
+	switch s := src.(type) {
+	case []byte:
+		*e = ProductSaleType(s)
+	case string:
+		*e = ProductSaleType(s)
+	default:
+		return fmt.Errorf("unsupported scan type for ProductSaleType: %T", src)
+	}
+	return nil
+}
+
+type NullProductSaleType struct {
+	ProductSaleType ProductSaleType
+	Valid           bool // Valid is true if ProductSaleType is not NULL
+}
+
+// Scan implements the Scanner interface.
+func (ns *NullProductSaleType) Scan(value interface{}) error {
+	if value == nil {
+		ns.ProductSaleType, ns.Valid = "", false
+		return nil
+	}
+	ns.Valid = true
+	return ns.ProductSaleType.Scan(value)
+}
+
+// Value implements the driver Valuer interface.
+func (ns NullProductSaleType) Value() (driver.Value, error) {
+	if !ns.Valid {
+		return nil, nil
+	}
+	return string(ns.ProductSaleType), nil
+}
+
 type AccountAddress struct {
 	ID          int64
 	UserID      int64
@@ -281,20 +366,19 @@ type AccountAddress struct {
 	Province    string
 	Country     string
 	DateCreated pgtype.Timestamptz
-	DateUpdated pgtype.Timestamptz
 }
 
 type AccountAdmin struct {
-	ID int64
+	ID           int64
+	AvatarUrl    pgtype.Text
+	IsSuperAdmin bool
 }
 
 type AccountBase struct {
-	ID               int64
-	Username         string
-	Password         string
-	Role             string
-	CustomPermission pgtype.Bits
-	AvatarUrl        pgtype.Text
+	ID       int64
+	Username string
+	Password string
+	Type     AccountAccountType
 }
 
 type AccountCart struct {
@@ -308,17 +392,24 @@ type AccountItemOnCart struct {
 	DateCreated pgtype.Timestamptz
 }
 
+type AccountPermission struct {
+	ID          string
+	Description pgtype.Text
+}
+
 type AccountPermissionOnRole struct {
-	Role       string
-	Permission pgtype.Bits
+	RoleID       string
+	PermissionID string
 }
 
 type AccountRole struct {
-	Name string
+	ID          string
+	Description pgtype.Text
 }
 
-type AccountStaff struct {
-	ID int64
+type AccountRoleOnAdmin struct {
+	AdminID int64
+	RoleID  string
 }
 
 type AccountUser struct {
@@ -328,6 +419,7 @@ type AccountUser struct {
 	Gender           AccountGender
 	FullName         string
 	DefaultAddressID pgtype.Int8
+	AvatarUrl        pgtype.Text
 }
 
 type PaymentBase struct {
@@ -361,31 +453,34 @@ type PaymentRefund struct {
 	Status             PaymentStatus
 	Reason             string
 	Address            string
+	Amount             int64
+	ApprovedByID       pgtype.Int8
 	DateCreated        pgtype.Timestamptz
-	DateUpdated        pgtype.Timestamptz
 }
 
 type PaymentVnpay struct {
-	ID                 int64
-	VnpTxnRef          string
-	VnpOrderInfo       string
-	VnpTransactionNo   string
-	VnpTransactionDate string
-	VnpCreateDate      string
-	VnpIpAddr          string
+	ID                   int64
+	VnpAmount            string
+	VnpBankCode          string
+	VnpCardType          string
+	VnpOrderInfo         string
+	VnpPayDate           string
+	VnpResponseCode      string
+	VnpSecureHash        string
+	VnpTmnCode           string
+	VnpTransactionNo     string
+	VnpTransactionStatus string
+	VnpTxnRef            string
 }
 
 type ProductBase struct {
-	ID             int64
-	ProductModelID int64
-	Quantity       int64
-	Sold           int64
-	AddPrice       int64
-	IsActive       bool
-	CanCombine     bool
-	Metadata       []byte
-	DateCreated    pgtype.Timestamptz
-	DateUpdated    pgtype.Timestamptz
+	ID              int64
+	ProductModelID  int64
+	AdditionalPrice int64
+	IsActive        bool
+	CanCombine      bool
+	Metadata        []byte
+	DateCreated     pgtype.Timestamptz
 }
 
 type ProductBrand struct {
@@ -427,18 +522,21 @@ type ProductResource struct {
 
 type ProductSale struct {
 	ID               int64
-	Tag              pgtype.Text
-	ProductModelID   pgtype.Int8
-	BrandID          pgtype.Int8
+	Type             ProductSaleType
+	ItemID           int64
 	DateCreated      pgtype.Timestamptz
 	DateStarted      pgtype.Timestamptz
 	DateEnded        pgtype.Timestamptz
-	Quantity         int64
-	Used             int64
 	IsActive         bool
 	DiscountPercent  pgtype.Int4
 	DiscountPrice    pgtype.Int8
 	MaxDiscountPrice int64
+}
+
+type ProductSaleTracking struct {
+	SaleID       int64
+	CurrentStock int64
+	Used         int64
 }
 
 type ProductSerial struct {
@@ -447,10 +545,10 @@ type ProductSerial struct {
 	IsSold      bool
 	IsActive    bool
 	DateCreated pgtype.Timestamptz
-	DateUpdated pgtype.Timestamptz
 }
 
 type ProductTag struct {
+	ID          int64
 	Tag         string
 	Description string
 }
@@ -458,6 +556,12 @@ type ProductTag struct {
 type ProductTagOnProductModel struct {
 	ProductModelID int64
 	Tag            string
+}
+
+type ProductTracking struct {
+	ProductID    int64
+	CurrentStock int64
+	Sold         int64
 }
 
 type ProductType struct {

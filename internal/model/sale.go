@@ -1,19 +1,30 @@
 package model
 
+type SaleType string
+
+const (
+	SaleTypeTag          SaleType = "SALE_TYPE_TAG"
+	SaleTypeProductModel SaleType = "SALE_TYPE_PRODUCT_MODEL"
+	SaleTypeBrand        SaleType = "SALE_TYPE_BRAND"
+)
+
 type Sale struct {
-	ID               int64   `json:"id"` /* unique */
-	Tag              *string `json:"tag"`
-	ProductModelID   *int64  `json:"product_model_id"`
-	BrandID          *int64  `json:"brand_id"`
-	DateCreated      int64   `json:"date_created"`
-	DateStarted      int64   `json:"date_started"`
-	DateEnded        *int64  `json:"date_ended"`
-	Quantity         int64   `json:"quantity"`
-	Used             int64   `json:"used"`
-	IsActive         bool    `json:"is_active"`
-	DiscountPercent  *int32  `json:"discount_percent"`
-	DiscountPrice    *int64  `json:"discount_price"`
-	MaxDiscountPrice int64   `json:"max_discount_price"`
+	ID int64 `json:"id"` /* unique */
+
+	Type   SaleType `json:"type"`
+	ItemID int64    `json:"item_id"`
+
+	DateCreated int64  `json:"date_created"`
+	DateStarted int64  `json:"date_started"`
+	DateEnded   *int64 `json:"date_ended"`
+	IsActive    bool   `json:"is_active"`
+
+	DiscountPercent  *int32 `json:"discount_percent"`
+	DiscountPrice    *int64 `json:"discount_price"`
+	MaxDiscountPrice int64  `json:"max_discount_price"`
+
+	CurrentStock int64 `json:"current_stock"`
+	Used         int64 `json:"used"`
 }
 
 // Apply calculates the final sale discount (not the final price)

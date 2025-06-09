@@ -50,8 +50,10 @@ WHERE (
     (r.status = $4 OR $4 IS NULL) AND
     (r.reason ILIKE '%' || $5 || '%' OR $5 IS NULL) AND
     (r.address ILIKE '%' || $6 || '%' OR $6 IS NULL) AND
-    (r.date_created >= $7 OR $7 IS NULL) AND
-    (r.date_created <= $8 OR $8 IS NULL)
+    (r.amount >= $7 OR $7 IS NULL) AND
+    (r.amount <= $8 OR $8 IS NULL) AND
+    (r.date_created >= $9 OR $9 IS NULL) AND
+    (r.date_created <= $10 OR $10 IS NULL)
 )
 `
 
@@ -62,6 +64,8 @@ type CountRefundsParams struct {
 	Status             NullPaymentStatus
 	Reason             pgtype.Text
 	Address            pgtype.Text
+	AmountFrom         pgtype.Int8
+	AmountTo           pgtype.Int8
 	DateCreatedFrom    pgtype.Timestamptz
 	DateCreatedTo      pgtype.Timestamptz
 }
@@ -74,6 +78,8 @@ func (q *Queries) CountRefunds(ctx context.Context, arg CountRefundsParams) (int
 		arg.Status,
 		arg.Reason,
 		arg.Address,
+		arg.AmountFrom,
+		arg.AmountTo,
 		arg.DateCreatedFrom,
 		arg.DateCreatedTo,
 	)
@@ -88,11 +94,12 @@ INSERT INTO payment.refund (
     method,
     status,
     reason,
-    address
+    address,
+    amount
 ) VALUES (
-    $1, $2, $3, $4, $5
+    $1, $2, $3, $4, $5, $6
 )
-RETURNING id, product_on_payment_id, method, status, reason, address, date_created, date_updated
+RETURNING id, product_on_payment_id, method, status, reason, address, amount, approved_by_id, date_created
 `
 
 type CreateRefundParams struct {
@@ -101,6 +108,7 @@ type CreateRefundParams struct {
 	Status             PaymentStatus
 	Reason             string
 	Address            string
+	Amount             int64
 }
 
 func (q *Queries) CreateRefund(ctx context.Context, arg CreateRefundParams) (PaymentRefund, error) {
@@ -110,6 +118,7 @@ func (q *Queries) CreateRefund(ctx context.Context, arg CreateRefundParams) (Pay
 		arg.Status,
 		arg.Reason,
 		arg.Address,
+		arg.Amount,
 	)
 	var i PaymentRefund
 	err := row.Scan(
@@ -119,8 +128,9 @@ func (q *Queries) CreateRefund(ctx context.Context, arg CreateRefundParams) (Pay
 		&i.Status,
 		&i.Reason,
 		&i.Address,
+		&i.Amount,
+		&i.ApprovedByID,
 		&i.DateCreated,
-		&i.DateUpdated,
 	)
 	return i, err
 }
@@ -175,7 +185,7 @@ func (q *Queries) ExistsRefund(ctx context.Context, arg ExistsRefundParams) (boo
 
 const getRefund = `-- name: GetRefund :one
 WITH filtered_refund AS (
-    SELECT r.id, r.product_on_payment_id, r.method, r.status, r.reason, r.address, r.date_created, r.date_updated
+    SELECT r.id, r.product_on_payment_id, r.method, r.status, r.reason, r.address, r.amount, r.approved_by_id, r.date_created
     FROM payment.refund r
     INNER JOIN payment.product_on_payment pop ON r.product_on_payment_id = pop.id
     INNER JOIN payment.base p ON pop.payment_id = p.id
@@ -193,7 +203,7 @@ filtered_resources AS (
     GROUP BY res.owner_id
 )
 SELECT 
-    r.id, r.product_on_payment_id, r.method, r.status, r.reason, r.address, r.date_created, r.date_updated,
+    r.id, r.product_on_payment_id, r.method, r.status, r.reason, r.address, r.amount, r.approved_by_id, r.date_created,
     COALESCE(res.resources, '{}')::text[] AS resources
 FROM filtered_refund r
 LEFT JOIN filtered_resources res ON res.owner_id = r.id
@@ -211,8 +221,9 @@ type GetRefundRow struct {
 	Status             PaymentStatus
 	Reason             string
 	Address            string
+	Amount             int64
+	ApprovedByID       pgtype.Int8
 	DateCreated        pgtype.Timestamptz
-	DateUpdated        pgtype.Timestamptz
 	Resources          []string
 }
 
@@ -226,8 +237,9 @@ func (q *Queries) GetRefund(ctx context.Context, arg GetRefundParams) (GetRefund
 		&i.Status,
 		&i.Reason,
 		&i.Address,
+		&i.Amount,
+		&i.ApprovedByID,
 		&i.DateCreated,
-		&i.DateUpdated,
 		&i.Resources,
 	)
 	return i, err
@@ -235,7 +247,7 @@ func (q *Queries) GetRefund(ctx context.Context, arg GetRefundParams) (GetRefund
 
 const listRefunds = `-- name: ListRefunds :many
 WITH filtered_refund AS (
-    SELECT r.id, r.product_on_payment_id, r.method, r.status, r.reason, r.address, r.date_created, r.date_updated
+    SELECT r.id, r.product_on_payment_id, r.method, r.status, r.reason, r.address, r.amount, r.approved_by_id, r.date_created
     FROM payment.refund r
     INNER JOIN payment.product_on_payment pop ON r.product_on_payment_id = pop.id
     INNER JOIN payment.base p ON pop.payment_id = p.id
@@ -246,8 +258,10 @@ WITH filtered_refund AS (
         (r.status = $6 OR $6 IS NULL) AND
         (r.reason ILIKE '%' || $7 || '%' OR $7 IS NULL) AND
         (r.address ILIKE '%' || $8 || '%' OR $8 IS NULL) AND
-        (r.date_created >= $9 OR $9 IS NULL) AND
-        (r.date_created <= $10 OR $10 IS NULL)
+        (r.amount >= $9 OR $9 IS NULL) AND
+        (r.amount <= $10 OR $10 IS NULL) AND
+        (r.date_created >= $11 OR $11 IS NULL) AND
+        (r.date_created <= $12 OR $12 IS NULL)
     )
 ),
 filtered_resources AS (
@@ -259,7 +273,7 @@ filtered_resources AS (
     GROUP BY res.owner_id
 )
 SELECT 
-    r.id, r.product_on_payment_id, r.method, r.status, r.reason, r.address, r.date_created, r.date_updated,
+    r.id, r.product_on_payment_id, r.method, r.status, r.reason, r.address, r.amount, r.approved_by_id, r.date_created,
     COALESCE(res.resources, '{}')::text[] AS resources
 FROM filtered_refund r
 LEFT JOIN filtered_resources res ON res.owner_id = r.id
@@ -277,6 +291,8 @@ type ListRefundsParams struct {
 	Status             NullPaymentStatus
 	Reason             pgtype.Text
 	Address            pgtype.Text
+	AmountFrom         pgtype.Int8
+	AmountTo           pgtype.Int8
 	DateCreatedFrom    pgtype.Timestamptz
 	DateCreatedTo      pgtype.Timestamptz
 }
@@ -288,8 +304,9 @@ type ListRefundsRow struct {
 	Status             PaymentStatus
 	Reason             string
 	Address            string
+	Amount             int64
+	ApprovedByID       pgtype.Int8
 	DateCreated        pgtype.Timestamptz
-	DateUpdated        pgtype.Timestamptz
 	Resources          []string
 }
 
@@ -303,6 +320,8 @@ func (q *Queries) ListRefunds(ctx context.Context, arg ListRefundsParams) ([]Lis
 		arg.Status,
 		arg.Reason,
 		arg.Address,
+		arg.AmountFrom,
+		arg.AmountTo,
 		arg.DateCreatedFrom,
 		arg.DateCreatedTo,
 	)
@@ -320,8 +339,9 @@ func (q *Queries) ListRefunds(ctx context.Context, arg ListRefundsParams) ([]Lis
 			&i.Status,
 			&i.Reason,
 			&i.Address,
+			&i.Amount,
+			&i.ApprovedByID,
 			&i.DateCreated,
-			&i.DateUpdated,
 			&i.Resources,
 		); err != nil {
 			return nil, err
@@ -340,13 +360,14 @@ SET
     method = COALESCE($2, method),
     status = COALESCE($3, status),
     reason = COALESCE($4, reason),
-    address = COALESCE($5, address)
+    address = COALESCE($5, address),
+    amount = COALESCE($6, amount)
 FROM payment.refund
 INNER JOIN payment.product_on_payment pop ON r.product_on_payment_id = pop.id
 INNER JOIN payment.base p ON pop.payment_id = p.id
 WHERE (
   r.id = $1 AND
-  (p.user_id = $6 OR $6 IS NULL)
+  (p.user_id = $7 OR $7 IS NULL)
 )
 `
 
@@ -356,6 +377,7 @@ type UpdateRefundParams struct {
 	Status  NullPaymentStatus
 	Reason  pgtype.Text
 	Address pgtype.Text
+	Amount  pgtype.Int8
 	UserID  pgtype.Int8
 }
 
@@ -366,6 +388,7 @@ func (q *Queries) UpdateRefund(ctx context.Context, arg UpdateRefundParams) erro
 		arg.Status,
 		arg.Reason,
 		arg.Address,
+		arg.Amount,
 		arg.UserID,
 	)
 	return err

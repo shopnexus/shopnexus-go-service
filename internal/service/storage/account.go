@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"shopnexus-go-service/gen/sqlc"
 	"shopnexus-go-service/internal/model"
-	"shopnexus-go-service/internal/utils/bytes"
+	"shopnexus-go-service/internal/utils/slices"
 
 	"github.com/jackc/pgx/v5/pgtype"
 )
@@ -20,8 +20,7 @@ func (r *ServiceImpl) GetAccountBase(ctx context.Context, accountID int64) (mode
 		ID:       baseRow.ID,
 		Username: baseRow.Username,
 		Password: baseRow.Password,
-		Role:     model.Role(baseRow.Role),
-		Avatar:   PgtypeToPtr[string](baseRow.AvatarUrl),
+		Type:     model.AccountType(baseRow.Type),
 	}, nil
 }
 
@@ -48,14 +47,14 @@ func (r *ServiceImpl) GetAccountUser(ctx context.Context, params GetAccountUserP
 			ID:       userRow.ID,
 			Username: userRow.Username,
 			Password: userRow.Password,
-			Role:     model.Role(userRow.Role),
-			Avatar:   PgtypeToPtr[string](userRow.AvatarUrl),
+			Type:     model.AccountTypeUser,
 		},
 		Email:            userRow.Email,
 		Phone:            userRow.Phone,
 		Gender:           model.Gender(userRow.Gender),
 		FullName:         userRow.FullName,
 		DefaultAddressID: PgtypeToPtr[int64](userRow.DefaultAddressID),
+		AvatarURL:        PgtypeToPtr[string](userRow.AvatarUrl),
 	}, nil
 }
 
@@ -78,8 +77,7 @@ func (r *ServiceImpl) GetAccountAdmin(ctx context.Context, params GetAccountAdmi
 			ID:       adminRow.ID,
 			Username: adminRow.Username,
 			Password: adminRow.Password,
-			Role:     model.Role(adminRow.Role),
-			Avatar:   PgtypeToPtr[string](adminRow.AvatarUrl),
+			Type:     model.AccountTypeAdmin,
 		},
 	}, nil
 }
@@ -88,7 +86,7 @@ func (r *ServiceImpl) GetAccount(ctx context.Context, find model.Account) (accou
 	switch find := find.(type) {
 	case model.AccountBase:
 		// Search by base account info (id && type)
-		accountType := find.Role
+		accountType := find.Type
 
 		if accountType == "" {
 			accountBase, err := r.GetAccountBase(ctx, find.ID)
@@ -96,11 +94,11 @@ func (r *ServiceImpl) GetAccount(ctx context.Context, find model.Account) (accou
 				return nil, err
 			}
 
-			accountType = accountBase.Role
+			accountType = accountBase.Type
 		}
 
 		switch accountType {
-		case model.RoleAdmin:
+		case model.AccountTypeAdmin:
 			admin, err := r.GetAccountAdmin(ctx, GetAccountAdminParams{
 				AccountID: &find.ID,
 				Username:  &find.Username,
@@ -109,7 +107,7 @@ func (r *ServiceImpl) GetAccount(ctx context.Context, find model.Account) (accou
 				return nil, err
 			}
 			account = admin
-		case model.RoleUser:
+		case model.AccountTypeUser:
 			user, err := r.GetAccountUser(ctx, GetAccountUserParams{
 				AccountID: &find.ID,
 			})
@@ -166,8 +164,7 @@ func (r *ServiceImpl) CreateAccount(ctx context.Context, account model.Account) 
 				ID:       id,
 				Username: account.Username,
 				Password: account.Password,
-				Role:     model.RoleUser,
-				Avatar:   account.Avatar,
+				Type:     model.AccountTypeUser,
 			},
 			Email:    account.Email,
 			Phone:    account.Phone,
@@ -188,8 +185,7 @@ func (r *ServiceImpl) CreateAccount(ctx context.Context, account model.Account) 
 				ID:       id,
 				Username: account.Username,
 				Password: account.Password,
-				Role:     model.RoleAdmin,
-				Avatar:   account.Avatar,
+				Type:     model.AccountTypeAdmin,
 			},
 		}, nil
 	default:
@@ -208,12 +204,9 @@ type UpdateAccountParams struct {
 
 func (r *ServiceImpl) UpdateAccount(ctx context.Context, params UpdateAccountParams) (model.AccountBase, error) {
 	row, err := r.sqlc.UpdateAccount(ctx, sqlc.UpdateAccountParams{
-		ID:                   params.ID,
-		Username:             *PtrToPgtype(&pgtype.Text{}, params.Username),
-		Password:             *PtrToPgtype(&pgtype.Text{}, params.Password),
-		NullCustomPermission: params.NullCustomPermission,
-		CustomPermission:     *PtrToPgtype(&pgtype.Bits{}, params.CustomPermission),
-		AvatarUrl:            *PtrToPgtype(&pgtype.Text{}, params.AvatarURL),
+		ID:       params.ID,
+		Username: *PtrToPgtype(&pgtype.Text{}, params.Username),
+		Password: *PtrToPgtype(&pgtype.Text{}, params.Password),
 	})
 	if err != nil {
 		return model.AccountBase{}, err
@@ -221,10 +214,9 @@ func (r *ServiceImpl) UpdateAccount(ctx context.Context, params UpdateAccountPar
 
 	return model.AccountBase{
 		ID:       row.ID,
-		Role:     model.Role(row.Role),
+		Type:     model.AccountType(row.Type),
 		Username: row.Username,
 		Password: row.Password,
-		Avatar:   PgtypeToPtr[string](row.AvatarUrl),
 	}, nil
 }
 
@@ -263,40 +255,14 @@ func (r *ServiceImpl) UpdateAccountUser(ctx context.Context, params UpdateAccoun
 
 type GetPermissionsParams struct {
 	AccountID int64
-	Role      model.Role
+	Role      model.AccountType
 }
 
 func (r *ServiceImpl) GetPermissions(ctx context.Context, params GetPermissionsParams) ([]model.Permission, error) {
-	permissionBits, err := r.sqlc.GetRolePermissions(ctx, string(params.Role))
+	permissions, err := r.sqlc.GetAdminPermissions(ctx, params.AccountID)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to get permissions: %w", err)
 	}
 
-	if !permissionBits.Valid {
-		return nil, fmt.Errorf("role %s does not have any permissions", params.Role)
-	}
-
-	// Get custom permissions
-	customPermissions, err := r.sqlc.GetCustomPermissions(ctx, params.AccountID)
-	if err != nil {
-		return nil, err
-	}
-	if customPermissions.Valid {
-		// Merge custom permissions with role permissions
-		permissionBits.Bytes = bytes.OrByteSlices(permissionBits.Bytes, customPermissions.Bytes)
-	}
-
-	// Convert bit array to permissions slice
-	var permissions []model.Permission
-
-	for i := permissionBits.Len - 1; i >= 0; i-- {
-		byteIndex := i / 8                                            // Find which byte contains the bit
-		bitIndex := 7 - (i % 8)                                       // Find the position within the byte
-		bitValue := (permissionBits.Bytes[byteIndex] >> bitIndex) & 1 // Extract bit value
-		if bitValue == 1 {
-			permissions = append(permissions, model.Permission(permissionBits.Len-i))
-		}
-	}
-
-	return permissions, nil
+	return slices.UnsafeConvertSlice[string, model.Permission](permissions), nil
 }

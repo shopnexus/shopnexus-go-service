@@ -44,7 +44,6 @@ func (r *ServiceImpl) GetRefund(ctx context.Context, params GetRefundParams) (mo
 		Reason:             row.Reason,
 		Address:            row.Address,
 		DateCreated:        row.DateCreated.Time.UnixMilli(),
-		DateUpdated:        row.DateUpdated.Time.UnixMilli(),
 		Resources:          row.Resources,
 	}, nil
 }
@@ -101,7 +100,6 @@ func (r *ServiceImpl) ListRefunds(ctx context.Context, params ListRefundsParams)
 			Reason:             row.Reason,
 			Address:            row.Address,
 			DateCreated:        row.DateCreated.Time.UnixMilli(),
-			DateUpdated:        row.DateUpdated.Time.UnixMilli(),
 			Resources:          row.Resources,
 		})
 	}

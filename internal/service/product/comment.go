@@ -73,7 +73,7 @@ func (s *ServiceImpl) CreateComment(ctx context.Context, params CreateCommentPar
 
 // TODO: always check user only modify their resources
 type UpdateCommentParams struct {
-	Role      model.Role
+	Role      model.AccountType
 	AccountID int64
 	ID        int64
 	Body      *string
@@ -111,7 +111,7 @@ func (s *ServiceImpl) UpdateComment(ctx context.Context, params UpdateCommentPar
 }
 
 type DeleteCommentParams struct {
-	Role      model.Role
+	Role      model.AccountType
 	AccountID int64
 	ID        int64
 }

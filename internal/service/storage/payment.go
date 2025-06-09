@@ -98,7 +98,6 @@ func (r *ServiceImpl) GetPaymentProductSerials(ctx context.Context, productOnPay
 			IsSold:      row.IsSold,
 			IsActive:    row.IsActive,
 			DateCreated: row.DateCreated.Time.UnixMilli(),
-			DateUpdated: row.DateUpdated.Time.UnixMilli(),
 		}
 	}
 

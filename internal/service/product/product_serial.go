@@ -46,7 +46,7 @@ func (s *ServiceImpl) UpdateProductSerial(ctx context.Context, params UpdateProd
 
 type DeleteProductSerialPParams struct {
 	AccountID int64
-	Role      model.Role
+	Role      model.AccountType
 	SerialID  string
 }
 

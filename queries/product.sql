@@ -15,8 +15,10 @@ filtered_resources AS (
 )
 SELECT 
     p.*,
+    pt.*,
     COALESCE(res.resources, '{}')::text[] AS resources
 FROM filtered_product p
+INNER JOIN product.tracking pt ON p.id = pt.product_id
 LEFT JOIN filtered_resources res ON res.owner_id = p.id;
 
 -- name: CountProducts :one
@@ -70,8 +72,10 @@ filtered_resources AS (
 )
 SELECT
     p.*,
+    pt.*,
     COALESCE(res.resources, '{}')::text[] AS resources
 FROM filtered_product p
+INNER JOIN product.tracking pt ON p.id = pt.product_id
 LEFT JOIN filtered_resources res ON res.owner_id = p.id
 ORDER BY date_created DESC
 LIMIT sqlc.arg('limit')

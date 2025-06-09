@@ -52,7 +52,7 @@ func (q *Queries) CountAddresses(ctx context.Context, arg CountAddressesParams) 
 const createAddress = `-- name: CreateAddress :one
 INSERT INTO "account".address (user_id, full_name, phone, address, city, province, country)
 VALUES ($1, $2, $3, $4, $5, $6, $7)
-RETURNING id, user_id, full_name, phone, address, city, province, country, date_created, date_updated
+RETURNING id, user_id, full_name, phone, address, city, province, country, date_created
 `
 
 type CreateAddressParams struct {
@@ -86,7 +86,6 @@ func (q *Queries) CreateAddress(ctx context.Context, arg CreateAddressParams) (A
 		&i.Province,
 		&i.Country,
 		&i.DateCreated,
-		&i.DateUpdated,
 	)
 	return i, err
 }
@@ -97,7 +96,7 @@ WHERE (
   id = $1 AND
   (user_id = $2 OR $2 IS NULL)
 )
-RETURNING id, user_id, full_name, phone, address, city, province, country, date_created, date_updated
+RETURNING id, user_id, full_name, phone, address, city, province, country, date_created
 `
 
 type DeleteAddressParams struct {
@@ -118,13 +117,12 @@ func (q *Queries) DeleteAddress(ctx context.Context, arg DeleteAddressParams) (A
 		&i.Province,
 		&i.Country,
 		&i.DateCreated,
-		&i.DateUpdated,
 	)
 	return i, err
 }
 
 const getAddress = `-- name: GetAddress :one
-SELECT id, user_id, full_name, phone, address, city, province, country, date_created, date_updated FROM "account".address
+SELECT id, user_id, full_name, phone, address, city, province, country, date_created FROM "account".address
 WHERE (
   id = $1 AND 
   (user_id = $2 OR $2 IS NULL)
@@ -149,13 +147,12 @@ func (q *Queries) GetAddress(ctx context.Context, arg GetAddressParams) (Account
 		&i.Province,
 		&i.Country,
 		&i.DateCreated,
-		&i.DateUpdated,
 	)
 	return i, err
 }
 
 const listAddresses = `-- name: ListAddresses :many
-SELECT id, user_id, full_name, phone, address, city, province, country, date_created, date_updated FROM "account".address
+SELECT id, user_id, full_name, phone, address, city, province, country, date_created FROM "account".address
 WHERE (
   (user_id = $1 OR $1 IS NULL) AND
   (full_name ILIKE '%' || $2 || '%' OR $2 IS NULL) AND
@@ -211,7 +208,6 @@ func (q *Queries) ListAddresses(ctx context.Context, arg ListAddressesParams) ([
 			&i.Province,
 			&i.Country,
 			&i.DateCreated,
-			&i.DateUpdated,
 		); err != nil {
 			return nil, err
 		}
@@ -237,7 +233,7 @@ WHERE (
   (user_id = $8 OR $8 IS NULL)
   -- TODO: thêm check user_id cho toàn bộ query (user chỉ đc interact của họ)
 )
-RETURNING id, user_id, full_name, phone, address, city, province, country, date_created, date_updated
+RETURNING id, user_id, full_name, phone, address, city, province, country, date_created
 `
 
 type UpdateAddressParams struct {
@@ -273,7 +269,6 @@ func (q *Queries) UpdateAddress(ctx context.Context, arg UpdateAddressParams) (A
 		&i.Province,
 		&i.Country,
 		&i.DateCreated,
-		&i.DateUpdated,
 	)
 	return i, err
 }

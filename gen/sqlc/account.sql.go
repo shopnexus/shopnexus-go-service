@@ -11,9 +11,25 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
+const addAdminRole = `-- name: AddAdminRole :exec
+INSERT INTO "account".role_on_admin (admin_id, role_id)
+VALUES ($1, $2)
+ON CONFLICT (admin_id, role_id) DO NOTHING
+`
+
+type AddAdminRoleParams struct {
+	AdminID int64
+	RoleID  string
+}
+
+func (q *Queries) AddAdminRole(ctx context.Context, arg AddAdminRoleParams) error {
+	_, err := q.db.Exec(ctx, addAdminRole, arg.AdminID, arg.RoleID)
+	return err
+}
+
 const createAccountAdmin = `-- name: CreateAccountAdmin :one
 WITH base AS (
-  INSERT INTO "account".base (username, password, role)
+  INSERT INTO "account".base (username, password, type)
   VALUES ($1, $2, 'ADMIN')
   RETURNING id
 )
@@ -37,7 +53,7 @@ func (q *Queries) CreateAccountAdmin(ctx context.Context, arg CreateAccountAdmin
 
 const createAccountUser = `-- name: CreateAccountUser :one
 WITH base AS (
-  INSERT INTO "account".base (username, password, role)
+  INSERT INTO "account".base (username, password, type)
   VALUES ($1, $2, 'USER')
   RETURNING id
 )
@@ -71,47 +87,62 @@ func (q *Queries) CreateAccountUser(ctx context.Context, arg CreateAccountUserPa
 }
 
 const getAccountAdmin = `-- name: GetAccountAdmin :one
-SELECT a.id, b.id, b.username, b.password, b.role, b.custom_permission, b.avatar_url
+WITH filtered_roles AS (
+  SELECT 
+    r.admin_id,
+    array_agg(r.role_id) as roles
+  FROM "account".role_on_admin r
+  WHERE r.admin_id = $1
+  GROUP BY r.admin_id
+)
+SELECT 
+  a.id, a.avatar_url, a.is_super_admin,
+  b.id, b.username, b.password, b.type,
+  COALESCE(r.roles, '{}')::text[] as roles
 FROM "account".admin a
 INNER JOIN "account".base b ON a.id = b.id
+LEFT JOIN filtered_roles r ON r.admin_id = a.id
 WHERE (
-  a.id = $1 OR
-  b.username = $2
+  a.id = $2 OR
+  b.username = $3
 )
 `
 
 type GetAccountAdminParams struct {
+	AdminID  int64
 	ID       pgtype.Int8
 	Username pgtype.Text
 }
 
 type GetAccountAdminRow struct {
-	ID               int64
-	ID_2             int64
-	Username         string
-	Password         string
-	Role             string
-	CustomPermission pgtype.Bits
-	AvatarUrl        pgtype.Text
+	ID           int64
+	AvatarUrl    pgtype.Text
+	IsSuperAdmin bool
+	ID_2         int64
+	Username     string
+	Password     string
+	Type         AccountAccountType
+	Roles        []string
 }
 
 func (q *Queries) GetAccountAdmin(ctx context.Context, arg GetAccountAdminParams) (GetAccountAdminRow, error) {
-	row := q.db.QueryRow(ctx, getAccountAdmin, arg.ID, arg.Username)
+	row := q.db.QueryRow(ctx, getAccountAdmin, arg.AdminID, arg.ID, arg.Username)
 	var i GetAccountAdminRow
 	err := row.Scan(
 		&i.ID,
+		&i.AvatarUrl,
+		&i.IsSuperAdmin,
 		&i.ID_2,
 		&i.Username,
 		&i.Password,
-		&i.Role,
-		&i.CustomPermission,
-		&i.AvatarUrl,
+		&i.Type,
+		&i.Roles,
 	)
 	return i, err
 }
 
 const getAccountBase = `-- name: GetAccountBase :one
-SELECT id, username, password, role, custom_permission, avatar_url FROM "account".base
+SELECT id, username, password, type FROM "account".base
 WHERE id = $1
 `
 
@@ -122,55 +153,13 @@ func (q *Queries) GetAccountBase(ctx context.Context, id int64) (AccountBase, er
 		&i.ID,
 		&i.Username,
 		&i.Password,
-		&i.Role,
-		&i.CustomPermission,
-		&i.AvatarUrl,
-	)
-	return i, err
-}
-
-const getAccountStaff = `-- name: GetAccountStaff :one
-SELECT s.id, b.id, b.username, b.password, b.role, b.custom_permission, b.avatar_url
-FROM "account".staff s
-INNER JOIN "account".base b ON s.id = b.id
-WHERE (
-  s.id = $1 OR
-  b.username = $2
-)
-`
-
-type GetAccountStaffParams struct {
-	ID       pgtype.Int8
-	Username pgtype.Text
-}
-
-type GetAccountStaffRow struct {
-	ID               int64
-	ID_2             int64
-	Username         string
-	Password         string
-	Role             string
-	CustomPermission pgtype.Bits
-	AvatarUrl        pgtype.Text
-}
-
-func (q *Queries) GetAccountStaff(ctx context.Context, arg GetAccountStaffParams) (GetAccountStaffRow, error) {
-	row := q.db.QueryRow(ctx, getAccountStaff, arg.ID, arg.Username)
-	var i GetAccountStaffRow
-	err := row.Scan(
-		&i.ID,
-		&i.ID_2,
-		&i.Username,
-		&i.Password,
-		&i.Role,
-		&i.CustomPermission,
-		&i.AvatarUrl,
+		&i.Type,
 	)
 	return i, err
 }
 
 const getAccountUser = `-- name: GetAccountUser :one
-SELECT u.id, u.email, u.phone, u.gender, u.full_name, u.default_address_id, b.id, b.username, b.password, b.role, b.custom_permission, b.avatar_url
+SELECT u.id, u.email, u.phone, u.gender, u.full_name, u.default_address_id, u.avatar_url, b.id, b.username, b.password, b.type
 FROM "account".user u
 INNER JOIN "account".base b ON u.id = b.id
 WHERE (
@@ -195,12 +184,11 @@ type GetAccountUserRow struct {
 	Gender           AccountGender
 	FullName         string
 	DefaultAddressID pgtype.Int8
+	AvatarUrl        pgtype.Text
 	ID_2             int64
 	Username         string
 	Password         string
-	Role             string
-	CustomPermission pgtype.Bits
-	AvatarUrl        pgtype.Text
+	Type             AccountAccountType
 }
 
 func (q *Queries) GetAccountUser(ctx context.Context, arg GetAccountUserParams) (GetAccountUserRow, error) {
@@ -218,80 +206,102 @@ func (q *Queries) GetAccountUser(ctx context.Context, arg GetAccountUserParams) 
 		&i.Gender,
 		&i.FullName,
 		&i.DefaultAddressID,
+		&i.AvatarUrl,
 		&i.ID_2,
 		&i.Username,
 		&i.Password,
-		&i.Role,
-		&i.CustomPermission,
-		&i.AvatarUrl,
+		&i.Type,
 	)
 	return i, err
 }
 
-const getCustomPermissions = `-- name: GetCustomPermissions :one
-SELECT custom_permission FROM "account".base
-WHERE 
-id = $1
+const getAdminPermissions = `-- name: GetAdminPermissions :one
+SELECT array_agg(DISTINCT p.permission_id)::TEXT[] AS permissions
+FROM "account".role_on_admin r
+INNER JOIN "account".permission_on_role p ON r.role_id = p.role_id
+WHERE r.admin_id = $1
 `
 
-func (q *Queries) GetCustomPermissions(ctx context.Context, id int64) (pgtype.Bits, error) {
-	row := q.db.QueryRow(ctx, getCustomPermissions, id)
-	var custom_permission pgtype.Bits
-	err := row.Scan(&custom_permission)
-	return custom_permission, err
+func (q *Queries) GetAdminPermissions(ctx context.Context, adminID int64) ([]string, error) {
+	row := q.db.QueryRow(ctx, getAdminPermissions, adminID)
+	var permissions []string
+	err := row.Scan(&permissions)
+	return permissions, err
 }
 
 const getRolePermissions = `-- name: GetRolePermissions :one
-SELECT permission FROM "account".permission_on_role
-INNER JOIN "account".role ON permission_on_role.role = role.name
-WHERE role.name = $1
+SELECT array_agg(p.permission_id) as permissions
+FROM "account".permission_on_role p
+INNER JOIN "account".role r ON p.role_id = r.id
+WHERE r.id = $1
 `
 
-func (q *Queries) GetRolePermissions(ctx context.Context, name string) (pgtype.Bits, error) {
-	row := q.db.QueryRow(ctx, getRolePermissions, name)
-	var permission pgtype.Bits
-	err := row.Scan(&permission)
-	return permission, err
+func (q *Queries) GetRolePermissions(ctx context.Context, id string) (interface{}, error) {
+	row := q.db.QueryRow(ctx, getRolePermissions, id)
+	var permissions interface{}
+	err := row.Scan(&permissions)
+	return permissions, err
+}
+
+const removeAdminRole = `-- name: RemoveAdminRole :exec
+DELETE FROM "account".role_on_admin
+WHERE admin_id = $1 AND role_id = $2
+`
+
+type RemoveAdminRoleParams struct {
+	AdminID int64
+	RoleID  string
+}
+
+func (q *Queries) RemoveAdminRole(ctx context.Context, arg RemoveAdminRoleParams) error {
+	_, err := q.db.Exec(ctx, removeAdminRole, arg.AdminID, arg.RoleID)
+	return err
 }
 
 const updateAccount = `-- name: UpdateAccount :one
 UPDATE "account".base
 SET 
   username = COALESCE($2, username),
-  password = COALESCE($3, password),
-  custom_permission = CASE WHEN $4 = TRUE THEN NULL ELSE COALESCE($5, custom_permission) END,
-  avatar_url = COALESCE($6, avatar_url)
+  password = COALESCE($3, password)
 WHERE id = $1
-RETURNING id, username, password, role, custom_permission, avatar_url
+RETURNING id, username, password, type
 `
 
 type UpdateAccountParams struct {
-	ID                   int64
-	Username             pgtype.Text
-	Password             pgtype.Text
-	NullCustomPermission interface{}
-	CustomPermission     pgtype.Bits
-	AvatarUrl            pgtype.Text
+	ID       int64
+	Username pgtype.Text
+	Password pgtype.Text
 }
 
 func (q *Queries) UpdateAccount(ctx context.Context, arg UpdateAccountParams) (AccountBase, error) {
-	row := q.db.QueryRow(ctx, updateAccount,
-		arg.ID,
-		arg.Username,
-		arg.Password,
-		arg.NullCustomPermission,
-		arg.CustomPermission,
-		arg.AvatarUrl,
-	)
+	row := q.db.QueryRow(ctx, updateAccount, arg.ID, arg.Username, arg.Password)
 	var i AccountBase
 	err := row.Scan(
 		&i.ID,
 		&i.Username,
 		&i.Password,
-		&i.Role,
-		&i.CustomPermission,
-		&i.AvatarUrl,
+		&i.Type,
 	)
+	return i, err
+}
+
+const updateAccountAdmin = `-- name: UpdateAccountAdmin :one
+UPDATE "account".admin
+SET 
+  avatar_url = COALESCE($2, avatar_url)
+WHERE id = $1
+RETURNING id, avatar_url, is_super_admin
+`
+
+type UpdateAccountAdminParams struct {
+	ID        int64
+	AvatarUrl pgtype.Text
+}
+
+func (q *Queries) UpdateAccountAdmin(ctx context.Context, arg UpdateAccountAdminParams) (AccountAdmin, error) {
+	row := q.db.QueryRow(ctx, updateAccountAdmin, arg.ID, arg.AvatarUrl)
+	var i AccountAdmin
+	err := row.Scan(&i.ID, &i.AvatarUrl, &i.IsSuperAdmin)
 	return i, err
 }
 
@@ -302,9 +312,10 @@ SET
   phone = COALESCE($3, phone),
   gender = COALESCE($4, gender),
   full_name = COALESCE($5, full_name),
-  default_address_id = CASE WHEN $6 = TRUE THEN NULL ELSE COALESCE($7, default_address_id) END
+  default_address_id = CASE WHEN $6 = TRUE THEN NULL ELSE COALESCE($7, default_address_id) END,
+  avatar_url = COALESCE($8, avatar_url)
 WHERE id = $1
-RETURNING id, email, phone, gender, full_name, default_address_id
+RETURNING id, email, phone, gender, full_name, default_address_id, avatar_url
 `
 
 type UpdateAccountUserParams struct {
@@ -315,6 +326,7 @@ type UpdateAccountUserParams struct {
 	FullName             pgtype.Text
 	NullDefaultAddressID interface{}
 	DefaultAddressID     pgtype.Int8
+	AvatarUrl            pgtype.Text
 }
 
 func (q *Queries) UpdateAccountUser(ctx context.Context, arg UpdateAccountUserParams) (AccountUser, error) {
@@ -326,6 +338,7 @@ func (q *Queries) UpdateAccountUser(ctx context.Context, arg UpdateAccountUserPa
 		arg.FullName,
 		arg.NullDefaultAddressID,
 		arg.DefaultAddressID,
+		arg.AvatarUrl,
 	)
 	var i AccountUser
 	err := row.Scan(
@@ -335,6 +348,7 @@ func (q *Queries) UpdateAccountUser(ctx context.Context, arg UpdateAccountUserPa
 		&i.Gender,
 		&i.FullName,
 		&i.DefaultAddressID,
+		&i.AvatarUrl,
 	)
 	return i, err
 }

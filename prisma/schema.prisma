@@ -30,8 +30,8 @@ model Account {
 }
 
 enum AccountType {
-  USER
-  ADMIN
+  ACCOUNT_TYPE_USER
+  ACCOUNT_TYPE_ADMIN
 
   @@map("account_type")
   @@schema("account")
@@ -144,7 +144,7 @@ model Cart {
 model ItemOnCart {
   cart_id      BigInt
   product_id   BigInt
-  quantity     Int
+  quantity     BigInt
   date_created DateTime @default(now()) @db.Timestamptz(3)
 
   cart    Cart    @relation(fields: [cart_id], references: [id], onUpdate: Cascade, onDelete: Cascade)
@@ -237,8 +237,7 @@ model Product {
 }
 
 model ProductTracking {
-  id            BigInt @id @default(autoincrement())
-  product_id    BigInt @unique
+  product_id    BigInt @id
   current_stock BigInt // Current stock of this product, 0 means out of stock
   sold          BigInt @default(0)
 
@@ -296,9 +295,9 @@ model Sale {
 }
 
 enum SaleType {
-  TAG
-  PRODUCT_MODEL
-  BRAND
+  SALE_TYPE_TAG
+  SALE_TYPE_PRODUCT_MODEL
+  SALE_TYPE_BRAND
 
   @@map("sale_type")
   @@schema("product")
@@ -365,7 +364,7 @@ model ProductOnPayment {
   id          BigInt @id @default(autoincrement())
   payment_id  BigInt
   product_id  BigInt
-  quantity    Int
+  quantity    BigInt
   price       BigInt // single product list price, not applied discount yet
   total_price BigInt // total price of all products, after discount applied
 

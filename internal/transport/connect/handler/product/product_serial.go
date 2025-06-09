@@ -89,7 +89,7 @@ func (s *ImplementedProductServiceHandler) DeleteProductSerial(ctx context.Conte
 
 	err = s.service.DeleteProductSerial(ctx, product.DeleteProductSerialPParams{
 		AccountID: claims.UserID,
-		Role:      model.Role(claims.Role),
+		Role:      model.AccountType(claims.Role),
 		SerialID:  req.Msg.SerialId,
 	})
 	if err != nil {

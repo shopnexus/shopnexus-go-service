@@ -12,13 +12,13 @@ import (
 )
 
 type Options struct {
-	Roles       []model.Role
+	Roles       []model.AccountType
 	Permissions []model.Permission
 }
 
 type Option func(*Options)
 
-func NeedRoles(roles ...model.Role) Option {
+func NeedRoles(roles ...model.AccountType) Option {
 	return func(ro *Options) {
 		ro.Roles = roles
 	}
@@ -91,7 +91,7 @@ func validatePermissions(ctx context.Context, req connect.AnyRequest, accountSvc
 }
 
 // checkUserRole verifies if the user has one of the required roles
-func checkUserRole(claims model.Claims, requiredRoles []model.Role) error {
+func checkUserRole(claims model.Claims, requiredRoles []model.AccountType) error {
 	if !slices.Contains(requiredRoles, claims.Role) {
 		return connect.NewError(connect.CodePermissionDenied, model.ErrPermissionDenied)
 	}

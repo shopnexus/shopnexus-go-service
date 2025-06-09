@@ -17,7 +17,11 @@ SELECT
   COALESCE(r.roles, '{}')::text[] as roles
 FROM "account".admin a
 INNER JOIN "account".base b ON a.id = b.id
-LEFT JOIN filtered_roles r ON r.admin_id = a.id;
+LEFT JOIN filtered_roles r ON r.admin_id = a.id
+WHERE (
+  a.id = sqlc.narg('id') OR
+  b.username = sqlc.narg('username')
+);
 
 -- name: GetAccountUser :one
 SELECT u.*, b.*
@@ -53,13 +57,13 @@ FROM base
 RETURNING id;
 
 -- name: GetRolePermissions :one
-SELECT array_agg(p.id) as permissions 
+SELECT array_agg(p.permission_id) as permissions
 FROM "account".permission_on_role p
 INNER JOIN "account".role r ON p.role_id = r.id
 WHERE r.id = $1;
 
 -- name: GetAdminPermissions :one
-SELECT array_agg(DISTINCT p.permission_id) AS permissions
+SELECT array_agg(DISTINCT p.permission_id)::TEXT[] AS permissions
 FROM "account".role_on_admin r
 INNER JOIN "account".permission_on_role p ON r.role_id = p.role_id
 WHERE r.admin_id = $1;

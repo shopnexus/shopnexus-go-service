@@ -109,6 +109,58 @@ type CreatePaymentProductsParams struct {
 	TotalPrice int64
 }
 
+const createPaymentVnpay = `-- name: CreatePaymentVnpay :exec
+INSERT INTO payment.vnpay (
+    id,
+    "vnp_Amount",
+    "vnp_BankCode",
+    "vnp_CardType",
+    "vnp_OrderInfo",
+    "vnp_PayDate",
+    "vnp_ResponseCode",
+    "vnp_SecureHash",
+    "vnp_TmnCode",
+    "vnp_TransactionNo",
+    "vnp_TransactionStatus",
+    "vnp_TxnRef"
+) VALUES (
+    $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12
+)
+`
+
+type CreatePaymentVnpayParams struct {
+	ID                   int64
+	VnpAmount            string
+	VnpBankCode          string
+	VnpCardType          string
+	VnpOrderInfo         string
+	VnpPayDate           string
+	VnpResponseCode      string
+	VnpSecureHash        string
+	VnpTmnCode           string
+	VnpTransactionNo     string
+	VnpTransactionStatus string
+	VnpTxnRef            string
+}
+
+func (q *Queries) CreatePaymentVnpay(ctx context.Context, arg CreatePaymentVnpayParams) error {
+	_, err := q.db.Exec(ctx, createPaymentVnpay,
+		arg.ID,
+		arg.VnpAmount,
+		arg.VnpBankCode,
+		arg.VnpCardType,
+		arg.VnpOrderInfo,
+		arg.VnpPayDate,
+		arg.VnpResponseCode,
+		arg.VnpSecureHash,
+		arg.VnpTmnCode,
+		arg.VnpTransactionNo,
+		arg.VnpTransactionStatus,
+		arg.VnpTxnRef,
+	)
+	return err
+}
+
 const deletePayment = `-- name: DeletePayment :exec
 DELETE FROM payment.base WHERE (
   id = $1 AND
@@ -181,7 +233,7 @@ func (q *Queries) GetPayment(ctx context.Context, arg GetPaymentParams) (Payment
 }
 
 const getPaymentProductSerials = `-- name: GetPaymentProductSerials :many
-SELECT ps.serial_id, ps.product_id, ps.is_sold, ps.is_active, ps.date_created, ps.date_updated
+SELECT ps.serial_id, ps.product_id, ps.is_sold, ps.is_active, ps.date_created
 FROM payment.product_serial_on_product_on_payment psopop
 INNER JOIN product.serial ps ON ps.serial_id = psopop.product_serial_id
 WHERE psopop.product_on_payment_id = $1
@@ -202,7 +254,6 @@ func (q *Queries) GetPaymentProductSerials(ctx context.Context, productOnPayment
 			&i.IsSold,
 			&i.IsActive,
 			&i.DateCreated,
-			&i.DateUpdated,
 		); err != nil {
 			return nil, err
 		}
@@ -347,6 +398,56 @@ func (q *Queries) UpdatePayment(ctx context.Context, arg UpdatePaymentParams) er
 		arg.Address,
 		arg.Total,
 		arg.UserID,
+	)
+	return err
+}
+
+const updatePaymentVnpay = `-- name: UpdatePaymentVnpay :exec
+UPDATE payment.vnpay
+SET
+    "vnp_Amount" = COALESCE($2, "vnp_Amount"),
+    "vnp_BankCode" = COALESCE($3, "vnp_BankCode"),
+    "vnp_CardType" = COALESCE($4, "vnp_CardType"),
+    "vnp_OrderInfo" = COALESCE($5, "vnp_OrderInfo"),
+    "vnp_PayDate" = COALESCE($6, "vnp_PayDate"),
+    "vnp_ResponseCode" = COALESCE($7, "vnp_ResponseCode"),
+    "vnp_SecureHash" = COALESCE($8, "vnp_SecureHash"),
+    "vnp_TmnCode" = COALESCE($9, "vnp_TmnCode"),
+    "vnp_TransactionNo" = COALESCE($10, "vnp_TransactionNo"),
+    "vnp_TransactionStatus" = COALESCE($11, "vnp_TransactionStatus"),
+    "vnp_TxnRef" = COALESCE($12, "vnp_TxnRef")
+WHERE id = $1
+`
+
+type UpdatePaymentVnpayParams struct {
+	ID                   int64
+	VnpAmount            pgtype.Text
+	VnpBankCode          pgtype.Text
+	VnpCardType          pgtype.Text
+	VnpOrderInfo         pgtype.Text
+	VnpPayDate           pgtype.Text
+	VnpResponseCode      pgtype.Text
+	VnpSecureHash        pgtype.Text
+	VnpTmnCode           pgtype.Text
+	VnpTransactionNo     pgtype.Text
+	VnpTransactionStatus pgtype.Text
+	VnpTxnRef            pgtype.Text
+}
+
+func (q *Queries) UpdatePaymentVnpay(ctx context.Context, arg UpdatePaymentVnpayParams) error {
+	_, err := q.db.Exec(ctx, updatePaymentVnpay,
+		arg.ID,
+		arg.VnpAmount,
+		arg.VnpBankCode,
+		arg.VnpCardType,
+		arg.VnpOrderInfo,
+		arg.VnpPayDate,
+		arg.VnpResponseCode,
+		arg.VnpSecureHash,
+		arg.VnpTmnCode,
+		arg.VnpTransactionNo,
+		arg.VnpTransactionStatus,
+		arg.VnpTxnRef,
 	)
 	return err
 }

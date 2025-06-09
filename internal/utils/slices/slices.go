@@ -1,4 +1,4 @@
-package util
+package slices
 
 func NonEmptySlice[T any](arr []T) []T {
 	if arr == nil {

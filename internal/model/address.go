@@ -10,5 +10,4 @@ type Address struct {
 	Province    string `json:"province"`
 	Country     string `json:"country"`
 	DateCreated int64  `json:"date_created"`
-	DateUpdated int64  `json:"date_updated"`
 }

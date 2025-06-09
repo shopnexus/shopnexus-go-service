@@ -70,12 +70,12 @@ func (s *ImplementedProductServiceHandler) ListProducts(ctx context.Context, req
 
 func (s *ImplementedProductServiceHandler) CreateProduct(ctx context.Context, req *connect.Request[productv1.CreateProductRequest]) (*connect.Response[productv1.CreateProductResponse], error) {
 	data, err := s.service.CreateProduct(ctx, model.Product{
-		ProductModelID: req.Msg.ProductModelId,
-		Quantity:       req.Msg.Quantity,
-		AddPrice:       req.Msg.AddPrice,
-		IsActive:       req.Msg.IsActive,
-		Metadata:       req.Msg.Metadata,
-		Resources:      req.Msg.Resources,
+		ProductModelID:  req.Msg.ProductModelId,
+		CurrentStock:    req.Msg.Quantity,
+		AdditionalPrice: req.Msg.AddPrice,
+		IsActive:        req.Msg.IsActive,
+		Metadata:        req.Msg.Metadata,
+		Resources:       req.Msg.Resources,
 	})
 	if err != nil {
 		return nil, err
@@ -128,9 +128,9 @@ func modelToProductEntity(data model.Product) *productv1.ProductEntity {
 	return &productv1.ProductEntity{
 		Id:             data.ID,
 		ProductModelId: data.ProductModelID,
-		Quantity:       data.Quantity,
+		Quantity:       data.CurrentStock,
 		Sold:           data.Sold,
-		AddPrice:       data.AddPrice,
+		AddPrice:       data.AdditionalPrice,
 		IsActive:       data.IsActive,
 		CanCombine:     data.CanCombine,
 		Metadata:       data.Metadata,

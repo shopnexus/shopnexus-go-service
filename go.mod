@@ -17,7 +17,7 @@ require (
 	github.com/nats-io/nats.go v1.42.0
 	github.com/redis/rueidis v1.0.60
 	github.com/sergi/go-diff v1.3.1
-	github.com/shopnexus/shopnexus-protobuf-gen-go v0.0.0-20250317103557-4e045cdf95b5
+	github.com/shopnexus/shopnexus-protobuf-gen-go v0.1.0
 	github.com/tus/tusd/v2 v2.8.0
 	golang.org/x/crypto v0.37.0
 	golang.org/x/exp v0.0.0-20250305212735-054e65f0b394
@@ -88,5 +88,3 @@ require (
 	golang.org/x/text v0.24.0 // indirect
 	gopkg.in/natefinch/lumberjack.v2 v2.2.1
 )
-
-replace github.com/shopnexus/shopnexus-protobuf-gen-go => ../shopnexus-protobuf/gen/go

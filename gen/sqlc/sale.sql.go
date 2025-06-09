@@ -12,22 +12,21 @@ import (
 )
 
 const countSales = `-- name: CountSales :one
-SELECT COUNT(*) FROM product.sale
+SELECT COUNT(*) FROM product.sale s
+LEFT JOIN product.sale_tracking st ON s.id = st.sale_id
 WHERE
-    ($1::text IS NULL OR tag = $1) AND
-    ($2::bigint IS NULL OR product_model_id = $2) AND
-    ($3::bigint IS NULL OR brand_id = $3) AND
-    ($4::timestamptz IS NULL OR date_started >= $4) AND
-    ($5::timestamptz IS NULL OR date_started <= $5) AND
-    ($6::timestamptz IS NULL OR date_ended >= $6) AND
-    ($7::timestamptz IS NULL OR date_ended <= $7) AND
-    ($8::boolean IS NULL OR is_active = $8)
+    ($1::text IS NULL OR s.type = $1) AND
+    ($2::bigint IS NULL OR s.item_id = $2) AND
+    ($3::timestamptz IS NULL OR s.date_started >= $3) AND
+    ($4::timestamptz IS NULL OR s.date_started <= $4) AND
+    ($5::timestamptz IS NULL OR s.date_ended >= $5) AND
+    ($6::timestamptz IS NULL OR s.date_ended <= $6) AND
+    ($7::boolean IS NULL OR s.is_active = $7)
 `
 
 type CountSalesParams struct {
-	Tag             pgtype.Text
-	ProductModelID  pgtype.Int8
-	BrandID         pgtype.Int8
+	Type            pgtype.Text
+	ItemID          pgtype.Int8
 	DateStartedFrom pgtype.Timestamptz
 	DateStartedTo   pgtype.Timestamptz
 	DateEndedFrom   pgtype.Timestamptz
@@ -37,9 +36,8 @@ type CountSalesParams struct {
 
 func (q *Queries) CountSales(ctx context.Context, arg CountSalesParams) (int64, error) {
 	row := q.db.QueryRow(ctx, countSales,
-		arg.Tag,
-		arg.ProductModelID,
-		arg.BrandID,
+		arg.Type,
+		arg.ItemID,
 		arg.DateStartedFrom,
 		arg.DateStartedTo,
 		arg.DateEndedFrom,
@@ -52,66 +50,84 @@ func (q *Queries) CountSales(ctx context.Context, arg CountSalesParams) (int64, 
 }
 
 const createSale = `-- name: CreateSale :one
-INSERT INTO product.sale (
-    tag,
-    product_model_id,
-    brand_id,
-    date_started,
-    date_ended,
-    quantity,
-    used,
-    is_active,
-    discount_percent,
-    discount_price,
-    max_discount_price
-) VALUES (
-    $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11
-) RETURNING id, tag, product_model_id, brand_id, date_created, date_started, date_ended, quantity, used, is_active, discount_percent, discount_price, max_discount_price
+WITH new_sale AS (
+    INSERT INTO product.sale (
+        type,
+        item_id,
+        date_started,
+        date_ended,
+        is_active,
+        discount_percent,
+        discount_price,
+        max_discount_price
+    ) VALUES (
+        $1, $2, $3, $4, $5, $6, $7, $8
+    ) RETURNING id, type, item_id, date_created, date_started, date_ended, is_active, discount_percent, discount_price, max_discount_price
+),
+new_sale_tracking AS (
+    INSERT INTO product.sale_tracking (sale_id, current_stock, used)
+    SELECT id, $9, 0
+    FROM new_sale
+    RETURNING sale_id, current_stock, used
+)
+SELECT ns.id, ns.type, ns.item_id, ns.date_created, ns.date_started, ns.date_ended, ns.is_active, ns.discount_percent, ns.discount_price, ns.max_discount_price, nst.current_stock, nst.used
+FROM new_sale ns
+JOIN new_sale_tracking nst ON ns.id = nst.sale_id
 `
 
 type CreateSaleParams struct {
-	Tag              pgtype.Text
-	ProductModelID   pgtype.Int8
-	BrandID          pgtype.Int8
+	Type             ProductSaleType
+	ItemID           int64
 	DateStarted      pgtype.Timestamptz
 	DateEnded        pgtype.Timestamptz
-	Quantity         int64
-	Used             int64
 	IsActive         bool
 	DiscountPercent  pgtype.Int4
 	DiscountPrice    pgtype.Int8
 	MaxDiscountPrice int64
+	CurrentStock     int64
 }
 
-func (q *Queries) CreateSale(ctx context.Context, arg CreateSaleParams) (ProductSale, error) {
+type CreateSaleRow struct {
+	ID               int64
+	Type             ProductSaleType
+	ItemID           int64
+	DateCreated      pgtype.Timestamptz
+	DateStarted      pgtype.Timestamptz
+	DateEnded        pgtype.Timestamptz
+	IsActive         bool
+	DiscountPercent  pgtype.Int4
+	DiscountPrice    pgtype.Int8
+	MaxDiscountPrice int64
+	CurrentStock     int64
+	Used             int64
+}
+
+func (q *Queries) CreateSale(ctx context.Context, arg CreateSaleParams) (CreateSaleRow, error) {
 	row := q.db.QueryRow(ctx, createSale,
-		arg.Tag,
-		arg.ProductModelID,
-		arg.BrandID,
+		arg.Type,
+		arg.ItemID,
 		arg.DateStarted,
 		arg.DateEnded,
-		arg.Quantity,
-		arg.Used,
 		arg.IsActive,
 		arg.DiscountPercent,
 		arg.DiscountPrice,
 		arg.MaxDiscountPrice,
+		arg.CurrentStock,
 	)
-	var i ProductSale
+	var i CreateSaleRow
 	err := row.Scan(
 		&i.ID,
-		&i.Tag,
-		&i.ProductModelID,
-		&i.BrandID,
+		&i.Type,
+		&i.ItemID,
 		&i.DateCreated,
 		&i.DateStarted,
 		&i.DateEnded,
-		&i.Quantity,
-		&i.Used,
 		&i.IsActive,
 		&i.DiscountPercent,
 		&i.DiscountPrice,
 		&i.MaxDiscountPrice,
+		&i.CurrentStock,
+		&i.Used,
 	)
 	return i, err
 }
@@ -126,16 +142,22 @@ func (q *Queries) DeleteSale(ctx context.Context, id int64) error {
 }
 
 const getAvailableSales = `-- name: GetAvailableSales :many
-SELECT id, tag, product_model_id, brand_id, date_created, date_started, date_ended, quantity, used, is_active, discount_percent, discount_price, max_discount_price FROM product.sale
+SELECT s.id, s.type, s.item_id, s.date_created, s.date_started, s.date_ended, s.is_active, s.discount_percent, s.discount_price, s.max_discount_price, st.current_stock, st.used
+FROM product.sale s
+LEFT JOIN product.sale_tracking st ON s.id = st.sale_id
 WHERE 
-    is_active = true AND
-    used < quantity AND
-    date_started <= CURRENT_TIMESTAMP AND
-    (date_ended IS NULL OR date_ended >= CURRENT_TIMESTAMP) AND
+    s.is_active = true AND
+    st.current_stock > 0 AND
+    s.date_started <= CURRENT_TIMESTAMP AND
+    (s.date_ended IS NULL OR s.date_ended >= CURRENT_TIMESTAMP) AND
     (
-        (product_model_id = $1::bigint) OR
-        (brand_id = $2::bigint) OR
-        (tag = ANY($3::text[]))
+        (s.type = 'PRODUCT_MODEL' AND s.item_id = $1::bigint) OR
+        (s.type = 'BRAND' AND s.item_id = $2::bigint) OR
+        (s.type = 'TAG' AND s.item_id IN (
+            SELECT product_model_id 
+            FROM product.tag_on_product_model 
+            WHERE tag = ANY($3::text[])
+        ))
     )
 `
 
@@ -145,29 +167,43 @@ type GetAvailableSalesParams struct {
 	Tags           []string
 }
 
-func (q *Queries) GetAvailableSales(ctx context.Context, arg GetAvailableSalesParams) ([]ProductSale, error) {
+type GetAvailableSalesRow struct {
+	ID               int64
+	Type             ProductSaleType
+	ItemID           int64
+	DateCreated      pgtype.Timestamptz
+	DateStarted      pgtype.Timestamptz
+	DateEnded        pgtype.Timestamptz
+	IsActive         bool
+	DiscountPercent  pgtype.Int4
+	DiscountPrice    pgtype.Int8
+	MaxDiscountPrice int64
+	CurrentStock     pgtype.Int8
+	Used             pgtype.Int8
+}
+
+func (q *Queries) GetAvailableSales(ctx context.Context, arg GetAvailableSalesParams) ([]GetAvailableSalesRow, error) {
 	rows, err := q.db.Query(ctx, getAvailableSales, arg.ProductModelID, arg.BrandID, arg.Tags)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	var items []ProductSale
+	var items []GetAvailableSalesRow
 	for rows.Next() {
-		var i ProductSale
+		var i GetAvailableSalesRow
 		if err := rows.Scan(
 			&i.ID,
-			&i.Tag,
-			&i.ProductModelID,
-			&i.BrandID,
+			&i.Type,
+			&i.ItemID,
 			&i.DateCreated,
 			&i.DateStarted,
 			&i.DateEnded,
-			&i.Quantity,
-			&i.Used,
 			&i.IsActive,
 			&i.DiscountPercent,
 			&i.DiscountPrice,
 			&i.MaxDiscountPrice,
+			&i.CurrentStock,
+			&i.Used,
 		); err != nil {
 			return nil, err
 		}
@@ -180,50 +216,67 @@ func (q *Queries) GetAvailableSales(ctx context.Context, arg GetAvailableSalesPa
 }
 
 const getSale = `-- name: GetSale :one
-SELECT id, tag, product_model_id, brand_id, date_created, date_started, date_ended, quantity, used, is_active, discount_percent, discount_price, max_discount_price FROM product.sale WHERE id = $1
+SELECT s.id, s.type, s.item_id, s.date_created, s.date_started, s.date_ended, s.is_active, s.discount_percent, s.discount_price, s.max_discount_price, st.current_stock, st.used
+FROM product.sale s
+LEFT JOIN product.sale_tracking st ON s.id = st.sale_id
+WHERE s.id = $1
 `
 
-func (q *Queries) GetSale(ctx context.Context, id int64) (ProductSale, error) {
+type GetSaleRow struct {
+	ID               int64
+	Type             ProductSaleType
+	ItemID           int64
+	DateCreated      pgtype.Timestamptz
+	DateStarted      pgtype.Timestamptz
+	DateEnded        pgtype.Timestamptz
+	IsActive         bool
+	DiscountPercent  pgtype.Int4
+	DiscountPrice    pgtype.Int8
+	MaxDiscountPrice int64
+	CurrentStock     pgtype.Int8
+	Used             pgtype.Int8
+}
+
+func (q *Queries) GetSale(ctx context.Context, id int64) (GetSaleRow, error) {
 	row := q.db.QueryRow(ctx, getSale, id)
-	var i ProductSale
+	var i GetSaleRow
 	err := row.Scan(
 		&i.ID,
-		&i.Tag,
-		&i.ProductModelID,
-		&i.BrandID,
+		&i.Type,
+		&i.ItemID,
 		&i.DateCreated,
 		&i.DateStarted,
 		&i.DateEnded,
-		&i.Quantity,
-		&i.Used,
 		&i.IsActive,
 		&i.DiscountPercent,
 		&i.DiscountPrice,
 		&i.MaxDiscountPrice,
+		&i.CurrentStock,
+		&i.Used,
 	)
 	return i, err
 }
 
 const listSales = `-- name: ListSales :many
-SELECT id, tag, product_model_id, brand_id, date_created, date_started, date_ended, quantity, used, is_active, discount_percent, discount_price, max_discount_price FROM product.sale
+SELECT s.id, s.type, s.item_id, s.date_created, s.date_started, s.date_ended, s.is_active, s.discount_percent, s.discount_price, s.max_discount_price, st.current_stock, st.used
+FROM product.sale s
+LEFT JOIN product.sale_tracking st ON s.id = st.sale_id
 WHERE
-    ($1::text IS NULL OR tag = $1) AND
-    ($2::bigint IS NULL OR product_model_id = $2) AND
-    ($3::bigint IS NULL OR brand_id = $3) AND
-    ($4::timestamptz IS NULL OR date_started >= $4) AND
-    ($5::timestamptz IS NULL OR date_started <= $5) AND
-    ($6::timestamptz IS NULL OR date_ended >= $6) AND
-    ($7::timestamptz IS NULL OR date_ended <= $7) AND
-    ($8::boolean IS NULL OR is_active = $8)
-ORDER BY id
-LIMIT $10
-OFFSET $9
+    ($1::text IS NULL OR s.type = $1) AND
+    ($2::bigint IS NULL OR s.item_id = $2) AND
+    ($3::timestamptz IS NULL OR s.date_started >= $3) AND
+    ($4::timestamptz IS NULL OR s.date_started <= $4) AND
+    ($5::timestamptz IS NULL OR s.date_ended >= $5) AND
+    ($6::timestamptz IS NULL OR s.date_ended <= $6) AND
+    ($7::boolean IS NULL OR s.is_active = $7)
+ORDER BY s.id
+LIMIT $9
+OFFSET $8
 `
 
 type ListSalesParams struct {
-	Tag             pgtype.Text
-	ProductModelID  pgtype.Int8
-	BrandID         pgtype.Int8
+	Type            pgtype.Text
+	ItemID          pgtype.Int8
 	DateStartedFrom pgtype.Timestamptz
 	DateStartedTo   pgtype.Timestamptz
 	DateEndedFrom   pgtype.Timestamptz
@@ -233,11 +286,25 @@ type ListSalesParams struct {
 	Limit           int32
 }
 
-func (q *Queries) ListSales(ctx context.Context, arg ListSalesParams) ([]ProductSale, error) {
+type ListSalesRow struct {
+	ID               int64
+	Type             ProductSaleType
+	ItemID           int64
+	DateCreated      pgtype.Timestamptz
+	DateStarted      pgtype.Timestamptz
+	DateEnded        pgtype.Timestamptz
+	IsActive         bool
+	DiscountPercent  pgtype.Int4
+	DiscountPrice    pgtype.Int8
+	MaxDiscountPrice int64
+	CurrentStock     pgtype.Int8
+	Used             pgtype.Int8
+}
+
+func (q *Queries) ListSales(ctx context.Context, arg ListSalesParams) ([]ListSalesRow, error) {
 	rows, err := q.db.Query(ctx, listSales,
-		arg.Tag,
-		arg.ProductModelID,
-		arg.BrandID,
+		arg.Type,
+		arg.ItemID,
 		arg.DateStartedFrom,
 		arg.DateStartedTo,
 		arg.DateEndedFrom,
@@ -250,23 +317,22 @@ func (q *Queries) ListSales(ctx context.Context, arg ListSalesParams) ([]Product
 		return nil, err
 	}
 	defer rows.Close()
-	var items []ProductSale
+	var items []ListSalesRow
 	for rows.Next() {
-		var i ProductSale
+		var i ListSalesRow
 		if err := rows.Scan(
 			&i.ID,
-			&i.Tag,
-			&i.ProductModelID,
-			&i.BrandID,
+			&i.Type,
+			&i.ItemID,
 			&i.DateCreated,
 			&i.DateStarted,
 			&i.DateEnded,
-			&i.Quantity,
-			&i.Used,
 			&i.IsActive,
 			&i.DiscountPercent,
 			&i.DiscountPrice,
 			&i.MaxDiscountPrice,
+			&i.CurrentStock,
+			&i.Used,
 		); err != nil {
 			return nil, err
 		}
@@ -281,29 +347,23 @@ func (q *Queries) ListSales(ctx context.Context, arg ListSalesParams) ([]Product
 const updateSale = `-- name: UpdateSale :exec
 UPDATE product.sale
 SET
-    tag = COALESCE($2, tag),
-    product_model_id = COALESCE($3, product_model_id),
-    brand_id = COALESCE($4, brand_id),
-    date_started = COALESCE($5, date_started),
-    date_ended = COALESCE($6, date_ended),
-    quantity = COALESCE($7, quantity),
-    used = COALESCE($8, used),
-    is_active = COALESCE($9, is_active),
-    discount_percent = COALESCE($10, discount_percent),
-    discount_price = COALESCE($11, discount_price),
-    max_discount_price = COALESCE($12, max_discount_price)
+    type = COALESCE($2, type),
+    item_id = COALESCE($3, item_id),
+    date_started = COALESCE($4, date_started),
+    date_ended = COALESCE($5, date_ended),
+    is_active = COALESCE($6, is_active),
+    discount_percent = COALESCE($7, discount_percent),
+    discount_price = COALESCE($8, discount_price),
+    max_discount_price = COALESCE($9, max_discount_price)
 WHERE id = $1
 `
 
 type UpdateSaleParams struct {
 	ID               int64
-	Tag              pgtype.Text
-	ProductModelID   pgtype.Int8
-	BrandID          pgtype.Int8
+	Type             NullProductSaleType
+	ItemID           pgtype.Int8
 	DateStarted      pgtype.Timestamptz
 	DateEnded        pgtype.Timestamptz
-	Quantity         pgtype.Int8
-	Used             pgtype.Int8
 	IsActive         pgtype.Bool
 	DiscountPercent  pgtype.Int4
 	DiscountPrice    pgtype.Int8
@@ -313,17 +373,33 @@ type UpdateSaleParams struct {
 func (q *Queries) UpdateSale(ctx context.Context, arg UpdateSaleParams) error {
 	_, err := q.db.Exec(ctx, updateSale,
 		arg.ID,
-		arg.Tag,
-		arg.ProductModelID,
-		arg.BrandID,
+		arg.Type,
+		arg.ItemID,
 		arg.DateStarted,
 		arg.DateEnded,
-		arg.Quantity,
-		arg.Used,
 		arg.IsActive,
 		arg.DiscountPercent,
 		arg.DiscountPrice,
 		arg.MaxDiscountPrice,
 	)
+	return err
+}
+
+const updateSaleTracking = `-- name: UpdateSaleTracking :exec
+UPDATE product.sale_tracking
+SET
+    current_stock = COALESCE($2, current_stock),
+    used = COALESCE($3, used)
+WHERE sale_id = $1
+`
+
+type UpdateSaleTrackingParams struct {
+	SaleID       int64
+	CurrentStock pgtype.Int8
+	Used         pgtype.Int8
+}
+
+func (q *Queries) UpdateSaleTracking(ctx context.Context, arg UpdateSaleTrackingParams) error {
+	_, err := q.db.Exec(ctx, updateSaleTracking, arg.SaleID, arg.CurrentStock, arg.Used)
 	return err
 }

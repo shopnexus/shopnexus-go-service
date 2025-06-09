@@ -1,70 +1,68 @@
 package model
 
-type Permission int
+type Permission string
 
 const (
-	PermissionUnknown Permission = iota
+	// Product permissions
+	PERMISSION_CREATE_PRODUCT Permission = "PERMISSION_CREATE_PRODUCT"
+	PERMISSION_UPDATE_PRODUCT Permission = "PERMISSION_UPDATE_PRODUCT"
+	PERMISSION_DELETE_PRODUCT Permission = "PERMISSION_DELETE_PRODUCT"
+	PERMISSION_VIEW_PRODUCT   Permission = "PERMISSION_VIEW_PRODUCT"
 
-	PermissionCreateProduct
-	PermissionUpdateProduct
-	PermissionDeleteProduct
+	// Product Model permissions
+	PERMISSION_CREATE_PRODUCT_MODEL Permission = "PERMISSION_CREATE_PRODUCT_MODEL"
+	PERMISSION_UPDATE_PRODUCT_MODEL Permission = "PERMISSION_UPDATE_PRODUCT_MODEL"
+	PERMISSION_DELETE_PRODUCT_MODEL Permission = "PERMISSION_DELETE_PRODUCT_MODEL"
+	PERMISSION_VIEW_PRODUCT_MODEL   Permission = "PERMISSION_VIEW_PRODUCT_MODEL"
 
-	PermissionCreateProductModel
-	PermissionUpdateProductModel
-	PermissionDeleteProductModel
+	// Product Serial permissions
+	PERMISSION_CREATE_PRODUCT_SERIAL Permission = "PERMISSION_CREATE_PRODUCT_SERIAL"
+	PERMISSION_UPDATE_PRODUCT_SERIAL Permission = "PERMISSION_UPDATE_PRODUCT_SERIAL"
+	PERMISSION_DELETE_PRODUCT_SERIAL Permission = "PERMISSION_DELETE_PRODUCT_SERIAL"
+	PERMISSION_VIEW_PRODUCT_SERIAL   Permission = "PERMISSION_VIEW_PRODUCT_SERIAL"
 
-	PermissionCreateProductSerial
-	PermissionUpdateProductSerial
-	PermissionDeleteProductSerial
+	// Sale permissions
+	PERMISSION_CREATE_SALE Permission = "PERMISSION_CREATE_SALE"
+	PERMISSION_UPDATE_SALE Permission = "PERMISSION_UPDATE_SALE"
+	PERMISSION_DELETE_SALE Permission = "PERMISSION_DELETE_SALE"
+	PERMISSION_VIEW_SALE   Permission = "PERMISSION_VIEW_SALE"
 
-	PermissionCreateSale
-	PermissionUpdateSale
-	PermissionDeleteSale
+	// Tag permissions
+	PERMISSION_CREATE_TAG Permission = "PERMISSION_CREATE_TAG"
+	PERMISSION_UPDATE_TAG Permission = "PERMISSION_UPDATE_TAG"
+	PERMISSION_DELETE_TAG Permission = "PERMISSION_DELETE_TAG"
+	PERMISSION_VIEW_TAG   Permission = "PERMISSION_VIEW_TAG"
 
-	PermissionCreateTag
-	PermissionUpdateTag
-	PermissionDeleteTag
+	// Brand permissions
+	PERMISSION_CREATE_BRAND Permission = "PERMISSION_CREATE_BRAND"
+	PERMISSION_UPDATE_BRAND Permission = "PERMISSION_UPDATE_BRAND"
+	PERMISSION_DELETE_BRAND Permission = "PERMISSION_DELETE_BRAND"
+	PERMISSION_VIEW_BRAND   Permission = "PERMISSION_VIEW_BRAND"
 
-	PermissionCreateBrand
-	PermissionUpdateBrand
-	PermissionDeleteBrand
+	// Payment permissions
+	PERMISSION_UPDATE_PAYMENT Permission = "PERMISSION_UPDATE_PAYMENT"
+	PERMISSION_DELETE_PAYMENT Permission = "PERMISSION_DELETE_PAYMENT"
+	PERMISSION_VIEW_PAYMENT   Permission = "PERMISSION_VIEW_PAYMENT"
 
-	PermissionUpdatePayment
-	PermissionDeletePayment
-	PermissionUpdateRefund
-	PermissionDeleteRefund
+	// Refund permissions
+	PERMISSION_UPDATE_REFUND  Permission = "PERMISSION_UPDATE_REFUND"
+	PERMISSION_DELETE_REFUND  Permission = "PERMISSION_DELETE_REFUND"
+	PERMISSION_VIEW_REFUND    Permission = "PERMISSION_VIEW_REFUND"
+	PERMISSION_APPROVE_REFUND Permission = "PERMISSION_APPROVE_REFUND"
 
-	PermissionCreateComment
-	PermissionUpdateComment
-	PermissionDeleteComment
+	// Comment permissions
+	PERMISSION_CREATE_COMMENT Permission = "PERMISSION_CREATE_COMMENT"
+	PERMISSION_UPDATE_COMMENT Permission = "PERMISSION_UPDATE_COMMENT"
+	PERMISSION_DELETE_COMMENT Permission = "PERMISSION_DELETE_COMMENT"
+	PERMISSION_VIEW_COMMENT   Permission = "PERMISSION_VIEW_COMMENT"
+
+	// User permissions
+	PERMISSION_VIEW_USER   Permission = "PERMISSION_VIEW_USER"
+	PERMISSION_UPDATE_USER Permission = "PERMISSION_UPDATE_USER"
+	PERMISSION_DELETE_USER Permission = "PERMISSION_DELETE_USER"
+
+	// Address permissions
+	PERMISSION_VIEW_ADDRESS   Permission = "PERMISSION_VIEW_ADDRESS"
+	PERMISSION_UPDATE_ADDRESS Permission = "PERMISSION_UPDATE_ADDRESS"
+	PERMISSION_DELETE_ADDRESS Permission = "PERMISSION_DELETE_ADDRESS"
 )
-
-func GetAllPermissions() []Permission {
-	return []Permission{
-		PermissionCreateProduct,
-		PermissionUpdateProduct,
-		PermissionDeleteProduct,
-		PermissionCreateProductModel,
-		PermissionUpdateProductModel,
-		PermissionDeleteProductModel,
-		PermissionCreateProductSerial,
-		PermissionUpdateProductSerial,
-		PermissionDeleteProductSerial,
-		PermissionCreateSale,
-		PermissionUpdateSale,
-		PermissionDeleteSale,
-		PermissionCreateTag,
-		PermissionUpdateTag,
-		PermissionDeleteTag,
-		PermissionCreateBrand,
-		PermissionUpdateBrand,
-		PermissionDeleteBrand,
-		PermissionUpdatePayment,
-		PermissionDeletePayment,
-		PermissionUpdateRefund,
-		PermissionDeleteRefund,
-		PermissionCreateComment,
-		PermissionUpdateComment,
-		PermissionDeleteComment,
-	}
-}

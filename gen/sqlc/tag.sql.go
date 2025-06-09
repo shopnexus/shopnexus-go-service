@@ -86,13 +86,13 @@ func (q *Queries) DeleteTag(ctx context.Context, tag string) error {
 }
 
 const getTag = `-- name: GetTag :one
-SELECT tag, description FROM product.tag WHERE tag = $1
+SELECT id, tag, description FROM product.tag WHERE tag = $1
 `
 
 func (q *Queries) GetTag(ctx context.Context, tag string) (ProductTag, error) {
 	row := q.db.QueryRow(ctx, getTag, tag)
 	var i ProductTag
-	err := row.Scan(&i.Tag, &i.Description)
+	err := row.Scan(&i.ID, &i.Tag, &i.Description)
 	return i, err
 }
 
@@ -121,7 +121,7 @@ func (q *Queries) GetTags(ctx context.Context, productModelID int64) ([]string, 
 }
 
 const listTags = `-- name: ListTags :many
-SELECT tag, description FROM product.tag
+SELECT id, tag, description FROM product.tag
 WHERE
     ($1::text IS NULL OR tag ILIKE '%' || $1 || '%') AND
     ($2::text IS NULL OR description ILIKE '%' || $2 || '%')
@@ -151,7 +151,7 @@ func (q *Queries) ListTags(ctx context.Context, arg ListTagsParams) ([]ProductTa
 	var items []ProductTag
 	for rows.Next() {
 		var i ProductTag
-		if err := rows.Scan(&i.Tag, &i.Description); err != nil {
+		if err := rows.Scan(&i.ID, &i.Tag, &i.Description); err != nil {
 			return nil, err
 		}
 		items = append(items, i)

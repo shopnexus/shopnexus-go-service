@@ -268,7 +268,7 @@ func convertGenderToProto(gender model.Gender) accountv1.Gender {
 	}
 }
 
-func convertRoleToProto(role model.Role) accountv1.Role {
+func convertRoleToProto(role model.AccountType) accountv1.Role {
 	switch role {
 	case model.RoleAdmin:
 		return accountv1.Role_ROLE_ADMIN

@@ -65,7 +65,7 @@ func (s *ServiceImpl) WithTx(txStorage *storage.TxStorage) (Service, error) {
 
 type GetPaymentParams = struct {
 	AccountID int64
-	Role      model.Role
+	Role      model.AccountType
 	PaymentID int64
 }
 
@@ -84,7 +84,7 @@ func (s *ServiceImpl) GetPayment(ctx context.Context, params GetPaymentParams) (
 type ListPaymentsParams struct {
 	model.PaginationParams
 	AccountID       int64
-	Role            model.Role
+	Role            model.AccountType
 	Method          *model.PaymentMethod
 	Status          *model.Status
 	Address         *string
@@ -212,12 +212,12 @@ func (s *ServiceImpl) CreatePayment(ctx context.Context, params CreatePaymentPar
 			return CreatePaymentResult{}, err
 		}
 
-		combinePrice := (productModel.ListPrice + product.AddPrice) * cartProduct.GetQuantity()
+		combinePrice := (productModel.ListPrice + product.AdditionalPrice) * cartProduct.GetQuantity()
 		var combineDiscount int64
 
 		// Apply sales
 		for _, sale := range sales {
-			combineDiscount += sale.Apply(productModel.ListPrice+product.AddPrice) * cartProduct.GetQuantity()
+			combineDiscount += sale.Apply(productModel.ListPrice+product.AdditionalPrice) * cartProduct.GetQuantity()
 		}
 
 		// Ensure combineDiscount is not greater than combinePrice
@@ -336,7 +336,7 @@ func (s *ServiceImpl) getPlatform(platform Platform) (PaymentPlatform, error) {
 type UpdatePaymentParams struct {
 	ID        int64
 	AccountID int64
-	Role      model.Role
+	Role      model.AccountType
 	Method    *model.PaymentMethod
 	Address   *string
 	Status    *model.Status

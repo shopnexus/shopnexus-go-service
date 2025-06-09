@@ -22,7 +22,6 @@ func (r *ServiceImpl) GetProductSerial(ctx context.Context, serialID string) (mo
 		IsSold:      row.IsSold,
 		IsActive:    row.IsActive,
 		DateCreated: row.DateCreated.Time.UnixMilli(),
-		DateUpdated: row.DateUpdated.Time.UnixMilli(),
 	}, nil
 }
 
@@ -70,7 +69,6 @@ func (r *ServiceImpl) ListProductSerials(ctx context.Context, params ListProduct
 			IsSold:      serial.IsSold,
 			IsActive:    serial.IsActive,
 			DateCreated: serial.DateCreated.Time.UnixMilli(),
-			DateUpdated: serial.DateUpdated.Time.UnixMilli(),
 		}
 	}
 
@@ -137,7 +135,6 @@ func (r *ServiceImpl) GetAvailableProducts(ctx context.Context, productID int64,
 			IsSold:      row.IsSold,
 			IsActive:    row.IsActive,
 			DateCreated: row.DateCreated.Time.UnixMilli(),
-			DateUpdated: row.DateUpdated.Time.UnixMilli(),
 		}
 	}
 
