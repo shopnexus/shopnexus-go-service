@@ -132,7 +132,7 @@ SELECT EXISTS (
   INNER JOIN payment.base p ON pop.payment_id = p.id
   LEFT JOIN payment.refund r ON pop.id = r.product_on_payment_id
   WHERE (
-    pop.id = $1 AND
+    pop.product_id = $1 AND
     p.status = 'SUCCESS' AND -- Refund only available for successful payment
     (r.id IS NULL OR r.status = 'FAILED' OR r.status = 'CANCELED') AND -- Refund must not exist or is failed/canceled (not pending/success)
     (p.user_id = sqlc.narg('user_id') OR sqlc.narg('user_id') IS NULL) -- Refund must belong to the user
