@@ -1,6 +1,8 @@
 # Shopnexus Go Service
 
 [![wakatime](https://wakatime.com/badge/user/592c97c4-15ad-49cb-ac34-d607be35c524/project/6c846869-ee63-4198-ac66-b788babcc529.svg)](https://wakatime.com/badge/user/592c97c4-15ad-49cb-ac34-d607be35c524/project/6c846869-ee63-4198-ac66-b788babcc529)
+[![Lines of Code](http://khoakomlem-internal.ddns.net:9000/api/project_badges/measure?project=shopnexus_shopnexus-server_8d07dacc-5f70-456b-9656-73c4bd3c3e32&metric=ncloc&token=sqb_83b19906b8bd29a15ed17674e6c20067165ae8db)](http://khoakomlem-internal.ddns.net:9000/dashboard?id=shopnexus_shopnexus-server_8d07dacc-5f70-456b-9656-73c4bd3c3e32)
+[![Quality Gate Status](http://khoakomlem-internal.ddns.net:9000/api/project_badges/measure?project=shopnexus_shopnexus-server_8d07dacc-5f70-456b-9656-73c4bd3c3e32&metric=alert_status&token=sqb_83b19906b8bd29a15ed17674e6c20067165ae8db)](http://khoakomlem-internal.ddns.net:9000/dashboard?id=shopnexus_shopnexus-server_8d07dacc-5f70-456b-9656-73c4bd3c3e32)
 
 A gRPC-based microservice for handling e-commerce operations including user accounts, product management, cart functionality, and payments.
 
