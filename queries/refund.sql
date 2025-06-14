@@ -92,9 +92,10 @@ INSERT INTO payment.refund (
     method,
     status,
     reason,
-    address
+    address,
+    approved_by
 ) VALUES (
-    $1, $2, $3, $4, $5
+    $1, $2, $3, $4, $5, sqlc.narg('approved_by')
 )
 RETURNING *;
 
@@ -104,13 +105,10 @@ SET
     method = COALESCE(sqlc.narg('method'), method),
     status = COALESCE(sqlc.narg('status'), status),
     reason = COALESCE(sqlc.narg('reason'), reason),
-    address = COALESCE(sqlc.narg('address'), address)
-FROM payment.refund
-INNER JOIN payment.product_on_payment pop ON r.product_on_payment_id = pop.id
-INNER JOIN payment.base p ON pop.payment_id = p.id
+    address = COALESCE(sqlc.narg('address'), address),
+    approved_by = COALESCE(sqlc.narg('approved_by'), approved_by)
 WHERE (
-  r.id = $1 AND
-  (p.user_id = sqlc.narg('user_id') OR sqlc.narg('user_id') IS NULL)
+  r.id = $1
 );
 
 -- name: DeleteRefund :exec
@@ -132,10 +130,9 @@ SELECT EXISTS (
   INNER JOIN payment.base p ON pop.payment_id = p.id
   LEFT JOIN payment.refund r ON pop.id = r.product_on_payment_id
   WHERE (
-    pop.product_id = $1 AND
+    pop.id = $1 AND
     p.status = 'SUCCESS' AND -- Refund only available for successful payment
     (r.id IS NULL OR r.status = 'FAILED' OR r.status = 'CANCELED') AND -- Refund must not exist or is failed/canceled (not pending/success)
     (p.user_id = sqlc.narg('user_id') OR sqlc.narg('user_id') IS NULL) -- Refund must belong to the user
   )
 ) AS can_refund;
-

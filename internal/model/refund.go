@@ -7,6 +7,7 @@ type Refund struct {
 	Status             Status       `json:"status"`
 	Reason             string       `json:"reason"`
 	Address            string       `json:"address"`
+	ApprovedBy         *int64       `json:"approved_by"`
 	DateCreated        int64        `json:"date_created"`
 	DateUpdated        int64        `json:"date_updated"`
 	Resources          []string     `json:"resources"`

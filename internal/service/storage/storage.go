@@ -49,6 +49,7 @@ type Service interface {
 	AddResources(ctx context.Context, ownerID int64, resourceType model.ResourceType, resources []string) error
 	UpdateResources(ctx context.Context, ownerID int64, resourceType model.ResourceType, resources []string) error
 	EmptyResources(ctx context.Context, ownerID int64, resourceType model.ResourceType) error
+	GetProductByPOPID(ctx context.Context, productOnPaymentID int64) (model.Product, error)
 
 	// Product Model methods
 	GetProductModel(ctx context.Context, id int64) (model.ProductModel, error)

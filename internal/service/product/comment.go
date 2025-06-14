@@ -2,6 +2,7 @@ package product
 
 import (
 	"context"
+	"fmt"
 	"shopnexus-go-service/internal/model"
 	"shopnexus-go-service/internal/service/storage"
 )
@@ -27,6 +28,8 @@ func (s *ServiceImpl) ListComments(ctx context.Context, params ListCommentsParam
 	if err != nil {
 		return result, err
 	}
+
+	fmt.Println("ListComments", params, total, len(comments))
 
 	return model.PaginateResult[model.Comment]{
 		Data:       comments,

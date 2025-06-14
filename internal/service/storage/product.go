@@ -192,3 +192,24 @@ func (r *ServiceImpl) UpdateProductSold(ctx context.Context, ids []int64, amount
 func (r *ServiceImpl) DeleteProduct(ctx context.Context, id int64) error {
 	return r.sqlc.DeleteProduct(ctx, id)
 }
+
+func (r *ServiceImpl) GetProductByPOPID(ctx context.Context, productOnPaymentID int64) (model.Product, error) {
+	row, err := r.sqlc.GetProductByPOPID(ctx, productOnPaymentID)
+	if err != nil {
+		return model.Product{}, err
+	}
+
+	return model.Product{
+		ID:             row.ID,
+		ProductModelID: row.ProductModelID,
+		Quantity:       row.Quantity,
+		Sold:           row.Sold,
+		AddPrice:       row.AddPrice,
+		IsActive:       row.IsActive,
+		CanCombine:     row.CanCombine,
+		Metadata:       row.Metadata,
+		DateCreated:    row.DateCreated.Time.UnixMilli(),
+		DateUpdated:    row.DateUpdated.Time.UnixMilli(),
+		Resources:      row.Resources,
+	}, nil
+}

@@ -124,6 +124,17 @@ func (s *ImplementedProductServiceHandler) DeleteProduct(ctx context.Context, re
 	return connect.NewResponse(&productv1.DeleteProductResponse{}), nil
 }
 
+func (s *ImplementedProductServiceHandler) GetProductByPOPID(ctx context.Context, req *connect.Request[productv1.GetProductByPOPIDRequest]) (*connect.Response[productv1.GetProductByPOPIDResponse], error) {
+	data, err := s.service.GetProductByPOPID(ctx, req.Msg.ProductOnPaymentId)
+	if err != nil {
+		return nil, err
+	}
+
+	return connect.NewResponse(&productv1.GetProductByPOPIDResponse{
+		Data: modelToProductEntity(data),
+	}), nil
+}
+
 func modelToProductEntity(data model.Product) *productv1.ProductEntity {
 	return &productv1.ProductEntity{
 		Id:             data.ID,

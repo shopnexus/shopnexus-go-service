@@ -108,3 +108,19 @@ WHERE
 
 -- name: DeleteProduct :exec
 DELETE FROM product.base WHERE id = $1;
+
+-- name: GetProductByPOPID :one
+WITH filtered_resources AS (
+    SELECT 
+        res.owner_id,
+        array_agg(res.url ORDER BY res.order ASC) AS resources
+    FROM product.resource res
+    WHERE res.owner_id = sqlc.arg('id') AND res.type = 'PRODUCT'
+    GROUP BY res.owner_id
+)
+SELECT p.*,
+       COALESCE(res.resources, '{}')::text[] AS resources
+FROM product.base p
+LEFT JOIN filtered_resources res ON res.owner_id = p.id
+INNER JOIN payment.product_on_payment pop ON p.id = pop.product_id
+WHERE pop.id = sqlc.arg('id');

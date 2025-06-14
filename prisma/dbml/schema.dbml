@@ -206,6 +206,7 @@ Table Refund {
   address String [not null]
   date_created DateTime [default: `now()`, not null]
   date_updated DateTime [default: `now()`, not null]
+  approved_by BigInt
 }
 
 Table Resource {
@@ -305,3 +306,5 @@ Ref: Payment.user_id > UserAccount.id [delete: Cascade]
 Ref: PaymentVnpay.id - Payment.id [delete: Cascade]
 
 Ref: Refund.product_on_payment_id > ProductOnPayment.id [delete: Cascade]
+
+Ref: Refund.approved_by > AdminAccount.id [delete: Cascade]

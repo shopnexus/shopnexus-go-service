@@ -88,11 +88,12 @@ INSERT INTO payment.refund (
     method,
     status,
     reason,
-    address
+    address,
+    approved_by
 ) VALUES (
-    $1, $2, $3, $4, $5
+    $1, $2, $3, $4, $5, $6
 )
-RETURNING id, product_on_payment_id, method, status, reason, address, date_created, date_updated
+RETURNING id, product_on_payment_id, method, status, reason, address, date_created, date_updated, approved_by
 `
 
 type CreateRefundParams struct {
@@ -101,6 +102,7 @@ type CreateRefundParams struct {
 	Status             PaymentStatus
 	Reason             string
 	Address            string
+	ApprovedBy         pgtype.Int8
 }
 
 func (q *Queries) CreateRefund(ctx context.Context, arg CreateRefundParams) (PaymentRefund, error) {
@@ -110,6 +112,7 @@ func (q *Queries) CreateRefund(ctx context.Context, arg CreateRefundParams) (Pay
 		arg.Status,
 		arg.Reason,
 		arg.Address,
+		arg.ApprovedBy,
 	)
 	var i PaymentRefund
 	err := row.Scan(
@@ -121,6 +124,7 @@ func (q *Queries) CreateRefund(ctx context.Context, arg CreateRefundParams) (Pay
 		&i.Address,
 		&i.DateCreated,
 		&i.DateUpdated,
+		&i.ApprovedBy,
 	)
 	return i, err
 }
@@ -175,7 +179,7 @@ func (q *Queries) ExistsRefund(ctx context.Context, arg ExistsRefundParams) (boo
 
 const getRefund = `-- name: GetRefund :one
 WITH filtered_refund AS (
-    SELECT r.id, r.product_on_payment_id, r.method, r.status, r.reason, r.address, r.date_created, r.date_updated
+    SELECT r.id, r.product_on_payment_id, r.method, r.status, r.reason, r.address, r.date_created, r.date_updated, r.approved_by
     FROM payment.refund r
     INNER JOIN payment.product_on_payment pop ON r.product_on_payment_id = pop.id
     INNER JOIN payment.base p ON pop.payment_id = p.id
@@ -193,7 +197,7 @@ filtered_resources AS (
     GROUP BY res.owner_id
 )
 SELECT 
-    r.id, r.product_on_payment_id, r.method, r.status, r.reason, r.address, r.date_created, r.date_updated,
+    r.id, r.product_on_payment_id, r.method, r.status, r.reason, r.address, r.date_created, r.date_updated, r.approved_by,
     COALESCE(res.resources, '{}')::text[] AS resources
 FROM filtered_refund r
 LEFT JOIN filtered_resources res ON res.owner_id = r.id
@@ -213,6 +217,7 @@ type GetRefundRow struct {
 	Address            string
 	DateCreated        pgtype.Timestamptz
 	DateUpdated        pgtype.Timestamptz
+	ApprovedBy         pgtype.Int8
 	Resources          []string
 }
 
@@ -228,6 +233,7 @@ func (q *Queries) GetRefund(ctx context.Context, arg GetRefundParams) (GetRefund
 		&i.Address,
 		&i.DateCreated,
 		&i.DateUpdated,
+		&i.ApprovedBy,
 		&i.Resources,
 	)
 	return i, err
@@ -235,7 +241,7 @@ func (q *Queries) GetRefund(ctx context.Context, arg GetRefundParams) (GetRefund
 
 const listRefunds = `-- name: ListRefunds :many
 WITH filtered_refund AS (
-    SELECT r.id, r.product_on_payment_id, r.method, r.status, r.reason, r.address, r.date_created, r.date_updated
+    SELECT r.id, r.product_on_payment_id, r.method, r.status, r.reason, r.address, r.date_created, r.date_updated, r.approved_by
     FROM payment.refund r
     INNER JOIN payment.product_on_payment pop ON r.product_on_payment_id = pop.id
     INNER JOIN payment.base p ON pop.payment_id = p.id
@@ -259,7 +265,7 @@ filtered_resources AS (
     GROUP BY res.owner_id
 )
 SELECT 
-    r.id, r.product_on_payment_id, r.method, r.status, r.reason, r.address, r.date_created, r.date_updated,
+    r.id, r.product_on_payment_id, r.method, r.status, r.reason, r.address, r.date_created, r.date_updated, r.approved_by,
     COALESCE(res.resources, '{}')::text[] AS resources
 FROM filtered_refund r
 LEFT JOIN filtered_resources res ON res.owner_id = r.id
@@ -290,6 +296,7 @@ type ListRefundsRow struct {
 	Address            string
 	DateCreated        pgtype.Timestamptz
 	DateUpdated        pgtype.Timestamptz
+	ApprovedBy         pgtype.Int8
 	Resources          []string
 }
 
@@ -322,6 +329,7 @@ func (q *Queries) ListRefunds(ctx context.Context, arg ListRefundsParams) ([]Lis
 			&i.Address,
 			&i.DateCreated,
 			&i.DateUpdated,
+			&i.ApprovedBy,
 			&i.Resources,
 		); err != nil {
 			return nil, err
@@ -340,23 +348,20 @@ SET
     method = COALESCE($2, method),
     status = COALESCE($3, status),
     reason = COALESCE($4, reason),
-    address = COALESCE($5, address)
-FROM payment.refund
-INNER JOIN payment.product_on_payment pop ON r.product_on_payment_id = pop.id
-INNER JOIN payment.base p ON pop.payment_id = p.id
+    address = COALESCE($5, address),
+    approved_by = COALESCE($6, approved_by)
 WHERE (
-  r.id = $1 AND
-  (p.user_id = $6 OR $6 IS NULL)
+  r.id = $1
 )
 `
 
 type UpdateRefundParams struct {
-	ID      int64
-	Method  NullPaymentRefundMethod
-	Status  NullPaymentStatus
-	Reason  pgtype.Text
-	Address pgtype.Text
-	UserID  pgtype.Int8
+	ID         int64
+	Method     NullPaymentRefundMethod
+	Status     NullPaymentStatus
+	Reason     pgtype.Text
+	Address    pgtype.Text
+	ApprovedBy pgtype.Int8
 }
 
 func (q *Queries) UpdateRefund(ctx context.Context, arg UpdateRefundParams) error {
@@ -366,7 +371,7 @@ func (q *Queries) UpdateRefund(ctx context.Context, arg UpdateRefundParams) erro
 		arg.Status,
 		arg.Reason,
 		arg.Address,
-		arg.UserID,
+		arg.ApprovedBy,
 	)
 	return err
 }

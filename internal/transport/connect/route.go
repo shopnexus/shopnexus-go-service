@@ -74,6 +74,9 @@ var PermissionRoutes = map[string]permission.Options{
 		permission.NeedRoles(model.RoleAdmin, model.RoleStaff),
 		permission.NeedPermissions(model.PermissionDeleteProduct),
 	),
+	"/product.v1.ProductService/GetProductByPOPID": permission.UseOptions(
+		permission.NeedRoles(model.RoleUser, model.RoleStaff, model.RoleAdmin),
+	),
 
 	// PRODUCT SERIAL
 	"/product.v1.ProductService/ListProductSerials": permission.UseOptions(
@@ -113,6 +116,9 @@ var PermissionRoutes = map[string]permission.Options{
 	"/product.v1.ProductService/DeleteSale": permission.UseOptions(
 		permission.NeedRoles(model.RoleAdmin, model.RoleStaff),
 		permission.NeedPermissions(model.PermissionDeleteSale),
+	),
+	"/product.v1.ProductService/GetAppliedSales": permission.UseOptions(
+		permission.NeedRoles(model.RoleUser, model.RoleStaff, model.RoleAdmin),
 	),
 
 	// TAG

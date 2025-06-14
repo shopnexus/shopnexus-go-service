@@ -76,6 +76,8 @@ model AdminAccount {
 
   account Account @relation(fields: [id], references: [id], onDelete: Cascade, onUpdate: Cascade)
 
+  ApprovedRefunds Refund[] // Admin can approve refunds
+
   @@map("admin")
   @@schema("account")
 }
@@ -375,8 +377,10 @@ model Refund {
   address               String // PICK_UP address, if method is DROP_OFF, address is empty
   date_created          DateTime     @default(now()) @db.Timestamptz(3)
   date_updated          DateTime     @default(now()) @db.Timestamptz(3)
+  approved_by          BigInt?      // admin_id
 
   product_on_payment ProductOnPayment @relation(fields: [product_on_payment_id], references: [id], onUpdate: Cascade, onDelete: Cascade)
+  admin_account   AdminAccount?   @relation(fields: [approved_by], references: [id], onUpdate: Cascade, onDelete: Cascade)
 
   @@map("refund")
   @@schema("payment")

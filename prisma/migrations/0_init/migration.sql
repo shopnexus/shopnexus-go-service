@@ -274,6 +274,7 @@ CREATE TABLE "payment"."refund" (
     "address" TEXT NOT NULL,
     "date_created" TIMESTAMPTZ(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "date_updated" TIMESTAMPTZ(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "approved_by" BIGINT,
 
     CONSTRAINT "refund_pkey" PRIMARY KEY ("id")
 );
@@ -387,4 +388,7 @@ ALTER TABLE "payment"."vnpay" ADD CONSTRAINT "vnpay_id_fkey" FOREIGN KEY ("id") 
 
 -- AddForeignKey
 ALTER TABLE "payment"."refund" ADD CONSTRAINT "refund_product_on_payment_id_fkey" FOREIGN KEY ("product_on_payment_id") REFERENCES "payment"."product_on_payment"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "payment"."refund" ADD CONSTRAINT "refund_approved_by_fkey" FOREIGN KEY ("approved_by") REFERENCES "account"."admin"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 

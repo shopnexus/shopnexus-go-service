@@ -183,8 +183,16 @@ func (s *ServiceImpl) UpdateRefund(ctx context.Context, params UpdateRefundParam
 		}
 	}
 
+	// TODO: wrong check because user can also update address, need pass UserID into
+	refund, err := txStorage.GetRefund(ctx, storage.GetRefundParams{
+		ID: params.ID,
+	})
+	if err != nil {
+		return fmt.Errorf("failed to get refund %d: %w", params.ID, err)
+	}
+
 	// Method drop_off must not contains address
-	if *params.Method == model.RefundMethodDropOff {
+	if (params.Method != nil && *params.Method == model.RefundMethodDropOff) || refund.Method == model.RefundMethodDropOff {
 		storageParams.Address = nil
 	}
 

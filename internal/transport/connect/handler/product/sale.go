@@ -113,6 +113,22 @@ func (s *ImplementedProductServiceHandler) DeleteSale(ctx context.Context, req *
 	return connect.NewResponse(&productv1.DeleteSaleResponse{}), nil
 }
 
+func (s *ImplementedProductServiceHandler) GetAppliedSales(ctx context.Context, req *connect.Request[productv1.GetAppliedSalesRequest]) (*connect.Response[productv1.GetAppliedSalesResponse], error) {
+	data, err := s.service.GetAppliedSales(ctx, req.Msg.ProductId)
+	if err != nil {
+		return nil, err
+	}
+
+	var sales []*productv1.SaleEntity
+	for _, d := range data {
+		sales = append(sales, modelToSaleEntity(d))
+	}
+
+	return connect.NewResponse(&productv1.GetAppliedSalesResponse{
+		Data: sales,
+	}), nil
+}
+
 func modelToSaleEntity(data model.Sale) *productv1.SaleEntity {
 	return &productv1.SaleEntity{
 		Id:               data.ID,

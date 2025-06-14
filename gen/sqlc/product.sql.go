@@ -180,6 +180,56 @@ func (q *Queries) GetProduct(ctx context.Context, id int64) (GetProductRow, erro
 	return i, err
 }
 
+const getProductByPOPID = `-- name: GetProductByPOPID :one
+WITH filtered_resources AS (
+    SELECT 
+        res.owner_id,
+        array_agg(res.url ORDER BY res.order ASC) AS resources
+    FROM product.resource res
+    WHERE res.owner_id = $1 AND res.type = 'PRODUCT'
+    GROUP BY res.owner_id
+)
+SELECT p.id, p.product_model_id, p.quantity, p.sold, p.add_price, p.is_active, p.can_combine, p.metadata, p.date_created, p.date_updated,
+       COALESCE(res.resources, '{}')::text[] AS resources
+FROM product.base p
+LEFT JOIN filtered_resources res ON res.owner_id = p.id
+INNER JOIN payment.product_on_payment pop ON p.id = pop.product_id
+WHERE pop.id = $1
+`
+
+type GetProductByPOPIDRow struct {
+	ID             int64
+	ProductModelID int64
+	Quantity       int64
+	Sold           int64
+	AddPrice       int64
+	IsActive       bool
+	CanCombine     bool
+	Metadata       []byte
+	DateCreated    pgtype.Timestamptz
+	DateUpdated    pgtype.Timestamptz
+	Resources      []string
+}
+
+func (q *Queries) GetProductByPOPID(ctx context.Context, id int64) (GetProductByPOPIDRow, error) {
+	row := q.db.QueryRow(ctx, getProductByPOPID, id)
+	var i GetProductByPOPIDRow
+	err := row.Scan(
+		&i.ID,
+		&i.ProductModelID,
+		&i.Quantity,
+		&i.Sold,
+		&i.AddPrice,
+		&i.IsActive,
+		&i.CanCombine,
+		&i.Metadata,
+		&i.DateCreated,
+		&i.DateUpdated,
+		&i.Resources,
+	)
+	return i, err
+}
+
 const listProducts = `-- name: ListProducts :many
 WITH filtered_product AS (
     SELECT p.id, p.product_model_id, p.quantity, p.sold, p.add_price, p.is_active, p.can_combine, p.metadata, p.date_created, p.date_updated

@@ -363,6 +363,7 @@ type PaymentRefund struct {
 	Address            string
 	DateCreated        pgtype.Timestamptz
 	DateUpdated        pgtype.Timestamptz
+	ApprovedBy         pgtype.Int8
 }
 
 type PaymentVnpay struct {

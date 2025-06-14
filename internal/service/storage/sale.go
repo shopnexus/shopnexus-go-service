@@ -2,6 +2,7 @@ package storage
 
 import (
 	"context"
+	"fmt"
 	"shopnexus-go-service/gen/sqlc"
 	"shopnexus-go-service/internal/model"
 	"shopnexus-go-service/internal/utils/ptr"
@@ -78,6 +79,8 @@ func (r *ServiceImpl) GetAvailableSales(ctx context.Context, params GetLatestSal
 		})
 	}
 
+	fmt.Printf("Found %d sales for ProductModelID: %d, BrandID: %d, Tags: %v\n", len(sales), params.ProductModelID, params.BrandID, params.Tags)
+
 	return sales, nil
 }
 
@@ -153,8 +156,8 @@ func (r *ServiceImpl) ListSales(ctx context.Context, params ListSalesParams) ([]
 func (r *ServiceImpl) CreateSale(ctx context.Context, sale model.Sale) (model.Sale, error) {
 	row, err := r.sqlc.CreateSale(ctx, sqlc.CreateSaleParams{
 		Tag:              *PtrToPgtype(&pgtype.Text{}, sale.Tag),
-		ProductModelID:   *PtrToPgtype(&pgtype.Int8{}, &sale.ProductModelID),
-		BrandID:          *PtrToPgtype(&pgtype.Int8{}, &sale.BrandID),
+		ProductModelID:   *PtrToPgtype(&pgtype.Int8{}, sale.ProductModelID),
+		BrandID:          *PtrToPgtype(&pgtype.Int8{}, sale.BrandID),
 		DateStarted:      *ValueToPgtype(&pgtype.Timestamptz{}, time.UnixMilli(sale.DateStarted)),
 		DateEnded:        *PtrToPgtype(&pgtype.Timestamptz{}, ptr.PtrMilisToTime(sale.DateEnded)),
 		Quantity:         sale.Quantity,

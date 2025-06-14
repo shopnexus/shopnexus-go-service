@@ -34,6 +34,7 @@ type Service interface {
 	UpdateProduct(ctx context.Context, params UpdateProductParams) error
 	UpdateProductSold(ctx context.Context, params UpdateProductSoldParams) error
 	DeleteProduct(ctx context.Context, id int64) error
+	GetProductByPOPID(ctx context.Context, productOnPaymentID int64) (model.Product, error)
 
 	GetProductSerial(ctx context.Context, serialID string) (model.ProductSerial, error)
 	ListProductSerials(ctx context.Context, params ListProductSerialsParams) (model.PaginateResult[model.ProductSerial], error)
@@ -49,6 +50,7 @@ type Service interface {
 	CreateSale(ctx context.Context, params CreateSaleParams) (model.Sale, error)
 	UpdateSale(ctx context.Context, params UpdateSaleParams) error
 	DeleteSale(ctx context.Context, id int64) error
+	GetAppliedSales(ctx context.Context, productID int64) ([]model.Sale, error)
 
 	GetTag(ctx context.Context, tag string) (TagResponse, error)
 	ListTags(ctx context.Context, params ListTagsParams) (model.PaginateResult[TagResponse], error)
@@ -181,4 +183,12 @@ func (s *ServiceImpl) UpdateProductSold(ctx context.Context, params UpdateProduc
 
 func (s *ServiceImpl) DeleteProduct(ctx context.Context, id int64) error {
 	return s.storage.DeleteProduct(ctx, id)
+}
+
+func (s *ServiceImpl) GetProductByPOPID(ctx context.Context, productOnPaymentID int64) (model.Product, error) {
+	product, err := s.storage.GetProductByPOPID(ctx, productOnPaymentID)
+	if err != nil {
+		return model.Product{}, err
+	}
+	return product, nil
 }

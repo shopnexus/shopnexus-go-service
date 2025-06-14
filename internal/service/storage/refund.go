@@ -43,6 +43,7 @@ func (r *ServiceImpl) GetRefund(ctx context.Context, params GetRefundParams) (mo
 		Status:             model.Status(row.Status),
 		Reason:             row.Reason,
 		Address:            row.Address,
+		ApprovedBy:         PgtypeToPtr[int64](row.ApprovedBy),
 		DateCreated:        row.DateCreated.Time.UnixMilli(),
 		DateUpdated:        row.DateUpdated.Time.UnixMilli(),
 		Resources:          row.Resources,
@@ -103,6 +104,7 @@ func (r *ServiceImpl) ListRefunds(ctx context.Context, params ListRefundsParams)
 			DateCreated:        row.DateCreated.Time.UnixMilli(),
 			DateUpdated:        row.DateUpdated.Time.UnixMilli(),
 			Resources:          row.Resources,
+			ApprovedBy:         PgtypeToPtr[int64](row.ApprovedBy),
 		})
 	}
 
@@ -116,6 +118,7 @@ func (r *ServiceImpl) CreateRefund(ctx context.Context, refund model.Refund) (mo
 		Status:             sqlc.PaymentStatus(refund.Status),
 		Reason:             refund.Reason,
 		Address:            refund.Address,
+		ApprovedBy:         *PtrToPgtype(&pgtype.Int8{}, refund.ApprovedBy),
 	})
 	if err != nil {
 		return model.Refund{}, err
@@ -135,27 +138,30 @@ func (r *ServiceImpl) CreateRefund(ctx context.Context, refund model.Refund) (mo
 		DateCreated:        time.Now().UnixMilli(),
 		DateUpdated:        time.Now().UnixMilli(),
 		Resources:          refund.Resources,
+		ApprovedBy:         refund.ApprovedBy,
 	}, nil
 }
 
 type UpdateRefundParams struct {
-	ID        int64
-	UserID    *int64
-	Method    *model.RefundMethod
-	Status    *model.Status
-	Reason    *string
-	Address   *string
-	Resources *[]string
+	ID         int64
+	UserID     *int64
+	Method     *model.RefundMethod
+	Status     *model.Status
+	Reason     *string
+	Address    *string
+	ApprovedBy *int64
+	Resources  *[]string
 }
 
 func (r *ServiceImpl) UpdateRefund(ctx context.Context, params UpdateRefundParams) error {
 	err := r.sqlc.UpdateRefund(ctx, sqlc.UpdateRefundParams{
-		ID:      params.ID,
-		UserID:  *PtrToPgtype(&pgtype.Int8{}, params.UserID),
-		Method:  *PtrBrandedToPgType(&sqlc.NullPaymentRefundMethod{}, params.Method),
-		Status:  *PtrBrandedToPgType(&sqlc.NullPaymentStatus{}, params.Status),
-		Reason:  *PtrToPgtype(&pgtype.Text{}, params.Reason),
-		Address: *PtrToPgtype(&pgtype.Text{}, params.Address),
+		ID: params.ID,
+		// UserID:     *PtrToPgtype(&pgtype.Int8{}, params.UserID),
+		Method:     *PtrBrandedToPgType(&sqlc.NullPaymentRefundMethod{}, params.Method),
+		Status:     *PtrBrandedToPgType(&sqlc.NullPaymentStatus{}, params.Status),
+		Reason:     *PtrToPgtype(&pgtype.Text{}, params.Reason),
+		Address:    *PtrToPgtype(&pgtype.Text{}, params.Address),
+		ApprovedBy: *PtrToPgtype(&pgtype.Int8{}, params.ApprovedBy),
 	})
 
 	if params.Resources != nil {

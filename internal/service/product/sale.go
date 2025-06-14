@@ -4,6 +4,7 @@ import (
 	"context"
 	"shopnexus-go-service/internal/model"
 	"shopnexus-go-service/internal/service/storage"
+	"slices"
 )
 
 type ListSalesParams struct {
@@ -103,4 +104,45 @@ func (s *ServiceImpl) UpdateSale(ctx context.Context, params UpdateSaleParams) e
 
 func (s *ServiceImpl) DeleteSale(ctx context.Context, id int64) error {
 	return s.storage.DeleteSale(ctx, id)
+}
+
+func (s *ServiceImpl) GetAppliedSales(ctx context.Context, productID int64) ([]model.Sale, error) {
+	product, err := s.storage.GetProduct(ctx, productID)
+	if err != nil {
+		return nil, err
+	}
+
+	productModel, err := s.storage.GetProductModel(ctx, product.ProductModelID)
+	if err != nil {
+		return nil, err
+	}
+
+	// Get available sales using the same approach as the payment system
+	sales, err := s.storage.GetAvailableSales(ctx, storage.GetLatestSaleParams{
+		ProductModelID: productModel.ID,
+		BrandID:        productModel.BrandID,
+		Tags:           productModel.Tags,
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	// for i := range sales {
+	// 	if sales[i].DiscountPercent == nil && sales[i].DiscountPrice == nil {
+	// 		// If both discount percent and discount price are nil, we can skip this sale
+	// 		sales = slices.Delete(sales, i, i+1)
+	// 		i-- // Adjust index after removal
+	// 		continue
+	// 	}
+	// }
+
+	for i := len(sales) - 1; i >= 0; i-- {
+		if sales[i].DiscountPercent == nil && sales[i].DiscountPrice == nil {
+			// If both discount percent and discount price are nil, we can skip this sale
+			sales = slices.Delete(sales, i, i+1)
+			continue
+		}
+	}
+
+	return sales, nil
 }
